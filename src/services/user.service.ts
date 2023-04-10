@@ -4,14 +4,19 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 import User from "../models/user.model";
-import { ErrorUserInvalid } from "../lib/errors";
 import { UserDocument } from "../models/user.model";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import DeviceToken, { DeviceTokenDocument } from "../models/device-token.model";
 import AsyncLock from "async-lock";
 
 @injectable()
 export class UserService {
+    /**
+     * Lock policy:
+     * - Every operation that operate on a user locks on the document ID of that user
+     * - Create user is an exception, it doesn't lock on anything
+     * - If a function requires locking on multiple user, locking is done on ascending order of IDs
+     */
     private dbLock: AsyncLock = new AsyncLock();
 
     constructor() {
@@ -56,19 +61,27 @@ export class UserService {
      * @returns The requested new user, or throws an error if the user already exist
      */
     async createUser(username: string, password: string, name: string) {
-        return await this.dbLock.acquire(username, async () => {
-            const u = new User();
-            u.username = username;
-            console.log(typeof process.env.HASH_ROUNDS);
-            u.password = await bcrypt.hash(
-                password,
-                parseInt(process.env.HASH_ROUNDS)
-            );
-            u.name = name;
+        const u = new User();
+        u.username = username;
+        console.log(typeof process.env.HASH_ROUNDS);
+        u.password = await bcrypt.hash(
+            password,
+            parseInt(process.env.HASH_ROUNDS)
+        );
+        u.name = name;
 
-            await u.save();
+        await u.save();
 
-            return u;
+        return u;
+    }
+
+    /**
+     * Finds and returns a user with the specified id
+     * @param id ID of the requested user
+     * @returns The user that matches the given ID, or null if no user matches*/
+    async findUserById(id: Types.ObjectId) {
+        return await this.dbLock.acquire(id.toString(), async () => {
+            return await User.findById(id);
         });
     }
 

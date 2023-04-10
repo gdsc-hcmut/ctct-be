@@ -6,7 +6,7 @@ import { Controller } from "./controller";
 
 import { UserService, AuthService } from "../services";
 import { ErrorInvalidData } from "../lib/errors";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 @injectable()
 export class UserController extends Controller {
