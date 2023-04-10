@@ -32,6 +32,16 @@ export type UserDocument = Document & {
         completedAt: number;
         result: number;
     }[];
+
+    quizRegistered: {
+        _id: Types.ObjectId;
+        registeredAt: number;
+    }[];
+    quizParticipated: {
+        _id: Types.ObjectId;
+        completedAt: number;
+        result: number;
+    }[];
 };
 
 const userSchema = new Schema<UserDocument>({
@@ -55,6 +65,16 @@ const userSchema = new Schema<UserDocument>({
         registeredAt: number;
     }>,
     examsParticipated: Array<{
+        _id: Types.ObjectId;
+        completedAt: number;
+        result: number;
+    }>,
+
+    quizRegistered: Array<{
+        _id: Types.ObjectId;
+        registeredAt: number;
+    }>,
+    quizParticipated: Array<{
         _id: Types.ObjectId;
         completedAt: number;
         result: number;
