@@ -5,6 +5,7 @@ import { Request, Response, ServiceType } from "../types";
 import { Controller } from "./controller";
 
 import { UserService, AuthService } from "../services";
+import { ErrorInvalidData } from "../lib/errors";
 import mongoose from "mongoose";
 
 @injectable()
@@ -39,14 +40,35 @@ export class UserController extends Controller {
     }
 
     async createUser(req: Request, res: Response) {
-        const user = _.pick(req.body, ["username", "password"]) as any;
-
         try {
-            const createdUser = await this.userService.create(user);
+            let { username, name } = req.body;
+            const { password } = req.body;
+            if (!username) {
+                throw new ErrorInvalidData(
+                    `Please provide a username to continue`
+                );
+            }
+            if (!password) {
+                throw new ErrorInvalidData(
+                    `Please provide a password to continue`
+                );
+            }
+            if (!name) {
+                throw new ErrorInvalidData(`Please provide a name to continue`);
+            }
+            username = username.trim();
+            name = name.trim();
+
+            const createdUser = await this.userService.createUser(
+                username,
+                password,
+                name
+            );
             // await this.userService.verifyAccountRequest(createdUser.email);
 
             res.composer.success(createdUser._id);
         } catch (error) {
+            console.log(error);
             res.composer.badRequest(error.message);
         }
     }

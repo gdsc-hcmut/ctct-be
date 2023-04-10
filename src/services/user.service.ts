@@ -8,9 +8,12 @@ import { ErrorUserInvalid } from "../lib/errors";
 import { UserDocument } from "../models/user.model";
 import mongoose from "mongoose";
 import DeviceToken, { DeviceTokenDocument } from "../models/device-token.model";
+import AsyncLock from "async-lock";
 
 @injectable()
 export class UserService {
+    private dbLock: AsyncLock = new AsyncLock();
+
     constructor() {
         this.setupIndexes();
     }
@@ -45,17 +48,28 @@ export class UserService {
         return opUpdateResult.modifiedCount;
     }
 
-    async create(user: any): Promise<UserDocument> {
-        if (_.isEmpty(user.password) || _.isEmpty(user.username)) {
-            throw new ErrorUserInvalid("Missing input fields");
-        }
+    /**
+     * Creates a new user with the specified username, password and name
+     * @param username username of the user to be created (assumed to be non-empty)
+     * @param password password of the user to be created (assumed to be non-empty)
+     * @param name name of the user to be created (assumed to be non-empty)
+     * @returns The requested new user, or throws an error if the user already exist
+     */
+    async createUser(username: string, password: string, name: string) {
+        return await this.dbLock.acquire(username, async () => {
+            const u = new User();
+            u.username = username;
+            console.log(typeof process.env.HASH_ROUNDS);
+            u.password = await bcrypt.hash(
+                password,
+                parseInt(process.env.HASH_ROUNDS)
+            );
+            u.name = name;
 
-        user.password = await bcrypt.hash(
-            user.password,
-            process.env.HASH_ROUNDS
-        );
-        const addedUser = await User.create(user);
-        return addedUser._id;
+            await u.save();
+
+            return u;
+        });
     }
 
     async verifyAccountRequest(email: string) {
@@ -89,6 +103,7 @@ export class UserService {
             isVerified: true,
         });
     }
+
     async find(query: any = {}) {
         return await User.find(query);
     }

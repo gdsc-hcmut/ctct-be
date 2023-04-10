@@ -126,6 +126,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/async-lock@^1.4.0":
+  "integrity" "sha512-2+rYSaWrpdbQG3SA0LmMT6YxWLrI81AqpMlSkw3QtFc2HGDufkweQSn30Eiev7x9LL0oyFrBqk1PXOnB9IEgKg=="
+  "resolved" "https://registry.npmjs.org/@types/async-lock/-/async-lock-1.4.0.tgz"
+  "version" "1.4.0"
+
 "@types/bcryptjs@^2.4.2":
   "integrity" "sha512-LiMQ6EOPob/4yUL66SZzu6Yh77cbzJFYll+ZfaPiPPFswtIlA/Fs1MzdKYA7JApHU49zQTbJGX3PDmCpIdDBRQ=="
   "resolved" "https://registry.npmjs.org/@types/bcryptjs/-/bcryptjs-2.4.2.tgz"
@@ -889,6 +894,11 @@
   "integrity" "sha512-z/WhQ5FPySLdvREByI2vZiTWwCnF0moMJ1hK9YQwDTHKh6I7/uSckMetoRGb5UBZPC1z0jlw+n/XCgjeH7y1AQ=="
   "resolved" "https://registry.npmjs.org/async-each/-/async-each-1.0.3.tgz"
   "version" "1.0.3"
+
+"async-lock@^1.4.0":
+  "integrity" "sha512-coglx5yIWuetakm3/1dsX9hxCNox22h7+V80RQOu2XUUMidtArxKoZoOtHUPuR84SycKTXzgGzAUR5hJxujyJQ=="
+  "resolved" "https://registry.npmjs.org/async-lock/-/async-lock-1.4.0.tgz"
+  "version" "1.4.0"
 
 "async@^2.6.1":
   "integrity" "sha512-zflvls11DCy+dQWzTW2dzuilv8Z5X/pjfmZOWba6TNIVDm+2UDaJmXSOXlasHKfNBs8oo3M0aT50fDEWfKZjXg=="

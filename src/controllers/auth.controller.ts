@@ -27,7 +27,6 @@ export class AuthController extends Controller {
 
     async login(req: Request, res: Response) {
         const { username, password } = req.body;
-        console.log(username, password);
 
         try {
             const token = await this.authService.generateTokenUsingUsername(
