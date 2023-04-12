@@ -22,10 +22,8 @@ export class MeController extends Controller {
     }
 
     async getMyProfile(req: Request, res: Response) {
-        console.log("hello1");
         try {
             const userId = req.tokenMeta.userId;
-            console.log(userId);
             const user = await this.userService.findUserById(userId);
 
             if (!user) {

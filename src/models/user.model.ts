@@ -18,30 +18,6 @@ export type UserDocument = Document & {
     email: string;
     phoneNumber: string;
     universityName: Types.ObjectId;
-
-    examsPendingPayment: {
-        _id: Types.ObjectId;
-        requestedAt: number;
-    }[];
-    examsRegistered: {
-        _id: Types.ObjectId;
-        registeredAt: number;
-    }[];
-    examsParticipated: {
-        _id: Types.ObjectId;
-        completedAt: number;
-        result: number;
-    }[];
-
-    quizRegistered: {
-        _id: Types.ObjectId;
-        registeredAt: number;
-    }[];
-    quizParticipated: {
-        _id: Types.ObjectId;
-        completedAt: number;
-        result: number;
-    }[];
 };
 
 const userSchema = new Schema<UserDocument>({
@@ -55,30 +31,6 @@ const userSchema = new Schema<UserDocument>({
     email: String,
     phoneNumber: String,
     universityName: Types.ObjectId,
-
-    examsPendingPayment: Array<{
-        _id: Types.ObjectId;
-        requestedAt: number;
-    }>,
-    examsRegistered: Array<{
-        _id: Types.ObjectId;
-        registeredAt: number;
-    }>,
-    examsParticipated: Array<{
-        _id: Types.ObjectId;
-        completedAt: number;
-        result: number;
-    }>,
-
-    quizRegistered: Array<{
-        _id: Types.ObjectId;
-        registeredAt: number;
-    }>,
-    quizParticipated: Array<{
-        _id: Types.ObjectId;
-        completedAt: number;
-        result: number;
-    }>,
 
     // TODO: add tracking data for subjects
 });

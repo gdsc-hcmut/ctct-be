@@ -8,6 +8,8 @@ import { UserDocument } from "../models/user.model";
 import mongoose, { Types } from "mongoose";
 import DeviceToken, { DeviceTokenDocument } from "../models/device-token.model";
 import AsyncLock from "async-lock";
+import QuizHistoryModel from "../models/quiz-history";
+import ExamHistoryModel from "../models/exam-history";
 
 @injectable()
 export class UserService {
@@ -24,7 +26,7 @@ export class UserService {
     }
 
     private async setupIndexes() {
-        console.log("Setting up indexes for UserService");
+        // TODO: build indexes once app reaches stable
     }
 
     async registerNewDevice(token: string): Promise<DeviceTokenDocument> {
@@ -61,18 +63,25 @@ export class UserService {
      * @returns The requested new user, or throws an error if the user already exist
      */
     async createUser(username: string, password: string, name: string) {
-        const u = new User();
-        u.username = username;
-        console.log(typeof process.env.HASH_ROUNDS);
-        u.password = await bcrypt.hash(
+        const user = new User();
+        user.username = username;
+        user.password = await bcrypt.hash(
             password,
             parseInt(process.env.HASH_ROUNDS)
         );
-        u.name = name;
+        user.name = name;
+        await user.save();
 
-        await u.save();
+        // a quiz history and exam history with the same id
+        const quizHistory = new QuizHistoryModel();
+        quizHistory._id = user._id;
+        await quizHistory.save();
 
-        return u;
+        const examHistory = new ExamHistoryModel();
+        examHistory._id = user._id;
+        await examHistory.save();
+
+        return user;
     }
 
     /**
