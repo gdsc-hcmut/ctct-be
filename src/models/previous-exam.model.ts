@@ -14,7 +14,7 @@ export type PreviousExamDocument = Document & {
     lastUpdatedAt: number;
 };
 
-const previousExamSchema = new Schema<MaterialDocument>({
+const previousExamSchema = new Schema<PreviousExamDocument>({
     name: { type: String, required: true },
     isHiddenFromStudents: { type: Boolean, default: false },
     tags: [
