@@ -9,7 +9,7 @@ import mongoose, { Types, Schema } from "mongoose";
 export type MaterialDocument = Document & {
     name: string;
     isFolder: boolean;
-    isHidden: boolean;
+    isHiddenFromStudents: boolean;
     parentMaterial: Types.ObjectId;
     childrenMaterial: Types.ObjectId[];
     tags: Types.ObjectId[];
@@ -22,7 +22,7 @@ export type MaterialDocument = Document & {
 const materialSchema = new Schema<MaterialDocument>({
     name: { type: String, required: true },
     isFolder: { type: Boolean, default: false },
-    isHidden: { type: Boolean, default: false },
+    isHiddenFromStudents: { type: Boolean, default: false },
     parentMaterial: {
         type: Types.ObjectId,
         ref: "materials",
