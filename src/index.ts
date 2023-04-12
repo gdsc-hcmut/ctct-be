@@ -6,6 +6,7 @@ import { applyHttpResponseComposer } from "./lib/response-composer";
 
 import { AuthService, UserService } from "./services";
 import { AuthController, UserController } from "./controllers";
+import { MeController } from "./controllers/me.controller";
 import { ServiceType } from "./types";
 import mongoose from "mongoose";
 
@@ -37,6 +38,7 @@ Promise.all([
         [
             container.resolve<AuthController>(AuthController),
             container.resolve<UserController>(UserController),
+            container.resolve<MeController>(MeController),
         ],
         toNumber(process.env.PORT),
         [

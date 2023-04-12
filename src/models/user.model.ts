@@ -79,6 +79,8 @@ const userSchema = new Schema<UserDocument>({
         completedAt: number;
         result: number;
     }>,
+
+    // TODO: add tracking data for subjects
 });
 
 const User = mongoose.model<UserDocument>("User", userSchema);
