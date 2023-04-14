@@ -13,7 +13,7 @@ export type MaterialDocument = Document & {
     parentMaterial: Types.ObjectId;
     childrenMaterial: Types.ObjectId[];
     tags: Types.ObjectId[];
-    bucketLink: string;
+    resourceLink: string[];
     createdBy: Types.ObjectId;
     createdAt: number;
     lastUpdatedAt: number;
@@ -39,7 +39,7 @@ const materialSchema = new Schema<MaterialDocument>({
             ref: "tags",
         },
     ],
-    bucketLink: String,
+    resourceLink: [{ type: String }],
     createdBy: {
         type: Types.ObjectId,
         ref: "users",

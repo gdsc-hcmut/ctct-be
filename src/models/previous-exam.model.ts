@@ -8,7 +8,7 @@ export type PreviousExamDocument = Document & {
     name: string;
     isHiddenFromStudents: boolean;
     tags: Types.ObjectId[];
-    bucketLink: string;
+    resourceLink: string; // only one string because it's only one pdf
     createdBy: Types.ObjectId;
     createdAt: number;
     lastUpdatedAt: number;
@@ -23,7 +23,7 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
             ref: "tags",
         },
     ],
-    bucketLink: { type: String, required: true },
+    resourceLink: { type: String, required: true },
     createdBy: {
         type: Types.ObjectId,
         ref: "users",

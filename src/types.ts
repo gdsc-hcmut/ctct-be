@@ -16,6 +16,7 @@ export const ServiceType = {
     Database: Symbol.for("DatabaseService"),
     // MQTT: Symbol.for('MQTTService'),
     User: Symbol.for("UserService"),
+    FileUpload: Symbol.for("FileUpload"),
     // Upload: Symbol.for('Upload'),
     // Mail: Symbol.for('Mail'),
     // Contact: Symbol.for('Contact'),

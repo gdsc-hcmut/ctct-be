@@ -5,6 +5,7 @@ import container from "./container";
 import { applyHttpResponseComposer } from "./lib/response-composer";
 
 import { AuthService, UserService } from "./services";
+import { FileUploadService } from "./services/file-upload.service";
 import { AuthController, UserController } from "./controllers";
 import { MeController } from "./controllers/me.controller";
 import { ServiceType } from "./types";
@@ -28,6 +29,10 @@ container
 container
     .bind<UserService>(ServiceType.User)
     .to(UserService)
+    .inSingletonScope();
+container
+    .bind<FileUploadService>(ServiceType.FileUpload)
+    .to(FileUploadService)
     .inSingletonScope();
 
 // Initialize service first
