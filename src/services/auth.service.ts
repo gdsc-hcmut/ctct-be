@@ -52,11 +52,9 @@ export class AuthService {
     }
 
     async verifyAccountCode(payload: any, done: VerifiedCallback) {
-        console.log(payload, "Pay");
         const tokenMeta = parseTokenMeta(payload);
 
         try {
-            console.log("meta", tokenMeta);
             const token = await Token.findOne({
                 _id: tokenMeta._id,
             });
@@ -75,8 +73,6 @@ export class AuthService {
             try {
                 passport.authenticate("jwt", async (err, tokenMeta, info) => {
                     req.tokenMeta = tokenMeta;
-                    console.log(tokenMeta, "is");
-                    console.log("ERRR", err, info);
                     if (block && _.isEmpty(tokenMeta)) {
                         res.composer.unauthorized();
                         return;

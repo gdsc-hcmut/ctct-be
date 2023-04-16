@@ -40,3 +40,16 @@ export enum HttpMethod {
     PATCH = "PATCH",
     DELETE = "DELETE",
 }
+
+export type UploadFileInfo = {
+    originalName: string;
+    refName: string;
+    mimetype: string;
+};
+
+export type DownloadFileInfo = {
+    originalName: string;
+    refName: string;
+    mimetype: string;
+    buffer: Buffer;
+};

@@ -8,6 +8,7 @@ import { AuthService, UserService } from "./services";
 import { FileUploadService } from "./services/file-upload.service";
 import { AuthController, UserController } from "./controllers";
 import { MeController } from "./controllers/me.controller";
+import { PreviousExamController } from "./controllers/previous-exam.controller";
 import { ServiceType } from "./types";
 import mongoose from "mongoose";
 
@@ -44,6 +45,7 @@ Promise.all([
             container.resolve<AuthController>(AuthController),
             container.resolve<UserController>(UserController),
             container.resolve<MeController>(MeController),
+            container.resolve<PreviousExamController>(PreviousExamController),
         ],
         toNumber(process.env.PORT),
         [
