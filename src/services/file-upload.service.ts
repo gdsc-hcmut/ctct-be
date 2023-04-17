@@ -1,13 +1,12 @@
 import { injectable } from "inversify";
 import admin from "firebase-admin";
 import serviceAccount from "../../googleServiceAccountKey.json";
-import { UploadFileInfo, DownloadFileInfo } from "../types";
+import { DownloadFileInfo } from "../types";
 import { Bucket } from "@google-cloud/storage";
 import { randomUUID } from "crypto";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import getRawBody from "raw-body";
 import AttachmentModel from "../models/attachment.model";
-import { AttachmentDocument } from "../models/attachment.model";
 import { Types } from "mongoose";
 
 @injectable()
@@ -19,6 +18,7 @@ export class FileUploadService {
     bucket: Bucket;
 
     constructor() {
+        console.log("[FileUploadService] Construct");
         admin.initializeApp({
             credential: admin.credential.cert(
                 serviceAccount as admin.ServiceAccount
@@ -26,14 +26,13 @@ export class FileUploadService {
             storageBucket: "ctct-be.appspot.com",
         });
         this.bucket = admin.storage().bucket();
-        console.log("Initialized file upload service");
     }
 
     async uploadFiles(
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy
-    ): Promise<AttachmentDocument[]> {
-        const res: AttachmentDocument[] = await Promise.all(
+    ) {
+        const res = await Promise.all(
             files.map((file) =>
                 (async () => {
                     const refName = `${
@@ -75,5 +74,29 @@ export class FileUploadService {
             mimetype: mimetype,
             buffer: buffer,
         };
+    }
+
+    /**
+     * try to delete attachments and return whether they were deleted successfully or not
+     */
+    async deleteFiles(ids: Types.ObjectId[]): Promise<boolean[]> {
+        const ans: boolean[] = await Promise.all(
+            ids.map((id) =>
+                (async () => {
+                    const doc = await AttachmentModel.findOneAndDelete({
+                        _id: id,
+                    });
+                    if (!doc) {
+                        return false;
+                    }
+                    const { refName } = doc;
+                    const file = this.bucket.file(refName);
+                    await file.delete();
+                    return true;
+                })()
+            )
+        );
+
+        return ans;
     }
 }

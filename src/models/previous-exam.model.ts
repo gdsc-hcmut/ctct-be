@@ -19,13 +19,13 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
     isHiddenFromStudents: { type: Boolean, default: false },
     tags: [
         {
-            type: Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: "tags",
         },
     ],
-    resource: { type: Types.ObjectId, ref: "attachments" },
+    resource: { type: Schema.Types.ObjectId, ref: "attachments" },
     createdBy: {
-        type: Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "users",
     },
     createdAt: Number,

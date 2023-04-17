@@ -17,6 +17,7 @@ export const ServiceType = {
     // MQTT: Symbol.for('MQTTService'),
     User: Symbol.for("UserService"),
     FileUpload: Symbol.for("FileUpload"),
+    PreviousExam: Symbol.for("PreviousExam"),
     // Upload: Symbol.for('Upload'),
     // Mail: Symbol.for('Mail'),
     // Contact: Symbol.for('Contact'),

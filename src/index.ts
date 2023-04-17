@@ -6,6 +6,7 @@ import { applyHttpResponseComposer } from "./lib/response-composer";
 
 import { AuthService, UserService } from "./services";
 import { FileUploadService } from "./services/file-upload.service";
+import { PreviousExamService } from "./services/previous-exams.service";
 import { AuthController, UserController } from "./controllers";
 import { MeController } from "./controllers/me.controller";
 import { PreviousExamController } from "./controllers/previous-exam.controller";
@@ -34,6 +35,10 @@ container
 container
     .bind<FileUploadService>(ServiceType.FileUpload)
     .to(FileUploadService)
+    .inSingletonScope();
+container
+    .bind<PreviousExamService>(ServiceType.PreviousExam)
+    .to(PreviousExamService)
     .inSingletonScope();
 
 // Initialize service first

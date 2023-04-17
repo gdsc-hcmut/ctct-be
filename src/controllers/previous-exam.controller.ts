@@ -3,11 +3,14 @@ import { Router } from "express";
 import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
 import { UserService, AuthService } from "../services";
-import { ErrorNotFound } from "../lib/errors";
+import { PreviousExamService } from "../services/previous-exams.service";
 import { fileUploader } from "../upload-storage";
 import { FileUploadService } from "../services/file-upload.service";
-import { AgressiveFileCompression } from "../lib/file-compression/strategies";
+import { MediumFileCompression } from "../lib/file-compression/strategies";
+import { UploadValidator } from "../lib/upload-validator/upload-validator";
+import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
 import { Types } from "mongoose";
+import { UserRole } from "../models/user.model";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -17,37 +20,108 @@ export class PreviousExamController extends Controller {
     constructor(
         @inject(ServiceType.User) private userService: UserService,
         @inject(ServiceType.Auth) private authService: AuthService,
+        @inject(ServiceType.PreviousExam)
+        private previousExamService: PreviousExamService,
         @inject(ServiceType.FileUpload)
         private fileUploadService: FileUploadService
     ) {
         super();
         this.router.all("*", this.authService.authenticate());
 
-        this.router.post(
-            "/upload",
-            fileUploader.any(),
-            this.uploadPreviousExam.bind(this)
-        );
-        this.router.get("/getexam/:fileId", this.getPreviousExam.bind(this));
+        this.router.post("/create", fileUploader.any(), this.create.bind(this));
+        this.router.get("/get/:docId", this.getById.bind(this));
+        this.router.get("/download/:docId", this.download.bind(this));
     }
 
-    async uploadPreviousExam(req: Request, res: Response) {
+    async create(req: Request, res: Response) {
         try {
-            const files = await this.fileUploadService.uploadFiles(
-                req.files as Express.Multer.File[],
-                new AgressiveFileCompression()
+            const { userId } = req.tokenMeta;
+            const { name } = req.body;
+            let { hidden, tags } = req.body;
+
+            if (!name) {
+                throw new Error(`Missing 'name' field`);
+            }
+            if (hidden === undefined) {
+                hidden = false;
+            }
+            if (tags === undefined) {
+                tags = [];
+            }
+
+            const fileValidator = new UploadValidator(
+                new PreviousExamUploadValidation()
             );
-            res.composer.success(files);
+            fileValidator.validate(req.files as Express.Multer.File[]);
+
+            // TODO: validate tags
+
+            const doc = await this.previousExamService.create(
+                name,
+                userId,
+                req.files as Express.Multer.File[],
+                hidden,
+                tags,
+                new MediumFileCompression()
+            );
+
+            res.composer.success(doc);
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);
         }
     }
 
-    async getPreviousExam(req: Request, res: Response) {
+    async getById(req: Request, res: Response) {
         try {
-            const fileId = new Types.ObjectId(req.params.fileId);
-            const file = await this.fileUploadService.downloadFile(fileId);
+            const { userId } = req.tokenMeta;
+            const docId = new Types.ObjectId(req.params.docId);
+            const doc = await this.previousExamService.findOne(docId);
+            const user = await this.userService.findUserById(userId);
+            if (!doc) {
+                throw new Error(`Document not found`);
+            }
+            if (
+                doc.isHiddenFromStudents &&
+                user.roles.length === 1 &&
+                user.roles[0] === UserRole.STUDENT
+            ) {
+                throw new Error(
+                    `You don't have permission to access this document`
+                );
+            }
+            res.composer.success(doc);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async download(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+            const docId = new Types.ObjectId(req.params.docId);
+            const doc = await this.previousExamService.findOnePopulated(
+                docId,
+                "resource"
+            );
+            const user = await this.userService.findUserById(userId);
+            if (!doc) {
+                throw new Error(`Document doesn't exist`);
+            }
+            if (
+                doc.isHiddenFromStudents &&
+                user.roles.length === 1 &&
+                user.roles[0] === UserRole.STUDENT
+            ) {
+                throw new Error(
+                    `You don't have permission to access this document`
+                );
+            }
+
+            const file = await this.fileUploadService.downloadFile(
+                doc.resource._id
+            );
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename=${file.originalName}`
