@@ -1,5 +1,4 @@
-import { injectable } from "inversify";
-import crypto from "crypto";
+import { injectable, inject } from "inversify";
 import passport from "passport";
 import {
     Strategy,
@@ -9,19 +8,21 @@ import {
 } from "passport-jwt";
 import jwt from "jwt-simple";
 import { NextFunction } from "express";
-import _ from "lodash";
-import bcrypt from "bcryptjs";
+import _, { toNumber } from "lodash";
 import moment from "moment";
-import User, { UserDocument } from "../models/user.model";
+// import { Collection, ObjectID, ObjectId } from 'mongodb';
+import passportGoogle from "passport-google-oauth20";
+import User, { UserDocument, UserRole } from "../models/user.model";
 import { parseTokenMeta } from "../models/token.model";
-
+const GoogleStrategy = passportGoogle.Strategy;
 import { Request, Response, ServiceType } from "../types";
-
+import { ErrorUserInvalid } from "../lib/errors";
 import { UserService } from "./user.service";
 import Token from "../models/token.model";
+// import { MailService } from '.';
 import { lazyInject } from "../container";
-import mongoose from "mongoose";
-
+import QuizHistoryModel from "../models/quiz-history";
+import ExamHistoryModel from "../models/exam-history";
 @injectable()
 export class AuthService {
     @lazyInject(ServiceType.User) private userService: UserService;
@@ -39,6 +40,46 @@ export class AuthService {
             this.verifyAccountCode.bind(this)
         );
         passport.use(strategyJwt);
+
+        const strategy = new GoogleStrategy(
+            {
+                clientID: process.env.GOOGLE_CLIENT_ID,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                callbackURL: "/auth/google/redirect",
+            },
+            async (accessToken, refreshToken, profile, done) => {
+                const user = await this.userService.findOne({
+                    googleId: profile.id,
+                });
+                // If user doesn't exist creates a new user. (similar to sign up)
+                if (!user) {
+                    const newUser = await User.create({
+                        googleId: profile.id,
+                        name: profile.displayName,
+                        email: profile.emails?.[0].value,
+                        picture: profile._json.picture,
+                        role: UserRole.STUDENT,
+                        // we are using optional chaining because profile.emails may be undefined.
+                    });
+                    await QuizHistoryModel.create({ _id: newUser._id });
+                    await ExamHistoryModel.create({ _id: newUser._id });
+                    if (newUser) {
+                        done(null, newUser);
+                    }
+                } else {
+                    console.log(profile._json.picture);
+                    if (user.picture !== profile._json.picture) {
+                        user.picture = profile._json.picture;
+                        user.save();
+                    }
+                    done(null, user);
+                }
+                // console.log('Profile', profile);
+            }
+        );
+
+        passport.use(strategy);
+
         passport.serializeUser((user: UserDocument, done) => {
             done(null, user.id);
         });
@@ -87,23 +128,28 @@ export class AuthService {
     }
 
     private async createToken(
-        userId: mongoose.Types.ObjectId,
-        userAgent: string
+        userId: string,
+        googleId: string,
+        userAgent: string,
+        role: UserRole
     ) {
         const result = await Token.create({
-            userId: userId,
+            googleId,
+            userAgent,
+            userId,
             createdAt: moment().unix(),
-            expiredAt: moment().unix() + process.env.TOKEN_TTL,
-
-            userAgent: userAgent,
+            expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
+            role,
         });
         const EncodeToken = jwt.encode(
             {
                 _id: result._id,
+                googleId,
                 userAgent,
                 userId,
                 createdAt: moment().unix(),
-                expiredAt: moment().unix() + process.env.TOKEN_TTL,
+                expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
+                role,
             },
             process.env.JWT_SECRET
         );
@@ -113,61 +159,24 @@ export class AuthService {
     }
 
     async generateTokenUsingUsername(
-        username: string,
-        password: string,
-        userAgent: string
+        userId: string,
+        googleId: string,
+        email: string,
+        role: UserRole
     ) {
-        if (!username || !password) {
-            throw new Error("missing input field");
-        }
-        const user = await this.userService.findOne({ username: username });
-        if (!user) {
-            throw new Error(`No user matches the given username`);
-        }
-
-        if (!(await bcrypt.compare(password, user.password))) {
-            throw new Error(`Wrong password`);
-        }
-
-        return await this.createToken(user._id, userAgent);
+        return await this.createToken(userId, googleId, email, role);
     }
 
-    async recoverPasswordRequest(email: string) {
-        let user = null;
-        try {
-            user = await this.userService.findOne({ email }, true);
-        } catch (err) {
-            throw new Error(
-                `The email address that you've entered doesn't match any account.`
-            );
+    async generateTokenGoogle(user: UserDocument, role: UserRole) {
+        if (_.isEmpty(user)) {
+            throw new ErrorUserInvalid("User not exist");
         }
 
-        const recoverPasswordCode = crypto.randomBytes(20).toString("hex");
-
-        await this.userService.updateOne(user._id, {
-            recoverPasswordCode,
-            recoverPasswordExpires: moment().add(2, "hours").unix(),
-        });
-    }
-
-    async recoverPassword(recoverPasswordCode: string, newPassword: string) {
-        let user = null;
-        try {
-            user = await this.userService.findOne(
-                { recoverPasswordCode },
-                true
-            );
-        } catch (err) {
-            throw new Error(
-                `The email address that you've entered doesn't match any account.`
-            );
-        }
-        newPassword = await bcrypt.hash(newPassword, process.env.HASH_ROUNDS);
-
-        await this.userService.updateOne(user._id, {
-            password: newPassword,
-            recoverPasswordCode: null,
-            recoverPasswordExpires: 0,
-        });
+        return await this.createToken(
+            user._id,
+            user.googleId,
+            user.email,
+            role
+        );
     }
 }

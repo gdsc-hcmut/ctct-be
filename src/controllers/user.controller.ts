@@ -22,7 +22,6 @@ export class UserController extends Controller {
         this.router.all("*", this.authService.authenticate(false));
 
         // Sign up
-        this.router.post("/", this.createUser.bind(this));
         this.router.post("/register_device", this.registerDevice.bind(this));
 
         this.router.all("*", this.authService.authenticate());
@@ -59,14 +58,14 @@ export class UserController extends Controller {
             username = username.trim();
             name = name.trim();
 
-            const createdUser = await this.userService.createUser(
-                username,
-                password,
-                name
-            );
+            // const createdUser = await this.userService.createUser(
+            //     username,
+            //     password,
+            //     name
+            // );
             // await this.userService.verifyAccountRequest(createdUser.email);
 
-            res.composer.success(createdUser._id);
+            res.composer.success({});
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);

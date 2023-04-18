@@ -1,4 +1,5 @@
 import mongoose, { Types, Schema } from "mongoose";
+import { UserRole } from "./user.model";
 
 /**
  * Exams from previous years
@@ -6,7 +7,8 @@ import mongoose, { Types, Schema } from "mongoose";
 
 export type PreviousExamDocument = Document & {
     name: string;
-    isHiddenFromStudents: boolean;
+    readAccess: UserRole[];
+    writeAccess: UserRole[];
     tags: Types.ObjectId[];
     resource: Types.ObjectId;
     createdBy: Types.ObjectId;
@@ -16,7 +18,8 @@ export type PreviousExamDocument = Document & {
 
 const previousExamSchema = new Schema<PreviousExamDocument>({
     name: { type: String, required: true },
-    isHiddenFromStudents: { type: Boolean, default: false },
+    readAccess: [{ type: String, enum: UserRole }],
+    writeAccess: [{ type: String, enum: UserRole }],
     tags: [
         {
             type: Schema.Types.ObjectId,

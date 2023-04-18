@@ -10,7 +10,6 @@ import { MediumFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
 import { Types } from "mongoose";
-import { UserRole } from "../models/user.model";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -74,18 +73,12 @@ export class PreviousExamController extends Controller {
 
     async getById(req: Request, res: Response) {
         try {
-            const { userId } = req.tokenMeta;
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne(docId);
-            const user = await this.userService.findUserById(userId);
             if (!doc) {
                 throw new Error(`Document not found`);
             }
-            if (
-                doc.isHiddenFromStudents &&
-                user.roles.length === 1 &&
-                user.roles[0] === UserRole.STUDENT
-            ) {
+            if (!doc.readAccess.includes(req.tokenMeta.role)) {
                 throw new Error(
                     `You don't have permission to access this document`
                 );
@@ -99,21 +92,15 @@ export class PreviousExamController extends Controller {
 
     async download(req: Request, res: Response) {
         try {
-            const { userId } = req.tokenMeta;
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOnePopulated(
                 docId,
                 "resource"
             );
-            const user = await this.userService.findUserById(userId);
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
-            if (
-                doc.isHiddenFromStudents &&
-                user.roles.length === 1 &&
-                user.roles[0] === UserRole.STUDENT
-            ) {
+            if (doc.readAccess.includes(req.tokenMeta.role)) {
                 throw new Error(
                     `You don't have permission to access this document`
                 );

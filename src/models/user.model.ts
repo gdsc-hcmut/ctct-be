@@ -8,9 +8,8 @@ export enum UserRole {
 }
 
 export type UserDocument = Document & {
-    username: string;
-    password: string;
-    roles: UserRole[];
+    googleId: string;
+    role: UserRole;
 
     name: string;
     picture: string;
@@ -21,9 +20,8 @@ export type UserDocument = Document & {
 };
 
 const userSchema = new Schema<UserDocument>({
-    username: { type: String, unique: true, required: true },
-    password: { type: String, required: true },
-    roles: Array<UserRole>,
+    googleId: { type: String, unique: true },
+    role: { type: String, enum: UserRole },
 
     name: { type: String, required: true },
     picture: String,

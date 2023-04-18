@@ -1,19 +1,23 @@
 import _ from "lodash";
-import mongoose, { Document } from "mongoose";
-const Schema = mongoose.Schema;
+import mongoose, { Document, Schema } from "mongoose";
+import { UserRole } from "./user.model";
 
 export type TokenDocument = Document & {
+    googleId: string;
     userId: mongoose.Types.ObjectId;
     createdAt: number;
     expiredAt: number;
+    role: UserRole;
 
     userAgent: string;
 };
 
 const tokenSchema = new Schema<TokenDocument>({
-    userId: mongoose.Types.ObjectId,
+    googleId: String,
+    userId: Schema.Types.ObjectId,
     createdAt: Number,
     expiredAt: Number,
+    role: { type: String, enum: UserRole },
 
     userAgent: String,
 });
