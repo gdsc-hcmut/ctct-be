@@ -1,4 +1,4 @@
-import mongoose, { Document, Types } from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 const Schema = mongoose.Schema;
 
@@ -15,8 +15,6 @@ export type UserDocument = Document & {
     picture: string;
     dateOfBirth: number;
     email: string;
-    phoneNumber: string;
-    universityName: Types.ObjectId;
 };
 
 const userSchema = new Schema<UserDocument>({
@@ -26,9 +24,6 @@ const userSchema = new Schema<UserDocument>({
     name: { type: String, required: true },
     picture: String,
     dateOfBirth: Number,
-    email: String,
-    phoneNumber: String,
-    universityName: Types.ObjectId,
 
     // TODO: add tracking data for subjects
 });

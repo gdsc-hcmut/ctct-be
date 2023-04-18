@@ -1,11 +1,11 @@
-import express from "express";
-
 export interface UploadValidatorStrategy {
     validate(files: Express.Multer.File[]): void;
 }
 
 export class NoUploadValidation implements UploadValidatorStrategy {
-    validate(files: Express.Multer.File[]): void {}
+    validate(files: Express.Multer.File[]): void {
+        console.log("empty validation");
+    }
 }
 
 export class MaterialUploadValidation implements UploadValidatorStrategy {

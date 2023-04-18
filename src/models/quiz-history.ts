@@ -22,17 +22,17 @@ export type QuizHistoryDocument = Document & {
 };
 
 const quizHistorySchema = new Schema<QuizHistoryDocument>({
-    _id: Types.ObjectId,
+    _id: Schema.Types.ObjectId,
 
     quizRegistered: [
         {
-            _id: Types.ObjectId,
+            _id: Schema.Types.ObjectId,
             registeredAt: Number,
         },
     ],
     quizCompleted: [
         {
-            _id: Types.ObjectId,
+            _id: Schema.Types.ObjectId,
             completedAt: Number,
             result: Number,
         },

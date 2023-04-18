@@ -1,4 +1,3 @@
-import express from "express";
 import { UploadValidatorStrategy } from "./upload-validator-strategies";
 
 export class UploadValidator {

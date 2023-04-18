@@ -14,7 +14,7 @@ export type TagDocument = Document & {
 const tagSchema = new Schema<TagDocument>({
     name: { type: String, required: true },
     createdBy: {
-        type: Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "users",
     },
     createdAt: Number,

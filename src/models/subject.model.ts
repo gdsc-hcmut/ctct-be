@@ -9,7 +9,7 @@ export type SubjectDocument = Document & {
 const subjectSchema = new Schema<SubjectDocument>({
     name: { type: String, required: true },
     createdBy: {
-        type: Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "users",
     },
     createdAt: Number,
