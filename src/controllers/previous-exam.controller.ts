@@ -6,9 +6,10 @@ import { UserService, AuthService } from "../services";
 import { PreviousExamService } from "../services/previous-exams.service";
 import { fileUploader } from "../upload-storage";
 import { FileUploadService } from "../services/file-upload.service";
-import { MediumFileCompression } from "../lib/file-compression/strategies";
+import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
+import { userMayUploadPreviousExam } from "../models/user.model";
 import { Types } from "mongoose";
 
 @injectable()
@@ -30,22 +31,21 @@ export class PreviousExamController extends Controller {
         this.router.post("/create", fileUploader.any(), this.create.bind(this));
         this.router.get("/get/:docId", this.getById.bind(this));
         this.router.get("/download/:docId", this.download.bind(this));
+        this.router.get("/get", this.getAvailablePreviousExams.bind(this));
     }
 
     async create(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
-            let { hidden, tags } = req.body;
 
+            if (!userMayUploadPreviousExam(req.tokenMeta.role)) {
+                throw new Error(
+                    `You don't have the permission required to upload a previous exam`
+                );
+            }
             if (!name) {
                 throw new Error(`Missing 'name' field`);
-            }
-            if (hidden === undefined) {
-                hidden = false;
-            }
-            if (tags === undefined) {
-                tags = [];
             }
 
             const fileValidator = new UploadValidator(
@@ -59,9 +59,7 @@ export class PreviousExamController extends Controller {
                 name,
                 userId,
                 req.files as Express.Multer.File[],
-                hidden,
-                tags,
-                new MediumFileCompression()
+                new AgressiveFileCompression()
             );
 
             res.composer.success(doc);
@@ -100,7 +98,7 @@ export class PreviousExamController extends Controller {
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
-            if (doc.readAccess.includes(req.tokenMeta.role)) {
+            if (!doc.readAccess.includes(req.tokenMeta.role)) {
                 throw new Error(
                     `You don't have permission to access this document`
                 );
@@ -115,6 +113,19 @@ export class PreviousExamController extends Controller {
             );
             res.setHeader("Content-Type", `${file.mimetype}`);
             res.end(file.buffer);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async getAvailablePreviousExams(req: Request, res: Response) {
+        try {
+            const role = req.tokenMeta.role;
+            const ans = await this.previousExamService.find({
+                readAccess: role,
+            });
+            res.composer.success(ans);
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);

@@ -31,5 +31,4 @@ export function parseTokenMeta(tokenMeta: any): TokenDocument {
 }
 
 const Token = mongoose.model<TokenDocument>("token", tokenSchema);
-
 export default Token;

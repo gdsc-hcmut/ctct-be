@@ -7,6 +7,14 @@ export enum UserRole {
     ADMIN = "ADMIN",
 }
 
+export function userMayUploadPreviousExam(r: UserRole) {
+    return r == UserRole.ADMIN;
+}
+
+export function userMayUploadMaterial(r: UserRole) {
+    return r == UserRole.ADMIN;
+}
+
 export type UserDocument = Document & {
     googleId: string;
     role: UserRole;

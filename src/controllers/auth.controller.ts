@@ -32,6 +32,7 @@ export class AuthController extends Controller {
                     user.email,
                     user.role
                 );
+                console.log(token);
                 if (process.env.ENV != "dev") {
                     res.redirect(`https://game.gdsc.app/login?token=${token}`);
                 }

@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import PreviousExamModel from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
+import { UserRole } from "../models/user.model";
 
 @injectable()
 export class PreviousExamService {
@@ -20,8 +21,6 @@ export class PreviousExamService {
      * @param name Name of this document
      * @param userId ID of the user that is creating this document
      * @param files The files to be uploaded, assumed to have already been validated
-     * @param hidden Determine whether a student should be able to see this document
-     * @param tags The tags of this document, assumed to have already been validated
      * @param compressionStrategy How the uploaded files should be compressed
      * @returns The document of the newly created previous exam
      */
@@ -29,8 +28,6 @@ export class PreviousExamService {
         name: string,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
-        hidden: true,
-        tags: Types.ObjectId[],
         compressionStrategy: FileCompressionStrategy
     ) {
         console.assert(files.length === 1);
@@ -42,8 +39,8 @@ export class PreviousExamService {
 
         return await PreviousExamModel.create({
             name: name,
-            isHiddenFromStudents: hidden,
-            tags: tags,
+            readAccess: [UserRole.STUDENT, UserRole.ADMIN],
+            writeAccess: [UserRole.ADMIN],
             resource: uploadedAttachments[0]._id,
             createdBy: userId,
             createdAt: currentTime,
@@ -67,11 +64,11 @@ export class PreviousExamService {
     }
 
     async findOne(id: Types.ObjectId) {
-        return await PreviousExamModel.findOne(id);
+        return await PreviousExamModel.findById(id);
     }
 
     async findOnePopulated(id: Types.ObjectId, query: string | string[]) {
-        return await PreviousExamModel.findOne(id).populate(query);
+        return await PreviousExamModel.findById(id).populate(query);
     }
 
     async find(query: any) {

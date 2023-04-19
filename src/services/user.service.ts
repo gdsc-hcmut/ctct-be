@@ -23,6 +23,7 @@ export class UserService {
 
     private async setupIndexes() {
         // TODO: build indexes once app reaches stable
+        // TODO: hash googleId for faster authentication?
     }
 
     async registerNewDevice(token: string): Promise<DeviceTokenDocument> {

@@ -12,20 +12,10 @@ export interface Response extends EResponse {
 
 export const ServiceType = {
     Auth: Symbol.for("AuthService"),
-    // Bundle: Symbol.for('BundleService'),
     Database: Symbol.for("DatabaseService"),
-    // MQTT: Symbol.for('MQTTService'),
     User: Symbol.for("UserService"),
     FileUpload: Symbol.for("FileUpload"),
     PreviousExam: Symbol.for("PreviousExam"),
-    // Upload: Symbol.for('Upload'),
-    // Mail: Symbol.for('Mail'),
-    // Contact: Symbol.for('Contact'),
-    // Home: Symbol.for('Home'),
-    // Room: Symbol.for('Room'),
-    // Device: Symbol.for('Device'),
-    // Socket: Symbol.for('Socket'),
-    // DeviceStatus: Symbol.for('DeviceStatus'),
 };
 
 export enum PrivacyType {

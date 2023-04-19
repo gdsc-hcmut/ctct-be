@@ -12,7 +12,6 @@ export type MaterialDocument = Document & {
     isHiddenFromStudents: boolean;
     parentMaterial: Types.ObjectId;
     childrenMaterial: Types.ObjectId[];
-    tags: Types.ObjectId[];
     resource: Types.ObjectId[];
     createdBy: Types.ObjectId;
     createdAt: number;
@@ -31,12 +30,6 @@ const materialSchema = new Schema<MaterialDocument>({
         {
             type: Schema.Types.ObjectId,
             ref: "materials",
-        },
-    ],
-    tags: [
-        {
-            type: Schema.Types.ObjectId,
-            ref: "tags",
         },
     ],
     resource: [
