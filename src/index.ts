@@ -8,7 +8,9 @@ import { AuthService, UserService } from "./services";
 import { FileUploadService } from "./services/file-upload.service";
 import { PreviousExamService } from "./services/previous-exams.service";
 import { SubjectService } from "./services/subject.service";
+import { MaterialService } from "./services/material.service";
 import { AuthController, UserController } from "./controllers";
+import { MaterialController } from "./controllers/material.controller";
 import { MeController } from "./controllers/me.controller";
 import { SubjectController } from "./controllers/subject.controller";
 import { PreviousExamController } from "./controllers/previous-exam.controller";
@@ -46,6 +48,10 @@ container
     .bind<SubjectService>(ServiceType.Subject)
     .to(SubjectService)
     .inSingletonScope();
+container
+    .bind<MaterialService>(ServiceType.Material)
+    .to(MaterialService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -58,6 +64,7 @@ Promise.all([
             container.resolve<MeController>(MeController),
             container.resolve<PreviousExamController>(PreviousExamController),
             container.resolve<SubjectController>(SubjectController),
+            container.resolve<MaterialController>(MaterialController),
         ],
         toNumber(process.env.PORT),
         [

@@ -1,7 +1,6 @@
 import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
-import { SubjectService } from "./subject.service";
 import { Types } from "mongoose";
 import PreviousExamModel from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
@@ -20,8 +19,7 @@ export class PreviousExamService {
     /**
      * Create a new previous exam return the newly created document
      * @param name Name of this document
-     * @param subject ID of the subject of this document
-     * @param chapter chapter number of this document
+     * @param subject ID of the subject of this document, assuming that the subject exists
      * @param userId ID of the user that is creating this document
      * @param files The files to be uploaded, assumed to have already been validated
      * @param compressionStrategy How the uploaded files should be compressed

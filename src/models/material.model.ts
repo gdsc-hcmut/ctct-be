@@ -26,8 +26,8 @@ const materialSchema = new Schema<MaterialDocument>({
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
     chapter: Number,
 
-    readAcess: { type: String, enum: UserRole },
-    writeAcess: { type: String, enum: UserRole },
+    readAcess: [{ type: String, enum: UserRole }],
+    writeAcess: [{ type: String, enum: UserRole }],
 
     resource: [
         {

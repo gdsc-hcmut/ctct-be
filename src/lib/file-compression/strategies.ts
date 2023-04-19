@@ -1,5 +1,3 @@
-import express from "express";
-import multer from "multer";
 import sharp from "sharp";
 
 export interface FileCompressionStrategy {
@@ -17,10 +15,10 @@ export class NoFileCompression implements FileCompressionStrategy {
 }
 
 export class LowFileCompression implements FileCompressionStrategy {
-    config: {
-        webp: { quality: 75 };
-        jpeg: { quality: 75 };
-        png: { quality: 75; compressionLevel: 3 };
+    config = {
+        webp: { quality: 75 },
+        jpeg: { quality: 75 },
+        png: { quality: 75, compressionLevel: 3 },
     };
 
     async compress(file: Express.Multer.File): Promise<Buffer> {
@@ -42,10 +40,10 @@ export class LowFileCompression implements FileCompressionStrategy {
 }
 
 export class MediumFileCompression implements FileCompressionStrategy {
-    config: {
-        webp: { quality: 50 };
-        jpeg: { quality: 50 };
-        png: { quality: 50; compressionLevel: 6 };
+    config = {
+        webp: { quality: 50 },
+        jpeg: { quality: 50 },
+        png: { quality: 50, compressionLevel: 6 },
     };
 
     async compress(file: Express.Multer.File): Promise<Buffer> {
@@ -67,10 +65,10 @@ export class MediumFileCompression implements FileCompressionStrategy {
 }
 
 export class AgressiveFileCompression implements FileCompressionStrategy {
-    config: {
-        webp: { quality: 25 };
-        jpeg: { quality: 25 };
-        png: { quality: 25; compressionLevel: 9 };
+    config = {
+        webp: { quality: 25 },
+        jpeg: { quality: 25 },
+        png: { quality: 25, compressionLevel: 9 },
     };
 
     async compress(file: Express.Multer.File): Promise<Buffer> {

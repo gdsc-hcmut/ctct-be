@@ -17,6 +17,7 @@ export const ServiceType = {
     FileUpload: Symbol.for("FileUpload"),
     PreviousExam: Symbol.for("PreviousExam"),
     Subject: Symbol.for("Subject"),
+    Material: Symbol.for("Material"),
 };
 
 export enum PrivacyType {

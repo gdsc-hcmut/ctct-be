@@ -2,38 +2,37 @@ import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
-import { UserService, AuthService } from "../services";
-import { PreviousExamService } from "../services/previous-exams.service";
-import { fileUploader } from "../upload-storage";
-import { FileUploadService } from "../services/file-upload.service";
+import { AuthService } from "../services";
 import { SubjectService } from "../services/subject.service";
+import { MaterialService } from "../services/material.service";
+import { FileUploadService } from "../services/file-upload.service";
+import { fileUploader } from "../upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
-import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
-import { userMayUploadPreviousExam } from "../models/user.model";
+import { MaterialUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
+import { userMayUploadMaterial } from "../models/user.model";
 import { Types } from "mongoose";
+import { toNumber } from "lodash";
 
 @injectable()
-export class PreviousExamController extends Controller {
+export class MaterialController extends Controller {
     public readonly router = Router();
-    public readonly path = "/previous-exams";
+    public readonly path = "/material";
 
     constructor(
-        @inject(ServiceType.User) private userService: UserService,
         @inject(ServiceType.Auth) private authService: AuthService,
-        @inject(ServiceType.PreviousExam)
-        private previousExamService: PreviousExamService,
+        @inject(ServiceType.Subject) private subjectService: SubjectService,
+        @inject(ServiceType.Material) private materialService: MaterialService,
         @inject(ServiceType.FileUpload)
-        private fileUploadService: FileUploadService,
-        @inject(ServiceType.Subject) private subjectService: SubjectService
+        private fileUploadService: FileUploadService
     ) {
         super();
         this.router.all("*", this.authService.authenticate());
 
         this.router.post("/create", fileUploader.any(), this.create.bind(this));
         this.router.get("/get/:docId", this.getById.bind(this));
-        this.router.get("/download/:docId", this.download.bind(this));
-        this.router.get("/get", this.getAvailablePreviousExams.bind(this));
+        this.router.get("/download/:docId/:index", this.download.bind(this));
+        this.router.get("/get", this.getAvaliableMaterial.bind(this));
         this.router.get(
             "/getbysubject/:subjectId",
             this.getBySubject.bind(this)
@@ -44,11 +43,11 @@ export class PreviousExamController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
-            let { subject } = req.body;
+            let { subject, chapter } = req.body;
 
-            if (!userMayUploadPreviousExam(req.tokenMeta.role)) {
+            if (!userMayUploadMaterial(req.tokenMeta.role)) {
                 throw new Error(
-                    `You don't have the permission required to upload a previous exam`
+                    `You don't have the permission required to upload material`
                 );
             }
             if (!name) {
@@ -57,23 +56,39 @@ export class PreviousExamController extends Controller {
             if (!subject) {
                 throw new Error(`Missing 'subject' field`);
             }
+            if (!chapter) {
+                throw new Error(`Missing 'chapter' field`);
+            }
             subject = new Types.ObjectId(subject);
+            chapter = toNumber(chapter);
 
             if (!(await this.subjectService.findById(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
 
+            if (
+                (
+                    await this.materialService.find({
+                        subject: subject,
+                        chapter: chapter,
+                    })
+                ).length > 0
+            ) {
+                throw new Error(`This chapter already exists`);
+            }
+
             const fileValidator = new UploadValidator(
-                new PreviousExamUploadValidation()
+                new MaterialUploadValidation()
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
             await this.subjectService.update(subject, {
                 lastUpdatedAt: Date.now(),
             });
-            const doc = await this.previousExamService.create(
+            const doc = await this.materialService.create(
                 name,
                 subject,
+                chapter,
                 userId,
                 req.files as Express.Multer.File[],
                 new AgressiveFileCompression()
@@ -90,7 +105,7 @@ export class PreviousExamController extends Controller {
         try {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = (
-                await this.previousExamService.find({
+                await this.materialService.find({
                     _id: docId,
                     readAccess: req.tokenMeta.role,
                 })
@@ -108,7 +123,7 @@ export class PreviousExamController extends Controller {
     async getBySubject(req: Request, res: Response) {
         try {
             const subject = new Types.ObjectId(req.params.subjectId);
-            const ans = await this.previousExamService.find({
+            const ans = await this.materialService.find({
                 subject: subject,
                 readAccess: req.tokenMeta.role,
             });
@@ -122,8 +137,9 @@ export class PreviousExamController extends Controller {
     async download(req: Request, res: Response) {
         try {
             const docId = new Types.ObjectId(req.params.docId);
+            const index = toNumber(req.params.index);
             const doc = (
-                await this.previousExamService.find({
+                await this.materialService.find({
                     _id: docId,
                     readAccess: req.tokenMeta.role,
                 })
@@ -131,9 +147,12 @@ export class PreviousExamController extends Controller {
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
+            if (index < 0 || index >= doc.resource.length) {
+                throw new Error(`Invalid index`);
+            }
 
             const file = await this.fileUploadService.downloadFile(
-                doc.resource
+                doc.resource[index]
             );
             res.setHeader(
                 "Content-Disposition",
@@ -147,10 +166,10 @@ export class PreviousExamController extends Controller {
         }
     }
 
-    async getAvailablePreviousExams(req: Request, res: Response) {
+    async getAvaliableMaterial(req: Request, res: Response) {
         try {
             const role = req.tokenMeta.role;
-            const ans = await this.previousExamService.find({
+            const ans = await this.materialService.find({
                 readAccess: role,
             });
             res.composer.success(ans);
