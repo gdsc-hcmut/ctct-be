@@ -1,6 +1,7 @@
 import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
+import { SubjectService } from "./subject.service";
 import { Types } from "mongoose";
 import PreviousExamModel from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
@@ -19,6 +20,8 @@ export class PreviousExamService {
     /**
      * Create a new previous exam return the newly created document
      * @param name Name of this document
+     * @param subject ID of the subject of this document
+     * @param chapter chapter number of this document
      * @param userId ID of the user that is creating this document
      * @param files The files to be uploaded, assumed to have already been validated
      * @param compressionStrategy How the uploaded files should be compressed
@@ -26,6 +29,7 @@ export class PreviousExamService {
      */
     async create(
         name: string,
+        subject: Types.ObjectId,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy
@@ -39,6 +43,8 @@ export class PreviousExamService {
 
         return await PreviousExamModel.create({
             name: name,
+            subject: subject,
+
             readAccess: [UserRole.STUDENT, UserRole.ADMIN],
             writeAccess: [UserRole.ADMIN],
             resource: uploadedAttachments[0]._id,
@@ -63,11 +69,11 @@ export class PreviousExamService {
         return true;
     }
 
-    async findOne(id: Types.ObjectId) {
+    async findById(id: Types.ObjectId) {
         return await PreviousExamModel.findById(id);
     }
 
-    async findOnePopulated(id: Types.ObjectId, query: string | string[]) {
+    async findByIdPopulated(id: Types.ObjectId, query: string | string[]) {
         return await PreviousExamModel.findById(id).populate(query);
     }
 

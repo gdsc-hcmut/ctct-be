@@ -6,6 +6,7 @@ import { UserService, AuthService } from "../services";
 import { PreviousExamService } from "../services/previous-exams.service";
 import { fileUploader } from "../upload-storage";
 import { FileUploadService } from "../services/file-upload.service";
+import { SubjectService } from "../services/subject.service";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
@@ -23,7 +24,8 @@ export class PreviousExamController extends Controller {
         @inject(ServiceType.PreviousExam)
         private previousExamService: PreviousExamService,
         @inject(ServiceType.FileUpload)
-        private fileUploadService: FileUploadService
+        private fileUploadService: FileUploadService,
+        @inject(ServiceType.Subject) private subjectService: SubjectService
     ) {
         super();
         this.router.all("*", this.authService.authenticate());
@@ -32,12 +34,17 @@ export class PreviousExamController extends Controller {
         this.router.get("/get/:docId", this.getById.bind(this));
         this.router.get("/download/:docId", this.download.bind(this));
         this.router.get("/get", this.getAvailablePreviousExams.bind(this));
+        this.router.get(
+            "/getbysubject/:subjectId",
+            this.getBySubject.bind(this)
+        );
     }
 
     async create(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
+            let { subject } = req.body;
 
             if (!userMayUploadPreviousExam(req.tokenMeta.role)) {
                 throw new Error(
@@ -47,16 +54,26 @@ export class PreviousExamController extends Controller {
             if (!name) {
                 throw new Error(`Missing 'name' field`);
             }
+            if (!subject) {
+                throw new Error(`Missing 'subject' field`);
+            }
+            subject = new Types.ObjectId(subject);
+
+            if (!(await this.subjectService.findById(subject))) {
+                throw new Error(`Subject doesn't exist`);
+            }
 
             const fileValidator = new UploadValidator(
                 new PreviousExamUploadValidation()
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
-            // TODO: validate tags
-
+            await this.subjectService.update(subject, {
+                lastUpdatedAt: Date.now(),
+            });
             const doc = await this.previousExamService.create(
                 name,
+                subject,
                 userId,
                 req.files as Express.Multer.File[],
                 new AgressiveFileCompression()
@@ -72,16 +89,30 @@ export class PreviousExamController extends Controller {
     async getById(req: Request, res: Response) {
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOne(docId);
+            const doc = (
+                await this.previousExamService.find({
+                    _id: docId,
+                    readAccess: req.tokenMeta.role,
+                })
+            )[0];
             if (!doc) {
                 throw new Error(`Document not found`);
             }
-            if (!doc.readAccess.includes(req.tokenMeta.role)) {
-                throw new Error(
-                    `You don't have permission to access this document`
-                );
-            }
             res.composer.success(doc);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async getBySubject(req: Request, res: Response) {
+        try {
+            const subject = new Types.ObjectId(req.params.subjectId);
+            const ans = await this.previousExamService.find({
+                subject: subject,
+                readAccess: req.tokenMeta.role,
+            });
+            res.composer.success(ans);
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);
@@ -91,7 +122,7 @@ export class PreviousExamController extends Controller {
     async download(req: Request, res: Response) {
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOnePopulated(
+            const doc = await this.previousExamService.findByIdPopulated(
                 docId,
                 "resource"
             );

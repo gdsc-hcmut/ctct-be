@@ -7,8 +7,11 @@ import { UserRole } from "./user.model";
 
 export type PreviousExamDocument = Document & {
     name: string;
+    subject: Types.ObjectId;
+
     readAccess: UserRole[];
     writeAccess: UserRole[];
+
     resource: Types.ObjectId;
     createdBy: Types.ObjectId;
     createdAt: number;
@@ -17,8 +20,11 @@ export type PreviousExamDocument = Document & {
 
 const previousExamSchema = new Schema<PreviousExamDocument>({
     name: { type: String, required: true },
+    subject: { type: Schema.Types.ObjectId, ref: "subjects" },
+
     readAccess: [{ type: String, enum: UserRole }],
     writeAccess: [{ type: String, enum: UserRole }],
+
     resource: { type: Schema.Types.ObjectId, ref: "attachments" },
     createdBy: {
         type: Schema.Types.ObjectId,

@@ -15,6 +15,10 @@ export function userMayUploadMaterial(r: UserRole) {
     return r == UserRole.ADMIN;
 }
 
+export function userMayCreateSubject(r: UserRole) {
+    return r == UserRole.ADMIN;
+}
+
 export type UserDocument = Document & {
     googleId: string;
     role: UserRole;

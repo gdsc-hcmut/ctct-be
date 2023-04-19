@@ -1,4 +1,5 @@
 import mongoose, { Types, Schema } from "mongoose";
+import { UserRole } from "./user.model";
 
 /**
  * Materials are organized in a tree structure
@@ -8,10 +9,12 @@ import mongoose, { Types, Schema } from "mongoose";
 
 export type MaterialDocument = Document & {
     name: string;
-    isFolder: boolean;
-    isHiddenFromStudents: boolean;
-    parentMaterial: Types.ObjectId;
-    childrenMaterial: Types.ObjectId[];
+    subject: Types.ObjectId;
+    chapter: number;
+
+    readAcess: UserRole[];
+    writeAcess: UserRole[];
+
     resource: Types.ObjectId[];
     createdBy: Types.ObjectId;
     createdAt: number;
@@ -20,18 +23,12 @@ export type MaterialDocument = Document & {
 
 const materialSchema = new Schema<MaterialDocument>({
     name: { type: String, required: true },
-    isFolder: { type: Boolean, default: false },
-    isHiddenFromStudents: { type: Boolean, default: false },
-    parentMaterial: {
-        type: Schema.Types.ObjectId,
-        ref: "materials",
-    },
-    childrenMaterial: [
-        {
-            type: Schema.Types.ObjectId,
-            ref: "materials",
-        },
-    ],
+    subject: { type: Schema.Types.ObjectId, ref: "subjects" },
+    chapter: Number,
+
+    readAcess: { type: String, enum: UserRole },
+    writeAcess: { type: String, enum: UserRole },
+
     resource: [
         {
             type: Schema.Types.ObjectId,

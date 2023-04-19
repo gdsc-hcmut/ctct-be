@@ -7,8 +7,10 @@ import { applyHttpResponseComposer } from "./lib/response-composer";
 import { AuthService, UserService } from "./services";
 import { FileUploadService } from "./services/file-upload.service";
 import { PreviousExamService } from "./services/previous-exams.service";
+import { SubjectService } from "./services/subject.service";
 import { AuthController, UserController } from "./controllers";
 import { MeController } from "./controllers/me.controller";
+import { SubjectController } from "./controllers/subject.controller";
 import { PreviousExamController } from "./controllers/previous-exam.controller";
 import { ServiceType } from "./types";
 import mongoose from "mongoose";
@@ -40,6 +42,10 @@ container
     .bind<PreviousExamService>(ServiceType.PreviousExam)
     .to(PreviousExamService)
     .inSingletonScope();
+container
+    .bind<SubjectService>(ServiceType.Subject)
+    .to(SubjectService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -51,6 +57,7 @@ Promise.all([
             container.resolve<UserController>(UserController),
             container.resolve<MeController>(MeController),
             container.resolve<PreviousExamController>(PreviousExamController),
+            container.resolve<SubjectController>(SubjectController),
         ],
         toNumber(process.env.PORT),
         [
