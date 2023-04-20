@@ -6,8 +6,9 @@ import { AuthService } from "../services";
 import { SubjectService } from "../services/subject.service";
 import { MaterialService } from "../services/material.service";
 import { PreviousExamService } from "../services/previous-exams.service";
-import { userMayCreateSubject } from "../models/user.model";
+import { UserRole, userMayCreateSubject } from "../models/user.model";
 import { Types } from "mongoose";
+import _ from "lodash";
 
 @injectable()
 export class SubjectController extends Controller {
@@ -27,6 +28,7 @@ export class SubjectController extends Controller {
         // My profile
         this.router.post("/", this.create.bind(this));
         this.router.get("/all", this.getAllSubjects.bind(this));
+        this.router.patch("/edit/:docId", this.editSubject.bind(this));
         this.router.delete("/delete/:docId", this.deleteOne.bind(this));
     }
 
@@ -55,6 +57,49 @@ export class SubjectController extends Controller {
         try {
             const ans = await this.subjectService.find({});
             res.composer.success(ans);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async editSubject(req: Request, res: Response) {
+        try {
+            const userRole = req.tokenMeta.role;
+            const docId = new Types.ObjectId(req.params.docId);
+            const doc = await this.subjectService.findOne({
+                _id: docId,
+                writeAccess: userRole,
+            });
+            if (!doc) {
+                throw new Error(`Document doesn't exist`);
+            }
+
+            const info = _.pick(req.body, ["name", "writeAccess"]);
+
+            if (info.writeAccess) {
+                const wa: UserRole[] = info.writeAccess;
+                if (!wa.every((r) => Object.values(UserRole).includes(r))) {
+                    throw new Error(`Write access contains unrecognized role`);
+                }
+                if (
+                    doc.writeAccess.includes(userRole) &&
+                    !wa.includes(userRole)
+                ) {
+                    throw new Error(
+                        `You cannot remove your own role's write access to this document`
+                    );
+                }
+            }
+
+            await this.subjectService.findOneAndUpdate(
+                { _id: docId },
+                {
+                    ...info,
+                    lastUpdatedAt: Date.now(),
+                }
+            );
+            res.composer.success(true);
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);

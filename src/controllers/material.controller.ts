@@ -41,6 +41,7 @@ export class MaterialController extends Controller {
         );
 
         this.router.patch("/edit/:docId", this.editMaterial.bind(this));
+        this.router.delete("/delete/:docId", this.deleteById.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -244,12 +245,6 @@ export class MaterialController extends Controller {
             if (changedLoc) {
                 const nSubject = info.subject ? info.subject : doc.subject;
                 const nChapter = info.chapter ? info.chapter : doc.chapter;
-                console.log(
-                    await this.materialService.find({
-                        subject: nSubject,
-                        chapter: nChapter,
-                    })
-                );
                 if (
                     await this.materialService.findOne({
                         subject: nSubject,
@@ -269,6 +264,26 @@ export class MaterialController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
+            res.composer.success(true);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async deleteById(req: Request, res: Response) {
+        try {
+            const userRole = req.tokenMeta.role;
+            const docId = new Types.ObjectId(req.params.docId);
+            const doc = await this.materialService.findOne({
+                _id: docId,
+                writeAccess: userRole,
+            });
+            if (!doc) {
+                throw new Error(`Requested document doesn't exist`);
+            }
+
+            await this.materialService.deleteById(docId);
             res.composer.success(true);
         } catch (error) {
             console.log(error);

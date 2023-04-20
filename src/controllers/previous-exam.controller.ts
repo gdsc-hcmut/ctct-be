@@ -42,6 +42,7 @@ export class PreviousExamController extends Controller {
         );
 
         this.router.patch("/edit/:docId", this.editPreviousExam.bind(this));
+        this.router.delete("/delete/:docId", this.deleteById.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -227,6 +228,26 @@ export class PreviousExamController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
+            res.composer.success(true);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async deleteById(req: Request, res: Response) {
+        try {
+            const userRole = req.tokenMeta.role;
+            const docId = new Types.ObjectId(req.params.docId);
+            const doc = await this.previousExamService.findOne({
+                _id: docId,
+                writeAccess: userRole,
+            });
+            if (!doc) {
+                throw new Error(`Requested document doesn't exist`);
+            }
+
+            await this.previousExamService.deleteById(docId);
             res.composer.success(true);
         } catch (error) {
             console.log(error);
