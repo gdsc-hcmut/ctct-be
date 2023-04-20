@@ -57,7 +57,7 @@ export class PreviousExamService {
      * @param id ID of the document to be deleted
      * @returns A boolean of whether the document with that ID exists
      * */
-    async deleteOne(id: Types.ObjectId) {
+    async deleteById(id: Types.ObjectId) {
         const doc = await PreviousExamModel.findOneAndDelete({ _id: id });
         if (!doc) {
             return false;
@@ -67,7 +67,7 @@ export class PreviousExamService {
         return true;
     }
 
-    async updateOne(query: any, upd: any) {
+    async findOneAndUpdate(query: any, upd: any) {
         return await PreviousExamModel.findOneAndUpdate(query, upd);
     }
 

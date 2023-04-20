@@ -72,7 +72,7 @@ export class PreviousExamController extends Controller {
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
-            await this.subjectService.updateOne(
+            await this.subjectService.findOneAndUpdate(
                 { _id: subject },
                 {
                     lastUpdatedAt: Date.now(),
@@ -96,12 +96,10 @@ export class PreviousExamController extends Controller {
     async getById(req: Request, res: Response) {
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = (
-                await this.previousExamService.find({
-                    _id: docId,
-                    readAccess: req.tokenMeta.role,
-                })
-            )[0];
+            const doc = await this.previousExamService.findOne({
+                _id: docId,
+                readAccess: req.tokenMeta.role,
+            });
             if (!doc) {
                 throw new Error(`Document not found`);
             }
@@ -129,12 +127,10 @@ export class PreviousExamController extends Controller {
     async download(req: Request, res: Response) {
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = (
-                await this.previousExamService.find({
-                    _id: docId,
-                    readAccess: req.tokenMeta.role,
-                })
-            )[0];
+            const doc = await this.previousExamService.findOne({
+                _id: docId,
+                readAccess: req.tokenMeta.role,
+            });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
@@ -171,12 +167,10 @@ export class PreviousExamController extends Controller {
         try {
             const docId = new Types.ObjectId(req.params.docId);
             const userRole = req.tokenMeta.role;
-            const doc = (
-                await this.previousExamService.find({
-                    _id: docId,
-                    writeAccess: userRole,
-                })
-            )[0];
+            const doc = await this.previousExamService.findOne({
+                _id: docId,
+                writeAccess: userRole,
+            });
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
             }
@@ -226,7 +220,7 @@ export class PreviousExamController extends Controller {
                 }
             }
 
-            await this.previousExamService.updateOne(
+            await this.previousExamService.findOneAndUpdate(
                 { _id: docId },
                 {
                     ...info,

@@ -1,7 +1,10 @@
 import mongoose, { Types, Schema } from "mongoose";
+import { UserRole } from "./user.model";
 
 export type SubjectDocument = Document & {
     name: string;
+    writeAccess: UserRole[];
+
     createdBy: Types.ObjectId;
     createdAt: number;
     lastUpdatedAt: number;
@@ -9,6 +12,8 @@ export type SubjectDocument = Document & {
 
 const subjectSchema = new Schema<SubjectDocument>({
     name: String,
+    writeAccess: [{ type: String, enum: UserRole }],
+
     createdBy: { type: Schema.Types.ObjectId, ref: "users" },
     createdAt: Number,
     lastUpdatedAt: Number,

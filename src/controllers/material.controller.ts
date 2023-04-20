@@ -84,7 +84,7 @@ export class MaterialController extends Controller {
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
-            await this.subjectService.updateOne(
+            await this.subjectService.findOneAndUpdate(
                 { _id: subject },
                 {
                     lastUpdatedAt: Date.now(),
@@ -109,12 +109,10 @@ export class MaterialController extends Controller {
     async getById(req: Request, res: Response) {
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = (
-                await this.materialService.find({
-                    _id: docId,
-                    readAccess: req.tokenMeta.role,
-                })
-            )[0];
+            const doc = await this.materialService.findOne({
+                _id: docId,
+                readAccess: req.tokenMeta.role,
+            });
             if (!doc) {
                 throw new Error(`Document not found`);
             }
@@ -143,12 +141,10 @@ export class MaterialController extends Controller {
         try {
             const docId = new Types.ObjectId(req.params.docId);
             const index = toNumber(req.params.index);
-            const doc = (
-                await this.materialService.find({
-                    _id: docId,
-                    readAccess: req.tokenMeta.role,
-                })
-            )[0];
+            const doc = await this.materialService.findOne({
+                _id: docId,
+                readAccess: req.tokenMeta.role,
+            });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
@@ -188,12 +184,10 @@ export class MaterialController extends Controller {
         try {
             const docId = new Types.ObjectId(req.params.docId);
             const userRole = req.tokenMeta.role;
-            const doc = (
-                await this.materialService.find({
-                    _id: docId,
-                    writeAccess: userRole,
-                })
-            )[0];
+            const doc = await this.materialService.findOne({
+                _id: docId,
+                writeAccess: userRole,
+            });
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
             }
@@ -268,7 +262,7 @@ export class MaterialController extends Controller {
                 }
             }
 
-            await this.materialService.updateOne(
+            await this.materialService.findOneAndUpdate(
                 { _id: docId },
                 {
                     ...info,

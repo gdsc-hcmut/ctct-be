@@ -45,7 +45,7 @@ export class MaterialService {
         });
     }
 
-    async deleteOne(id: Types.ObjectId) {
+    async deleteById(id: Types.ObjectId) {
         const doc = await MaterialModel.findOneAndDelete({ _id: id });
         if (!doc) {
             return false;
@@ -55,8 +55,8 @@ export class MaterialService {
         return true;
     }
 
-    async updateOne(query: any, upd: any) {
-        return await MaterialModel.updateOne(query, upd);
+    async findOneAndUpdate(query: any, upd: any) {
+        return await MaterialModel.findOneAndUpdate(query, upd);
     }
 
     async findById(id: Types.ObjectId) {

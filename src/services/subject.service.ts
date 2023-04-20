@@ -1,6 +1,7 @@
 import { injectable } from "inversify";
 import SubjectModel from "../models/subject.model";
 import { Types } from "mongoose";
+import { UserRole } from "../models/user.model";
 
 @injectable()
 export class SubjectService {
@@ -12,10 +13,15 @@ export class SubjectService {
         const t = Date.now();
         return await SubjectModel.create({
             name: name,
+            writeAccess: [UserRole.ADMIN],
             createdAt: t,
             createdBy: userId,
             lastUpdatedAt: t,
         });
+    }
+
+    async findOneAndDelete(query: any) {
+        return await SubjectModel.findOneAndDelete(query);
     }
 
     async findById(id: Types.ObjectId) {
@@ -26,7 +32,7 @@ export class SubjectService {
         return await SubjectModel.findOne(query);
     }
 
-    async updateOne(query: any, upd: any) {
+    async findOneAndUpdate(query: any, upd: any) {
         return await SubjectModel.findOneAndUpdate(query, upd);
     }
 
