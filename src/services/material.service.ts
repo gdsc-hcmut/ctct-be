@@ -36,8 +36,8 @@ export class MaterialService {
             subject: subject,
             chapter: chapter,
 
-            readAcess: [UserRole.STUDENT, UserRole.ADMIN],
-            writeAcess: [UserRole.ADMIN],
+            readAccess: [UserRole.STUDENT, UserRole.ADMIN],
+            writeAccess: [UserRole.ADMIN],
             resource: compressedFiles.map((f) => f._id),
             createdBy: userId,
             createdAt: currentTime,
@@ -53,6 +53,10 @@ export class MaterialService {
 
         await this.fileUploadService.deleteFiles(doc.resource);
         return true;
+    }
+
+    async updateOne(query: any, upd: any) {
+        return await MaterialModel.updateOne(query, upd);
     }
 
     async findById(id: Types.ObjectId) {

@@ -1,6 +1,7 @@
 import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
+import { UserRole } from "../models/user.model";
 import { Request, Response, ServiceType } from "../types";
 import { AuthService } from "../services";
 import { SubjectService } from "../services/subject.service";
@@ -13,6 +14,7 @@ import { MaterialUploadValidation } from "../lib/upload-validator/upload-validat
 import { userMayUploadMaterial } from "../models/user.model";
 import { Types } from "mongoose";
 import { toNumber } from "lodash";
+import _ from "lodash";
 
 @injectable()
 export class MaterialController extends Controller {
@@ -37,6 +39,8 @@ export class MaterialController extends Controller {
             "/getbysubject/:subjectId",
             this.getBySubject.bind(this)
         );
+
+        this.router.patch("/edit/:docId", this.editMaterial.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -82,9 +86,12 @@ export class MaterialController extends Controller {
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
-            await this.subjectService.update(subject, {
-                lastUpdatedAt: Date.now(),
-            });
+            await this.subjectService.updateOne(
+                { _id: subject },
+                {
+                    lastUpdatedAt: Date.now(),
+                }
+            );
             const doc = await this.materialService.create(
                 name,
                 subject,
@@ -173,6 +180,106 @@ export class MaterialController extends Controller {
                 readAccess: role,
             });
             res.composer.success(ans);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async editMaterial(req: Request, res: Response) {
+        try {
+            const docId = new Types.ObjectId(req.params.docId);
+            const userRole = req.tokenMeta.role;
+            const doc = (
+                await this.materialService.find({
+                    _id: docId,
+                    writeAccess: userRole,
+                })
+            )[0];
+            if (!doc) {
+                throw new Error(`The required document doesn't exist`);
+            }
+
+            const info = _.pick(req.body, [
+                "name",
+                "subject",
+                "chapter",
+                "readAccess",
+                "writeAccess",
+            ]);
+
+            if (info.subject) {
+                info.subject = new Types.ObjectId(info.subject);
+                if (!(await this.subjectService.findById(info.subject))) {
+                    throw new Error(`Subject doesn't exist`);
+                }
+            }
+            if (info.chapter) {
+                info.chapter = toNumber(info.chapter);
+            }
+            if (info.readAccess) {
+                const ra: UserRole[] = info.readAccess;
+                if (!ra.every((r) => Object.values(UserRole).includes(r))) {
+                    throw new Error(`Read access contains unrecognized role`);
+                }
+                if (
+                    doc.readAccess.includes(userRole) &&
+                    !ra.includes(userRole)
+                ) {
+                    throw new Error(
+                        `You cannot remove your own role's read access to this document`
+                    );
+                }
+            }
+            if (info.writeAccess) {
+                const wa: UserRole[] = info.writeAccess;
+                if (!wa.every((r) => Object.values(UserRole).includes(r))) {
+                    throw new Error(`Write access contains unrecognized role`);
+                }
+                if (
+                    doc.writeAccess.includes(userRole) &&
+                    !wa.includes(userRole)
+                ) {
+                    throw new Error(
+                        `You cannot remove your own role's write access to this document`
+                    );
+                }
+            }
+            // subject must be empty or valid, so we check if it collides with any other document
+            const changedLoc =
+                (info.subject && info.subject != doc.subject) ||
+                (info.chapter && info.chapter != doc.chapter);
+            if (changedLoc) {
+                const nSubject = info.subject ? info.subject : doc.subject;
+                const nChapter = info.chapter ? info.chapter : doc.chapter;
+                console.log(
+                    await this.materialService.find({
+                        subject: nSubject,
+                        chapter: nChapter,
+                    })
+                );
+                if (
+                    (
+                        await this.materialService.find({
+                            subject: nSubject,
+                            chapter: nChapter,
+                        })
+                    ).length > 0
+                ) {
+                    throw new Error(
+                        `A document with the same subject and chapter id already exists`
+                    );
+                }
+            }
+
+            await this.materialService.updateOne(
+                { _id: docId },
+                {
+                    ...info,
+                    lastUpdatedAt: Date.now(),
+                }
+            );
+            res.composer.success(true);
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);

@@ -12,8 +12,8 @@ export type MaterialDocument = Document & {
     subject: Types.ObjectId;
     chapter: number;
 
-    readAcess: UserRole[];
-    writeAcess: UserRole[];
+    readAccess: UserRole[];
+    writeAccess: UserRole[];
 
     resource: Types.ObjectId[];
     createdBy: Types.ObjectId;
@@ -26,8 +26,8 @@ const materialSchema = new Schema<MaterialDocument>({
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
     chapter: Number,
 
-    readAcess: [{ type: String, enum: UserRole }],
-    writeAcess: [{ type: String, enum: UserRole }],
+    readAccess: [{ type: String, enum: UserRole }],
+    writeAccess: [{ type: String, enum: UserRole }],
 
     resource: [
         {

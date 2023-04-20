@@ -1,6 +1,7 @@
 import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
+import { UserRole } from "../models/user.model";
 import { Request, Response, ServiceType } from "../types";
 import { UserService, AuthService } from "../services";
 import { PreviousExamService } from "../services/previous-exams.service";
@@ -12,6 +13,7 @@ import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
 import { userMayUploadPreviousExam } from "../models/user.model";
 import { Types } from "mongoose";
+import _ from "lodash";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -38,6 +40,8 @@ export class PreviousExamController extends Controller {
             "/getbysubject/:subjectId",
             this.getBySubject.bind(this)
         );
+
+        this.router.patch("/edit/:docId", this.editPreviousExam.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -68,9 +72,12 @@ export class PreviousExamController extends Controller {
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
-            await this.subjectService.update(subject, {
-                lastUpdatedAt: Date.now(),
-            });
+            await this.subjectService.updateOne(
+                { _id: subject },
+                {
+                    lastUpdatedAt: Date.now(),
+                }
+            );
             const doc = await this.previousExamService.create(
                 name,
                 subject,
@@ -154,6 +161,79 @@ export class PreviousExamController extends Controller {
                 readAccess: role,
             });
             res.composer.success(ans);
+        } catch (error) {
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async editPreviousExam(req: Request, res: Response) {
+        try {
+            const docId = new Types.ObjectId(req.params.docId);
+            const userRole = req.tokenMeta.role;
+            const doc = (
+                await this.previousExamService.find({
+                    _id: docId,
+                    writeAccess: userRole,
+                })
+            )[0];
+            if (!doc) {
+                throw new Error(`The required document doesn't exist`);
+            }
+
+            const info = _.pick(req.body, [
+                "name",
+                "subject",
+                "readAccess",
+                "writeAccess",
+            ]);
+
+            if (info.subject) {
+                info.subject = new Types.ObjectId(info.subject);
+            }
+            if (info.readAccess) {
+                const ra: UserRole[] = info.readAccess;
+                if (!ra.every((r) => Object.values(UserRole).includes(r))) {
+                    throw new Error(`Read access contains unrecognized role`);
+                }
+                if (
+                    doc.readAccess.includes(userRole) &&
+                    !ra.includes(userRole)
+                ) {
+                    throw new Error(
+                        `You cannot remove your own role's read access to this document`
+                    );
+                }
+            }
+            if (info.writeAccess) {
+                const wa: UserRole[] = info.writeAccess;
+                if (!wa.every((r) => Object.values(UserRole).includes(r))) {
+                    throw new Error(`Write access contains unrecognized role`);
+                }
+                if (
+                    doc.writeAccess.includes(userRole) &&
+                    !wa.includes(userRole)
+                ) {
+                    throw new Error(
+                        `You cannot remove your own role's write access to this document`
+                    );
+                }
+            }
+            if (info.subject) {
+                const subject = new Types.ObjectId(info.subject);
+                if (!this.subjectService.findById(subject)) {
+                    throw new Error(`Subject doesn't exist`);
+                }
+            }
+
+            await this.previousExamService.updateOne(
+                { _id: docId },
+                {
+                    ...info,
+                    lastUpdatedAt: Date.now(),
+                }
+            );
+            res.composer.success(true);
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);

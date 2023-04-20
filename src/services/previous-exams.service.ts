@@ -67,6 +67,10 @@ export class PreviousExamService {
         return true;
     }
 
+    async updateOne(query: any, upd: any) {
+        return await PreviousExamModel.findOneAndUpdate(query, upd);
+    }
+
     async findById(id: Types.ObjectId) {
         return await PreviousExamModel.findById(id);
     }

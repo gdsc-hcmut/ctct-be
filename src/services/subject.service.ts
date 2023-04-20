@@ -22,8 +22,8 @@ export class SubjectService {
         return await SubjectModel.findById(id);
     }
 
-    async update(id: Types.ObjectId, query: any) {
-        return await SubjectModel.findOneAndUpdate({ _id: id }, query);
+    async updateOne(query: any, upd: any) {
+        return await SubjectModel.findOneAndUpdate(query, upd);
     }
 
     async find(query: any) {
