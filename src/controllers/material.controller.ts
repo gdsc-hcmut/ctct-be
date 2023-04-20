@@ -71,12 +71,10 @@ export class MaterialController extends Controller {
             }
 
             if (
-                (
-                    await this.materialService.find({
-                        subject: subject,
-                        chapter: chapter,
-                    })
-                ).length > 0
+                await this.materialService.findOne({
+                    subject: subject,
+                    chapter: chapter,
+                })
             ) {
                 throw new Error(`This chapter already exists`);
             }
@@ -259,12 +257,10 @@ export class MaterialController extends Controller {
                     })
                 );
                 if (
-                    (
-                        await this.materialService.find({
-                            subject: nSubject,
-                            chapter: nChapter,
-                        })
-                    ).length > 0
+                    await this.materialService.findOne({
+                        subject: nSubject,
+                        chapter: nChapter,
+                    })
                 ) {
                     throw new Error(
                         `A document with the same subject and chapter id already exists`

@@ -63,6 +63,10 @@ export class MaterialService {
         return await MaterialModel.findById(id);
     }
 
+    async findOne(query: any) {
+        return await MaterialModel.findOne(query);
+    }
+
     async findByIdPopulated(id: Types.ObjectId, query: string | string[]) {
         return await MaterialModel.findById(id).populate(query);
     }

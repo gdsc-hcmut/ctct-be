@@ -75,6 +75,10 @@ export class PreviousExamService {
         return await PreviousExamModel.findById(id);
     }
 
+    async findOne(query: any) {
+        return await PreviousExamModel.findOne(query);
+    }
+
     async findByIdPopulated(id: Types.ObjectId, query: string | string[]) {
         return await PreviousExamModel.findById(id).populate(query);
     }

@@ -22,6 +22,10 @@ export class SubjectService {
         return await SubjectModel.findById(id);
     }
 
+    async findOne(query: any) {
+        return await SubjectModel.findOne(query);
+    }
+
     async updateOne(query: any, upd: any) {
         return await SubjectModel.findOneAndUpdate(query, upd);
     }
