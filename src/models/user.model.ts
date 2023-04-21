@@ -36,6 +36,7 @@ const userSchema = new Schema<UserDocument>({
     name: { type: String, required: true },
     picture: String,
     dateOfBirth: Number,
+    email: String,
 
     // TODO: add tracking data for subjects
 });
