@@ -15,7 +15,7 @@ export type MaterialDocument = Document & {
     readAccess: UserRole[];
     writeAccess: UserRole[];
 
-    resource: Types.ObjectId[];
+    resource: Types.ObjectId;
     createdBy: Types.ObjectId;
     createdAt: number;
     lastUpdatedAt: number;
@@ -29,12 +29,7 @@ const materialSchema = new Schema<MaterialDocument>({
     readAccess: [{ type: String, enum: UserRole }],
     writeAccess: [{ type: String, enum: UserRole }],
 
-    resource: [
-        {
-            type: Schema.Types.ObjectId,
-            ref: "attachments",
-        },
-    ],
+    resource: { type: Schema.Types.ObjectId, ref: "attachments" },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: "users",

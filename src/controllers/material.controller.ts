@@ -33,7 +33,7 @@ export class MaterialController extends Controller {
 
         this.router.post("/create", fileUploader.any(), this.create.bind(this));
         this.router.get("/get/:docId", this.getById.bind(this));
-        this.router.get("/download/:docId/:index", this.download.bind(this));
+        this.router.get("/download/:docId", this.download.bind(this));
         this.router.get("/get", this.getAvaliableMaterial.bind(this));
         this.router.get(
             "/getbysubject/:subjectId",
@@ -141,7 +141,6 @@ export class MaterialController extends Controller {
     async download(req: Request, res: Response) {
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const index = toNumber(req.params.index);
             const doc = await this.materialService.findOne({
                 _id: docId,
                 readAccess: req.tokenMeta.role,
@@ -149,12 +148,9 @@ export class MaterialController extends Controller {
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
-            if (index < 0 || index >= doc.resource.length) {
-                throw new Error(`Invalid index`);
-            }
 
             const file = await this.fileUploadService.downloadFile(
-                doc.resource[index]
+                doc.resource
             );
             res.setHeader(
                 "Content-Disposition",

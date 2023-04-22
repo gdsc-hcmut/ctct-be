@@ -25,6 +25,7 @@ export class MaterialService {
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy
     ) {
+        console.assert(files.length === 1);
         const compressedFiles = await this.fileUploadService.uploadFiles(
             files,
             compressionStrategy
@@ -38,7 +39,7 @@ export class MaterialService {
 
             readAccess: [UserRole.STUDENT, UserRole.ADMIN],
             writeAccess: [UserRole.ADMIN],
-            resource: compressedFiles.map((f) => f._id),
+            resource: compressedFiles[0]._id,
             createdBy: userId,
             createdAt: currentTime,
             lastUpdatedAt: currentTime,
@@ -51,7 +52,7 @@ export class MaterialService {
             return false;
         }
 
-        await this.fileUploadService.deleteFiles(doc.resource);
+        await this.fileUploadService.deleteFiles([doc.resource]);
         return true;
     }
 
