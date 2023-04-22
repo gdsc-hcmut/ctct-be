@@ -12,6 +12,8 @@ export type PreviousExamDocument = Document & {
     readAccess: UserRole[];
     writeAccess: UserRole[];
 
+    subtitle: string;
+    description: string;
     resource: Types.ObjectId;
     createdBy: Types.ObjectId;
     createdAt: number;
@@ -25,6 +27,8 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
     readAccess: [{ type: String, enum: UserRole }],
     writeAccess: [{ type: String, enum: UserRole }],
 
+    subtitle: String,
+    description: String,
     resource: { type: Schema.Types.ObjectId, ref: "attachments" },
     createdBy: {
         type: Schema.Types.ObjectId,

@@ -19,6 +19,8 @@ export class MaterialService {
     // TODO: doc this
     async create(
         name: string,
+        subtitle: string,
+        description: string,
         subject: Types.ObjectId,
         chapter: number,
         userId: Types.ObjectId,
@@ -36,6 +38,9 @@ export class MaterialService {
             name: name,
             subject: subject,
             chapter: chapter,
+
+            subtitle: subtitle,
+            description: description,
 
             readAccess: [UserRole.STUDENT, UserRole.ADMIN],
             writeAccess: [UserRole.ADMIN],

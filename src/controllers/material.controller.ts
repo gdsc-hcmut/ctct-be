@@ -48,7 +48,9 @@ export class MaterialController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
-            let { subject, chapter } = req.body;
+            let { subject, chapter, subtitle, description } = req.body;
+            if (!subtitle) subtitle = "";
+            if (!description) description = "";
 
             if (!userMayUploadMaterial(req.tokenMeta.role)) {
                 throw new Error(
@@ -93,6 +95,8 @@ export class MaterialController extends Controller {
             );
             const doc = await this.materialService.create(
                 name,
+                subtitle,
+                description,
                 subject,
                 chapter,
                 userId,
@@ -191,6 +195,8 @@ export class MaterialController extends Controller {
 
             const info = _.pick(req.body, [
                 "name",
+                "subtitle",
+                "description",
                 "subject",
                 "chapter",
                 "readAccess",

@@ -15,13 +15,8 @@ export class MaterialUploadValidation implements UploadValidatorStrategy {
                 `You must upload exactly one file for this operation`
             );
         }
-        if (
-            files[0].originalname != "main.pdf" ||
-            files[0].mimetype != "application/pdf"
-        ) {
-            throw new Error(
-                `The specified file must be of type 'pdf' and have the name 'main.pdf'`
-            );
+        if (files[0].mimetype != "application/pdf") {
+            throw new Error(`The specified file must be of type 'pdf'`);
         }
     }
 }
@@ -33,13 +28,8 @@ export class PreviousExamUploadValidation implements UploadValidatorStrategy {
                 `You must upload exactly one file for this operation`
             );
         }
-        if (
-            files[0].originalname != "main.pdf" ||
-            files[0].mimetype != "application/pdf"
-        ) {
-            throw new Error(
-                `The specified file must be of type 'pdf' and have the name 'main.pdf'`
-            );
+        if (files[0].mimetype != "application/pdf") {
+            throw new Error(`The specified file must be of type 'pdf'`);
         }
     }
 }

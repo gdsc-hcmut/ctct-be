@@ -36,6 +36,8 @@ export class SubjectController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
+            let { description } = req.body;
+            if (!description) description = "";
             if (!userMayCreateSubject(req.tokenMeta.role)) {
                 throw new Error(
                     `You don't have the permission to perform this action`
@@ -45,7 +47,11 @@ export class SubjectController extends Controller {
                 throw new Error(`Missing 'name' field`);
             }
 
-            const doc = await this.subjectService.create(name, userId);
+            const doc = await this.subjectService.create(
+                name,
+                userId,
+                description
+            );
             res.composer.success(doc);
         } catch (error) {
             console.log(error);
@@ -75,7 +81,11 @@ export class SubjectController extends Controller {
                 throw new Error(`Document doesn't exist`);
             }
 
-            const info = _.pick(req.body, ["name", "writeAccess"]);
+            const info = _.pick(req.body, [
+                "name",
+                "writeAccess",
+                "description",
+            ]);
 
             if (info.writeAccess) {
                 const wa: UserRole[] = info.writeAccess;

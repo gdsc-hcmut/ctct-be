@@ -9,11 +9,12 @@ export class SubjectService {
         console.log("[SubjectService] Construct");
     }
 
-    async create(name: string, userId: Types.ObjectId) {
+    async create(name: string, userId: Types.ObjectId, description: string) {
         const t = Date.now();
         return await SubjectModel.create({
             name: name,
             writeAccess: [UserRole.ADMIN],
+            description: description,
             createdAt: t,
             createdBy: userId,
             lastUpdatedAt: t,

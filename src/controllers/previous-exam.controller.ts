@@ -49,7 +49,9 @@ export class PreviousExamController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
-            let { subject } = req.body;
+            let { subject, subtitle, description } = req.body;
+            if (!subtitle) subtitle = "";
+            if (!description) description = "";
 
             if (!userMayUploadPreviousExam(req.tokenMeta.role)) {
                 throw new Error(
@@ -81,6 +83,8 @@ export class PreviousExamController extends Controller {
             );
             const doc = await this.previousExamService.create(
                 name,
+                subtitle,
+                description,
                 subject,
                 userId,
                 req.files as Express.Multer.File[],
@@ -178,6 +182,8 @@ export class PreviousExamController extends Controller {
 
             const info = _.pick(req.body, [
                 "name",
+                "subtitle",
+                "description",
                 "subject",
                 "readAccess",
                 "writeAccess",

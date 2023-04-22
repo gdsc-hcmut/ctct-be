@@ -27,6 +27,8 @@ export class PreviousExamService {
      */
     async create(
         name: string,
+        subtitle: string,
+        description: string,
         subject: Types.ObjectId,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
@@ -42,6 +44,9 @@ export class PreviousExamService {
         return await PreviousExamModel.create({
             name: name,
             subject: subject,
+
+            subtitle: subtitle,
+            description: description,
 
             readAccess: [UserRole.STUDENT, UserRole.ADMIN],
             writeAccess: [UserRole.ADMIN],
