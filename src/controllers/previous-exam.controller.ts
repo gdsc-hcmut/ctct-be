@@ -30,9 +30,13 @@ export class PreviousExamController extends Controller {
         @inject(ServiceType.Subject) private subjectService: SubjectService
     ) {
         super();
-        this.router.all("*", this.authService.authenticate());
 
-        this.router.post("/create", fileUploader.any(), this.create.bind(this));
+        this.router.post(
+            "/create",
+            authService.authenticate(),
+            fileUploader.any(),
+            this.create.bind(this)
+        );
         this.router.get("/get/:docId", this.getById.bind(this));
         this.router.get("/download/:docId", this.download.bind(this));
         this.router.get("/get", this.getAvailablePreviousExams.bind(this));
@@ -41,8 +45,16 @@ export class PreviousExamController extends Controller {
             this.getBySubject.bind(this)
         );
 
-        this.router.patch("/edit/:docId", this.editPreviousExam.bind(this));
-        this.router.delete("/delete/:docId", this.deleteById.bind(this));
+        this.router.patch(
+            "/edit/:docId",
+            authService.authenticate(),
+            this.editPreviousExam.bind(this)
+        );
+        this.router.delete(
+            "/delete/:docId",
+            authService.authenticate(),
+            this.deleteById.bind(this)
+        );
     }
 
     async create(req: Request, res: Response) {
@@ -100,10 +112,13 @@ export class PreviousExamController extends Controller {
 
     async getById(req: Request, res: Response) {
         try {
+            const userRole: UserRole = req.tokenMeta
+                ? req.tokenMeta.role
+                : UserRole.STUDENT;
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
-                readAccess: req.tokenMeta.role,
+                readAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Document not found`);
@@ -117,10 +132,13 @@ export class PreviousExamController extends Controller {
 
     async getBySubject(req: Request, res: Response) {
         try {
+            const userRole: UserRole = req.tokenMeta
+                ? req.tokenMeta.role
+                : UserRole.STUDENT;
             const subject = new Types.ObjectId(req.params.subjectId);
             const ans = await this.previousExamService.find({
                 subject: subject,
-                readAccess: req.tokenMeta.role,
+                readAccess: userRole,
             });
             res.composer.success(ans);
         } catch (error) {
@@ -131,10 +149,13 @@ export class PreviousExamController extends Controller {
 
     async download(req: Request, res: Response) {
         try {
+            const userRole: UserRole = req.tokenMeta
+                ? req.tokenMeta.role
+                : UserRole.STUDENT;
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
-                readAccess: req.tokenMeta.role,
+                readAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
@@ -157,9 +178,11 @@ export class PreviousExamController extends Controller {
 
     async getAvailablePreviousExams(req: Request, res: Response) {
         try {
-            const role = req.tokenMeta.role;
+            const userRole: UserRole = req.tokenMeta
+                ? req.tokenMeta.role
+                : UserRole.STUDENT;
             const ans = await this.previousExamService.find({
-                readAccess: role,
+                readAccess: userRole,
             });
             res.composer.success(ans);
         } catch (error) {
