@@ -9,6 +9,7 @@ import { FileUploadService } from "./services/file-upload.service";
 import { PreviousExamService } from "./services/previous-exams.service";
 import { SubjectService } from "./services/subject.service";
 import { MaterialService } from "./services/material.service";
+import { CacheService } from "./services/cache.service";
 import { AuthController, UserController } from "./controllers";
 import { MaterialController } from "./controllers/material.controller";
 import { MeController } from "./controllers/me.controller";
@@ -51,6 +52,10 @@ container
 container
     .bind<MaterialService>(ServiceType.Material)
     .to(MaterialService)
+    .inSingletonScope();
+container
+    .bind<CacheService>(ServiceType.Cache)
+    .to(CacheService)
     .inSingletonScope();
 
 // Initialize service first

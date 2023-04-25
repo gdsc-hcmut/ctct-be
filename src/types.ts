@@ -18,6 +18,7 @@ export const ServiceType = {
     PreviousExam: Symbol.for("PreviousExam"),
     Subject: Symbol.for("Subject"),
     Material: Symbol.for("Material"),
+    Cache: Symbol.for("Cache"),
 };
 
 export enum PrivacyType {

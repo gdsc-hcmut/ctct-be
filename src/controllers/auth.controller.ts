@@ -34,7 +34,9 @@ export class AuthController extends Controller {
                 );
                 console.log(token);
                 if (process.env.ENV != "dev") {
-                    res.redirect(`https://game.gdsc.app/login?token=${token}`);
+                    res.redirect(
+                        `${process.env.REDIRECT_URI}/login?token=${token}`
+                    );
                 }
                 // if (
                 //     _.includes(

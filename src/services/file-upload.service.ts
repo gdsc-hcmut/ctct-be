@@ -1,4 +1,4 @@
-import { injectable } from "inversify";
+import { injectable, inject } from "inversify";
 import admin from "firebase-admin";
 import serviceAccount from "../../googleServiceAccountKey.json";
 import { DownloadFileInfo } from "../types";
@@ -8,6 +8,8 @@ import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import getRawBody from "raw-body";
 import AttachmentModel from "../models/attachment.model";
 import { Types } from "mongoose";
+import { ServiceType } from "../types";
+import { CacheService } from "./cache.service";
 
 @injectable()
 export class FileUploadService {
@@ -16,8 +18,9 @@ export class FileUploadService {
      * All requests are independent of each other, so no lock is needed
      */
     bucket: Bucket;
+    CACHE_EXPIRATION_TIME: number = 60 * 15; // 15 minutes
 
-    constructor() {
+    constructor(@inject(ServiceType.Cache) private cacheService: CacheService) {
         console.log("[FileUploadService] Construct");
         admin.initializeApp({
             credential: admin.credential.cert(
@@ -65,8 +68,21 @@ export class FileUploadService {
         }
 
         const { originalName, refName, mimetype } = doc;
-        const file = this.bucket.file(refName);
-        const buffer = await getRawBody(file.createReadStream());
+        const buffer = Buffer.from(
+            await this.cacheService.getWithPopulate(
+                `attachments ${refName}`,
+                async () => {
+                    const file = this.bucket.file(refName);
+                    return (await getRawBody(file.createReadStream())).toString(
+                        "base64"
+                    );
+                },
+                {
+                    EX: this.CACHE_EXPIRATION_TIME,
+                }
+            ),
+            "base64"
+        );
 
         return {
             originalName: originalName,
