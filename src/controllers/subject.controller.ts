@@ -23,13 +23,24 @@ export class SubjectController extends Controller {
         private previousExamService: PreviousExamService
     ) {
         super();
-        this.router.all("*", this.authService.authenticate());
 
         // My profile
-        this.router.post("/", this.create.bind(this));
+        this.router.post(
+            "/",
+            authService.authenticate(),
+            this.create.bind(this)
+        );
         this.router.get("/all", this.getAllSubjects.bind(this));
-        this.router.patch("/edit/:docId", this.editSubject.bind(this));
-        this.router.delete("/delete/:docId", this.deleteOne.bind(this));
+        this.router.patch(
+            "/edit/:docId",
+            authService.authenticate(),
+            this.editSubject.bind(this)
+        );
+        this.router.delete(
+            "/delete/:docId",
+            authService.authenticate(),
+            this.deleteOne.bind(this)
+        );
     }
 
     async create(req: Request, res: Response) {
