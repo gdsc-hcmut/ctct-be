@@ -26,7 +26,7 @@ export class FileUploadService {
             credential: admin.credential.cert(
                 serviceAccount as admin.ServiceAccount
             ),
-            storageBucket: "ctct-be.appspot.com",
+            storageBucket: process.env.STORAGE_BUCKET,
         });
         this.bucket = admin.storage().bucket();
     }
