@@ -16,9 +16,9 @@ export class CacheService {
                 port: parseInt(process.env.CACHE_PORT),
             },
         });
+        this.client.connect();
         this.client.configSet("maxmemory", "50mb");
         this.client.configSet("maxmemory-policy", "allkeys-lru");
-        this.client.connect();
         this.lock = new AsyncLock();
     }
 
