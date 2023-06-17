@@ -14,7 +14,6 @@ export class SubjectService {
         const t = Date.now();
         return await SubjectModel.create({
             name: name,
-            writeAccess: [UserRole.ADMIN],
             description: description,
             createdAt: t,
             createdBy: userId,

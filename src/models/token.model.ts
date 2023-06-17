@@ -7,7 +7,7 @@ export type TokenDocument = Document & {
     userId: mongoose.Types.ObjectId;
     createdAt: number;
     expiredAt: number;
-    role: UserRole;
+    roles: UserRole[];
 
     userAgent: string;
 };
@@ -17,7 +17,7 @@ const tokenSchema = new Schema<TokenDocument>({
     userId: Schema.Types.ObjectId,
     createdAt: Number,
     expiredAt: Number,
-    role: { type: String, enum: UserRole },
+    roles: Array<UserRole>,
 
     userAgent: String,
 });

@@ -12,6 +12,7 @@ import {
     MaterialService,
     PreviousExamService,
     SubjectService,
+    PermissionService,
 } from "./services/index";
 
 import {
@@ -65,6 +66,10 @@ container
 container
     .bind<CacheService>(ServiceType.Cache)
     .to(CacheService)
+    .inSingletonScope();
+container
+    .bind<PermissionService>(ServiceType.Permission)
+    .to(PermissionService)
     .inSingletonScope();
 
 // Initialize service first

@@ -4,20 +4,20 @@ import { Controller } from "./controller";
 import { UserRole } from "../models/user.model";
 import { Request, Response, ServiceType } from "../types";
 import {
-    UserService,
     AuthService,
     PreviousExamService,
     FileUploadService,
     SubjectService,
+    PermissionService,
 } from "../services/index";
 import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
-import { userMayUploadPreviousExam } from "../models/user.model";
 import mongoose, { Types } from "mongoose";
 import _ from "lodash";
 import { logger } from "../lib/logger";
+import { Permission } from "../models/permission.model";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -25,13 +25,14 @@ export class PreviousExamController extends Controller {
     public readonly path = "/previous-exams";
 
     constructor(
-        @inject(ServiceType.User) private userService: UserService,
         @inject(ServiceType.Auth) private authService: AuthService,
         @inject(ServiceType.PreviousExam)
         private previousExamService: PreviousExamService,
         @inject(ServiceType.FileUpload)
         private fileUploadService: FileUploadService,
-        @inject(ServiceType.Subject) private subjectService: SubjectService
+        @inject(ServiceType.Subject) private subjectService: SubjectService,
+        @inject(ServiceType.Permission)
+        private permissionService: PermissionService
     ) {
         super();
 
@@ -59,11 +60,17 @@ export class PreviousExamController extends Controller {
             if (!subtitle) subtitle = "";
             if (!description) description = "";
 
-            if (!userMayUploadPreviousExam(req.tokenMeta.role)) {
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    req.tokenMeta.roles,
+                    Permission.UPLOAD_PREVIOUS_EXAM
+                ))
+            ) {
                 throw new Error(
-                    `You don't have the permission required to upload a previous exam`
+                    `Your role(s) does not have the permission to perform this action`
                 );
             }
+
             if (!name) {
                 throw new Error(`Missing 'name' field`);
             }
@@ -113,16 +120,37 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.VIEW_PREVIOUS_EXAM
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
-                readAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Document not found`);
+            }
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
             await session.commitTransaction();
             res.composer.success(doc);
@@ -140,14 +168,31 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.VIEW_PREVIOUS_EXAM
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const subject = new Types.ObjectId(req.params.subjectId);
-            const ans = await this.previousExamService.find({
-                subject: subject,
-                readAccess: userRole,
-            });
+            const ans = (
+                await this.previousExamService.find({
+                    subject: subject,
+                })
+            ).filter((d) =>
+                this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    d.visibleTo
+                )
+            );
             await session.commitTransaction();
             res.composer.success(ans);
         } catch (error) {
@@ -164,16 +209,37 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.VIEW_PREVIOUS_EXAM
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
-                readAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
+            }
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
 
             const file = await this.fileUploadService.downloadFile(
@@ -200,12 +266,27 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
-            const ans = await this.previousExamService.find({
-                readAccess: userRole,
-            });
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.VIEW_PREVIOUS_EXAM
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const ans = (await this.previousExamService.find({})).filter((d) =>
+                this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    d.visibleTo
+                )
+            );
             await session.commitTransaction();
             res.composer.success(ans);
         } catch (error) {
@@ -223,13 +304,34 @@ export class PreviousExamController extends Controller {
         session.startTransaction();
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const userRole = req.tokenMeta.role;
+            const userRoles = req.tokenMeta.roles;
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.EDIT_PREVIOUS_EXAM
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const doc = await this.previousExamService.findOne({
                 _id: docId,
-                writeAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
+            }
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
 
             const info = _.pick(req.body, [
@@ -237,40 +339,20 @@ export class PreviousExamController extends Controller {
                 "subtitle",
                 "description",
                 "subject",
-                "readAccess",
-                "writeAccess",
+                "visibleTo",
             ]);
 
             if (info.subject) {
                 info.subject = new Types.ObjectId(info.subject);
             }
-            if (info.readAccess) {
-                const ra: UserRole[] = info.readAccess;
-                if (!ra.every((r) => Object.values(UserRole).includes(r))) {
-                    throw new Error(`Read access contains unrecognized role`);
-                }
-                if (
-                    doc.readAccess.includes(userRole) &&
-                    !ra.includes(userRole)
-                ) {
+            if (info.visibleTo) {
+                // permissions can only be changed by ADMIN
+                if (!userRoles.includes(UserRole.ADMIN)) {
                     throw new Error(
-                        `You cannot remove your own role's read access to this document`
+                        `Only role ${UserRole.ADMIN} can change permission of previous exams`
                     );
                 }
-            }
-            if (info.writeAccess) {
-                const wa: UserRole[] = info.writeAccess;
-                if (!wa.every((r) => Object.values(UserRole).includes(r))) {
-                    throw new Error(`Write access contains unrecognized role`);
-                }
-                if (
-                    doc.writeAccess.includes(userRole) &&
-                    !wa.includes(userRole)
-                ) {
-                    throw new Error(
-                        `You cannot remove your own role's write access to this document`
-                    );
-                }
+                info.visibleTo = info.visibleTo as UserRole[];
             }
             if (info.subject) {
                 const subject = new Types.ObjectId(info.subject);
@@ -302,14 +384,35 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole = req.tokenMeta.role;
+            const userRoles = req.tokenMeta.roles;
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.DELETE_PREVIOUS_EXAM
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
-                writeAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
+            }
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
 
             await this.previousExamService.deleteById(docId);

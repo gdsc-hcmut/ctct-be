@@ -49,8 +49,7 @@ export class PreviousExamService {
             subtitle: subtitle,
             description: description,
 
-            readAccess: [UserRole.STUDENT, UserRole.ADMIN],
-            writeAccess: [UserRole.ADMIN],
+            visibleTo: Object.values(UserRole),
             resource: uploadedAttachments[0]._id,
             createdBy: userId,
             createdAt: currentTime,

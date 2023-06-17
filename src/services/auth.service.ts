@@ -60,11 +60,9 @@ export class AuthService {
                         name: profile.displayName,
                         email: profile.emails?.[0].value,
                         picture: profile._json.picture,
-                        role: UserRole.STUDENT,
+                        roles: [UserRole.STUDENT],
                         // we are using optional chaining because profile.emails may be undefined.
                     });
-                    await QuizHistoryModel.create({ _id: newUser._id });
-                    await ExamHistoryModel.create({ _id: newUser._id });
                     if (newUser) {
                         done(null, newUser);
                     }
@@ -132,7 +130,7 @@ export class AuthService {
         userId: string,
         googleId: string,
         userAgent: string,
-        role: UserRole
+        roles: UserRole[]
     ) {
         const result = await Token.create({
             googleId,
@@ -140,7 +138,7 @@ export class AuthService {
             userId,
             createdAt: moment().unix(),
             expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
-            role,
+            roles,
         });
         const EncodeToken = jwt.encode(
             {
@@ -150,7 +148,7 @@ export class AuthService {
                 userId,
                 createdAt: moment().unix(),
                 expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
-                role,
+                roles,
             },
             process.env.JWT_SECRET
         );
@@ -163,12 +161,12 @@ export class AuthService {
         userId: string,
         googleId: string,
         email: string,
-        role: UserRole
+        roles: UserRole[]
     ) {
-        return await this.createToken(userId, googleId, email, role);
+        return await this.createToken(userId, googleId, email, roles);
     }
 
-    async generateTokenGoogle(user: UserDocument, role: UserRole) {
+    async generateTokenGoogle(user: UserDocument, roles: UserRole[]) {
         if (_.isEmpty(user)) {
             throw new ErrorUserInvalid("User not exist");
         }
@@ -177,7 +175,7 @@ export class AuthService {
             user._id,
             user.googleId,
             user.email,
-            role
+            roles
         );
     }
 }

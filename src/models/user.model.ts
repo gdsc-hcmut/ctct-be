@@ -7,21 +7,9 @@ export enum UserRole {
     ADMIN = "ADMIN",
 }
 
-export function userMayUploadPreviousExam(r: UserRole) {
-    return r == UserRole.ADMIN;
-}
-
-export function userMayUploadMaterial(r: UserRole) {
-    return r == UserRole.ADMIN;
-}
-
-export function userMayCreateSubject(r: UserRole) {
-    return r == UserRole.ADMIN;
-}
-
 export type UserDocument = Document & {
     googleId: string;
-    role: UserRole;
+    roles: UserRole[];
 
     name: string;
     picture: string;
@@ -31,7 +19,7 @@ export type UserDocument = Document & {
 
 const userSchema = new Schema<UserDocument>({
     googleId: { type: String, unique: true },
-    role: { type: String, enum: UserRole },
+    roles: Array<UserRole>,
 
     name: { type: String, required: true },
     picture: String,

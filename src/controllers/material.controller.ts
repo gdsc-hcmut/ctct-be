@@ -8,16 +8,17 @@ import {
     SubjectService,
     MaterialService,
     FileUploadService,
+    PermissionService,
 } from "../services/index";
 import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { MaterialUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
-import { userMayUploadMaterial } from "../models/user.model";
 import mongoose, { Types } from "mongoose";
 import { toNumber } from "lodash";
 import _ from "lodash";
 import { logger } from "../lib/logger";
+import { Permission } from "../models/permission.model";
 
 @injectable()
 export class MaterialController extends Controller {
@@ -29,7 +30,9 @@ export class MaterialController extends Controller {
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.Material) private materialService: MaterialService,
         @inject(ServiceType.FileUpload)
-        private fileUploadService: FileUploadService
+        private fileUploadService: FileUploadService,
+        @inject(ServiceType.Permission)
+        private permissionService: PermissionService
     ) {
         super();
 
@@ -57,9 +60,14 @@ export class MaterialController extends Controller {
             if (!subtitle) subtitle = "";
             if (!description) description = "";
 
-            if (!userMayUploadMaterial(req.tokenMeta.role)) {
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    req.tokenMeta.roles,
+                    Permission.UPLOAD_MATERIAL
+                ))
+            ) {
                 throw new Error(
-                    `You don't have the permission required to upload material`
+                    `Your role(s) does not have the permission to perform this action`
                 );
             }
             if (!name) {
@@ -125,16 +133,37 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.VIEW_MATERIAL
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.materialService.findOne({
                 _id: docId,
-                readAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Document not found`);
+            }
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
             await session.commitTransaction();
             res.composer.success(doc);
@@ -152,14 +181,31 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.VIEW_MATERIAL
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
             const subject = new Types.ObjectId(req.params.subjectId);
-            const ans = await this.materialService.find({
-                subject: subject,
-                readAccess: userRole,
-            });
+            const ans = (
+                await this.materialService.find({
+                    subject: subject,
+                })
+            ).filter((d) =>
+                this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    d.visibleTo
+                )
+            );
             await session.commitTransaction();
             res.composer.success(ans);
         } catch (error) {
@@ -176,16 +222,37 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    req.tokenMeta.roles,
+                    Permission.VIEW_MATERIAL
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.materialService.findOne({
                 _id: docId,
-                readAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
+            }
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
 
             const file = await this.fileUploadService.downloadFile(
@@ -212,12 +279,27 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole: UserRole = req.tokenMeta
-                ? req.tokenMeta.role
-                : UserRole.STUDENT;
-            const ans = await this.materialService.find({
-                readAccess: userRole,
-            });
+            const userRoles: UserRole[] = req.tokenMeta
+                ? req.tokenMeta.roles
+                : [UserRole.STUDENT];
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    userRoles,
+                    Permission.VIEW_MATERIAL
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const ans = (await this.materialService.find({})).filter((d) =>
+                this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    d.visibleTo
+                )
+            );
             await session.commitTransaction();
             res.composer.success(ans);
         } catch (error) {
@@ -234,14 +316,35 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
+            const userRoles = req.tokenMeta.roles;
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    req.tokenMeta.roles,
+                    Permission.EDIT_MATERIAL
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
-            const userRole = req.tokenMeta.role;
             const doc = await this.materialService.findOne({
                 _id: docId,
-                writeAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
+            }
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
 
             const info = _.pick(req.body, [
@@ -250,8 +353,7 @@ export class MaterialController extends Controller {
                 "description",
                 "subject",
                 "chapter",
-                "readAccess",
-                "writeAccess",
+                "visibleTo",
             ]);
 
             if (info.subject) {
@@ -263,33 +365,13 @@ export class MaterialController extends Controller {
             if (info.chapter) {
                 info.chapter = toNumber(info.chapter);
             }
-            if (info.readAccess) {
-                const ra: UserRole[] = info.readAccess;
-                if (!ra.every((r) => Object.values(UserRole).includes(r))) {
-                    throw new Error(`Read access contains unrecognized role`);
-                }
-                if (
-                    doc.readAccess.includes(userRole) &&
-                    !ra.includes(userRole)
-                ) {
+            if (info.visibleTo) {
+                if (!userRoles.includes(UserRole.ADMIN)) {
                     throw new Error(
-                        `You cannot remove your own role's read access to this document`
+                        `Only role ${UserRole.ADMIN} can change permission of material`
                     );
                 }
-            }
-            if (info.writeAccess) {
-                const wa: UserRole[] = info.writeAccess;
-                if (!wa.every((r) => Object.values(UserRole).includes(r))) {
-                    throw new Error(`Write access contains unrecognized role`);
-                }
-                if (
-                    doc.writeAccess.includes(userRole) &&
-                    !wa.includes(userRole)
-                ) {
-                    throw new Error(
-                        `You cannot remove your own role's write access to this document`
-                    );
-                }
+                info.visibleTo = info.visibleTo as UserRole[];
             }
             // subject must be empty or valid, so we check if it collides with any other document
             const changedLoc =
@@ -333,14 +415,36 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole = req.tokenMeta.role;
+            const userRoles = req.tokenMeta.roles;
+
+            if (
+                !(await this.permissionService.rolesCanPerformAction(
+                    req.tokenMeta.roles,
+                    Permission.DELETE_MATERIAL
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.materialService.findOne({
                 _id: docId,
-                writeAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
+            }
+
+            if (
+                !this.permissionService.rolesOverlapWithAllowedList(
+                    userRoles,
+                    doc.visibleTo
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
             }
 
             await this.materialService.deleteById(docId);

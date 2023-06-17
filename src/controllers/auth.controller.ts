@@ -30,7 +30,7 @@ export class AuthController extends Controller {
                     user._id,
                     user.googleId,
                     user.email,
-                    user.role
+                    user.roles
                 );
                 console.log(token);
                 if (process.env.ENV != "dev") {

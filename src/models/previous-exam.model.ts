@@ -9,8 +9,7 @@ export type PreviousExamDocument = Document & {
     name: string;
     subject: Types.ObjectId;
 
-    readAccess: UserRole[];
-    writeAccess: UserRole[];
+    visibleTo: UserRole[];
 
     subtitle: string;
     description: string;
@@ -24,8 +23,7 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
     name: { type: String, required: true },
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
 
-    readAccess: [{ type: String, enum: UserRole }],
-    writeAccess: [{ type: String, enum: UserRole }],
+    visibleTo: Array<UserRole>,
 
     subtitle: String,
     description: String,
