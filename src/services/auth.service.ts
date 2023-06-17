@@ -23,11 +23,13 @@ import Token from "../models/token.model";
 import { lazyInject } from "../container";
 import QuizHistoryModel from "../models/quiz-history";
 import ExamHistoryModel from "../models/exam-history";
+import { logger } from "../lib/logger";
+
 @injectable()
 export class AuthService {
     @lazyInject(ServiceType.User) private userService: UserService;
     constructor() {
-        console.log("[Auth Service] Construct");
+        logger.info("Constructing Auth service");
     }
 
     applyMiddleware() {

@@ -2,8 +2,10 @@ import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
-import { UserService, AuthService } from "../services";
+import { UserService, AuthService } from "../services/index";
 import { ErrorNotFound } from "../lib/errors";
+import mongoose from "mongoose";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class MeController extends Controller {
@@ -22,6 +24,8 @@ export class MeController extends Controller {
     }
 
     async getMyProfile(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const userId = req.tokenMeta.userId;
             const user = await this.userService.findUserById(userId);
@@ -30,10 +34,15 @@ export class MeController extends Controller {
                 throw new ErrorNotFound(`Requested user is not found`);
             }
 
+            await session.commitTransaction();
             res.composer.success(user);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 }

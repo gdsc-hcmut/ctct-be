@@ -6,6 +6,7 @@ import PreviousExamModel from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
 import { UserRole } from "../models/user.model";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class PreviousExamService {
@@ -13,7 +14,7 @@ export class PreviousExamService {
     private fileUploadService: FileUploadService;
 
     constructor() {
-        console.log("[PreviousExamService] Construct");
+        logger.info("Constructing Previous Exam service");
     }
 
     /**

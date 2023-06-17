@@ -7,7 +7,7 @@ import { SubjectService } from "../services/subject.service";
 import { MaterialService } from "../services/material.service";
 import { PreviousExamService } from "../services/previous-exams.service";
 import { UserRole, userMayCreateSubject } from "../models/user.model";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import _ from "lodash";
 
 @injectable()
@@ -24,26 +24,17 @@ export class SubjectController extends Controller {
     ) {
         super();
 
-        // My profile
-        this.router.post(
-            "/",
-            authService.authenticate(),
-            this.create.bind(this)
-        );
         this.router.get("/all", this.getAllSubjects.bind(this));
-        this.router.patch(
-            "/edit/:docId",
-            authService.authenticate(),
-            this.editSubject.bind(this)
-        );
-        this.router.delete(
-            "/delete/:docId",
-            authService.authenticate(),
-            this.deleteOne.bind(this)
-        );
+
+        this.router.all("*", authService.authenticate());
+        this.router.post("/", this.create.bind(this));
+        this.router.patch("/edit/:docId", this.editSubject.bind(this));
+        this.router.delete("/delete/:docId", this.deleteOne.bind(this));
     }
 
     async create(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
@@ -63,24 +54,36 @@ export class SubjectController extends Controller {
                 userId,
                 description
             );
+            await session.commitTransaction();
             res.composer.success(doc);
         } catch (error) {
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async getAllSubjects(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const ans = await this.subjectService.find({});
+            await session.commitTransaction();
             res.composer.success(ans);
         } catch (error) {
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async editSubject(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const userRole = req.tokenMeta.role;
             const docId = new Types.ObjectId(req.params.docId);
@@ -120,14 +123,20 @@ export class SubjectController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
+            await session.commitTransaction();
             res.composer.success(true);
         } catch (error) {
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async deleteOne(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const docId = new Types.ObjectId(req.params.docId);
             const sub = await this.subjectService.findOne({
@@ -149,10 +158,14 @@ export class SubjectController extends Controller {
                 );
             }
             await this.subjectService.findOneAndDelete({ _id: docId });
+            await session.commitTransaction();
             res.composer.success(true);
         } catch (error) {
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 }

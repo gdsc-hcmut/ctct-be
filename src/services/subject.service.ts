@@ -2,11 +2,12 @@ import { injectable } from "inversify";
 import SubjectModel from "../models/subject.model";
 import { Types } from "mongoose";
 import { UserRole } from "../models/user.model";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class SubjectService {
     constructor() {
-        console.log("[SubjectService] Construct");
+        logger.info("Constructing Subject service");
     }
 
     async create(name: string, userId: Types.ObjectId, description: string) {

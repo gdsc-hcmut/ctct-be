@@ -11,6 +11,7 @@ import cookieSession from "cookie-session";
 import passport from "passport";
 import path from "path";
 import compression from "compression";
+import { logger } from "./lib/logger";
 
 class App {
     public app: Express;
@@ -81,8 +82,8 @@ class App {
         });
 
         this.server.listen(this.port, () => {
-            console.log(
-                `[${process.env.SERVICE_NAME}] listening on port ${this.port}`
+            logger.info(
+                `${process.env.SERVICE_NAME} listening on port ${this.port}`
             );
         });
     }
