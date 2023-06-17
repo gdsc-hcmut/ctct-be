@@ -5,20 +5,13 @@ import crypto from "crypto";
 import User from "../models/user.model";
 import mongoose, { Types } from "mongoose";
 import DeviceToken, { DeviceTokenDocument } from "../models/device-token.model";
-import AsyncLock from "async-lock";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class UserService {
-    /**
-     * Lock policy:
-     * - Every operation that operate on a user locks on the document ID of that user
-     * - Create user is an exception, it doesn't lock on anything
-     * - If a function requires locking on multiple user, locking is done on ascending order of IDs
-     */
-    private dbLock: AsyncLock = new AsyncLock();
-
     constructor() {
         this.setupIndexes();
+        logger.info("Constructing User service");
     }
 
     private async setupIndexes() {
@@ -51,14 +44,9 @@ export class UserService {
 
         return opUpdateResult.modifiedCount;
     }
-    /**
-     * Finds and returns a user with the specified id
-     * @param id ID of the requested user
-     * @returns The user that matches the given ID, or null if no user matches*/
+
     async findUserById(id: Types.ObjectId) {
-        return await this.dbLock.acquire(id.toString(), async () => {
-            return await User.findById(id);
-        });
+        return await User.findById(id);
     }
 
     async verifyAccountRequest(email: string) {

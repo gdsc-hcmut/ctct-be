@@ -60,7 +60,8 @@
         "saslprep": "^1.0.3",
         "sharp": "^0.32.0",
         "socket.io": "^4.1.1",
-        "tsyringe": "^3.3.0"
+        "tsyringe": "^3.3.0",
+        "winston": "^3.9.0"
     },
     "devDependencies": {
         "@types/adm-zip": "^0.4.32",

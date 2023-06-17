@@ -4,28 +4,37 @@ import { App } from "./app";
 import container from "./container";
 import { applyHttpResponseComposer } from "./lib/response-composer";
 
-import { AuthService, UserService } from "./services";
-import { FileUploadService } from "./services/file-upload.service";
-import { PreviousExamService } from "./services/previous-exams.service";
-import { SubjectService } from "./services/subject.service";
-import { MaterialService } from "./services/material.service";
-import { CacheService } from "./services/cache.service";
-import { AuthController, UserController } from "./controllers";
-import { MaterialController } from "./controllers/material.controller";
-import { MeController } from "./controllers/me.controller";
-import { SubjectController } from "./controllers/subject.controller";
-import { PreviousExamController } from "./controllers/previous-exam.controller";
+import {
+    AuthService,
+    UserService,
+    CacheService,
+    FileUploadService,
+    MaterialService,
+    PreviousExamService,
+    SubjectService,
+} from "./services/index";
+
+import {
+    AuthController,
+    MaterialController,
+    MeController,
+    PreviousExamController,
+    SubjectController,
+    UserController,
+} from "./controllers/index";
+
 import { ServiceType } from "./types";
 import mongoose from "mongoose";
 
 import dotenv from "dotenv";
 import { toNumber } from "lodash";
+import { logger } from "./lib/logger";
 dotenv.config();
 
-console.log(`Connecting to DB: ${process.env.DB_URI}`);
+logger.info(`Connecting to database at URI: ${process.env.DB_URI}`);
 mongoose.connect(process.env.DB_URI);
 mongoose.connection.once("connected", () => {
-    console.log("Connected to DB!");
+    logger.info("Database connection established");
 });
 
 // Binding service

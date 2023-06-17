@@ -10,6 +10,7 @@ import AttachmentModel from "../models/attachment.model";
 import { Types } from "mongoose";
 import { ServiceType } from "../types";
 import { CacheService } from "./cache.service";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class FileUploadService {
@@ -21,7 +22,7 @@ export class FileUploadService {
     CACHE_EXPIRATION_TIME: number = 60 * 15; // 15 minutes
 
     constructor(@inject(ServiceType.Cache) private cacheService: CacheService) {
-        console.log("[FileUploadService] Construct");
+        logger.info("Constructing File Upload service");
         admin.initializeApp({
             credential: admin.credential.cert(
                 serviceAccount as admin.ServiceAccount

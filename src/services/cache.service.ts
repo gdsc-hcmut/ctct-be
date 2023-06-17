@@ -1,6 +1,7 @@
 import { injectable } from "inversify";
 import redis, { createClient } from "redis";
 import AsyncLock from "async-lock";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class CacheService {
@@ -8,9 +9,10 @@ export class CacheService {
     lock: AsyncLock;
 
     constructor() {
-        console.log(
-            `[CacheService] Construct. Listening at ${process.env.CACHE_PORT}`
+        logger.info(
+            `Constructing Cache service to listen at port ${process.env.CACHE_PORT}`
         );
+        logger;
         this.client = createClient({
             socket: {
                 port: parseInt(process.env.CACHE_PORT),

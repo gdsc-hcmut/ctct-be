@@ -3,17 +3,21 @@ import { Router } from "express";
 import { Controller } from "./controller";
 import { UserRole } from "../models/user.model";
 import { Request, Response, ServiceType } from "../types";
-import { UserService, AuthService } from "../services";
-import { PreviousExamService } from "../services/previous-exams.service";
-import { fileUploader } from "../upload-storage";
-import { FileUploadService } from "../services/file-upload.service";
-import { SubjectService } from "../services/subject.service";
+import {
+    UserService,
+    AuthService,
+    PreviousExamService,
+    FileUploadService,
+    SubjectService,
+} from "../services/index";
+import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
 import { userMayUploadPreviousExam } from "../models/user.model";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import _ from "lodash";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -31,12 +35,6 @@ export class PreviousExamController extends Controller {
     ) {
         super();
 
-        this.router.post(
-            "/create",
-            authService.authenticate(),
-            fileUploader.any(),
-            this.create.bind(this)
-        );
         this.router.get("/get/:docId", this.getById.bind(this));
         this.router.get("/download/:docId", this.download.bind(this));
         this.router.get("/get", this.getAvailablePreviousExams.bind(this));
@@ -45,19 +43,15 @@ export class PreviousExamController extends Controller {
             this.getBySubject.bind(this)
         );
 
-        this.router.patch(
-            "/edit/:docId",
-            authService.authenticate(),
-            this.editPreviousExam.bind(this)
-        );
-        this.router.delete(
-            "/delete/:docId",
-            authService.authenticate(),
-            this.deleteById.bind(this)
-        );
+        this.router.all("*", authService.authenticate());
+        this.router.post("/create", fileUploader.any(), this.create.bind(this));
+        this.router.patch("/edit/:docId", this.editPreviousExam.bind(this));
+        this.router.delete("/delete/:docId", this.deleteById.bind(this));
     }
 
     async create(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
             const { name } = req.body;
@@ -103,14 +97,21 @@ export class PreviousExamController extends Controller {
                 new AgressiveFileCompression()
             );
 
+            await session.commitTransaction();
             res.composer.success(doc);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async getById(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const userRole: UserRole = req.tokenMeta
                 ? req.tokenMeta.role
@@ -123,14 +124,21 @@ export class PreviousExamController extends Controller {
             if (!doc) {
                 throw new Error(`Document not found`);
             }
+            await session.commitTransaction();
             res.composer.success(doc);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async getBySubject(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const userRole: UserRole = req.tokenMeta
                 ? req.tokenMeta.role
@@ -140,14 +148,21 @@ export class PreviousExamController extends Controller {
                 subject: subject,
                 readAccess: userRole,
             });
+            await session.commitTransaction();
             res.composer.success(ans);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async download(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const userRole: UserRole = req.tokenMeta
                 ? req.tokenMeta.role
@@ -164,6 +179,7 @@ export class PreviousExamController extends Controller {
             const file = await this.fileUploadService.downloadFile(
                 doc.resource
             );
+            await session.commitTransaction();
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename=${file.originalName}`
@@ -171,12 +187,18 @@ export class PreviousExamController extends Controller {
             res.setHeader("Content-Type", `${file.mimetype}`);
             res.end(file.buffer);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async getAvailablePreviousExams(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const userRole: UserRole = req.tokenMeta
                 ? req.tokenMeta.role
@@ -184,14 +206,21 @@ export class PreviousExamController extends Controller {
             const ans = await this.previousExamService.find({
                 readAccess: userRole,
             });
+            await session.commitTransaction();
             res.composer.success(ans);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async editPreviousExam(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const docId = new Types.ObjectId(req.params.docId);
             const userRole = req.tokenMeta.role;
@@ -257,14 +286,21 @@ export class PreviousExamController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
+            await session.commitTransaction();
             res.composer.success(true);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 
     async deleteById(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const userRole = req.tokenMeta.role;
             const docId = new Types.ObjectId(req.params.docId);
@@ -277,10 +313,15 @@ export class PreviousExamController extends Controller {
             }
 
             await this.previousExamService.deleteById(docId);
+            await session.commitTransaction();
             res.composer.success(true);
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
+            await session.abortTransaction();
             res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
         }
     }
 }

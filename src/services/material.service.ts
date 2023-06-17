@@ -6,6 +6,7 @@ import MaterialModel from "../models/material.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
 import { UserRole } from "../models/user.model";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class MaterialService {
@@ -13,7 +14,7 @@ export class MaterialService {
     private fileUploadService: FileUploadService;
 
     constructor() {
-        console.log("[MaterialService] Construct");
+        logger.info("Constructing Material service");
     }
 
     // TODO: doc this
