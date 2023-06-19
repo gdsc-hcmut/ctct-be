@@ -12,7 +12,6 @@ export class CacheService {
         logger.info(
             `Constructing Cache service to listen at port ${process.env.CACHE_PORT}`
         );
-        logger;
         this.client = createClient({
             socket: {
                 port: parseInt(process.env.CACHE_PORT),
@@ -30,6 +29,10 @@ export class CacheService {
 
     async get(key: string) {
         return await this.client.get(key);
+    }
+
+    async del(key: string) {
+        return await this.client.del(key);
     }
 
     /**

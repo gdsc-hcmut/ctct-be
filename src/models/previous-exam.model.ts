@@ -1,16 +1,10 @@
 import mongoose, { Types, Schema } from "mongoose";
-import { UserRole } from "./user.model";
-
-/**
- * Exams from previous years
- */
 
 export type PreviousExamDocument = Document & {
     name: string;
     subject: Types.ObjectId;
 
-    readAccess: UserRole[];
-    writeAccess: UserRole[];
+    visibleTo: Types.ObjectId[];
 
     subtitle: string;
     description: string;
@@ -24,8 +18,7 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
     name: { type: String, required: true },
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
 
-    readAccess: [{ type: String, enum: UserRole }],
-    writeAccess: [{ type: String, enum: UserRole }],
+    visibleTo: [{ type: Schema.Types.ObjectId, ref: "access_levels" }],
 
     subtitle: String,
     description: String,

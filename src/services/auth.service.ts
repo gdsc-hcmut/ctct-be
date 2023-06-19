@@ -1,4 +1,4 @@
-import { injectable, inject } from "inversify";
+import { injectable } from "inversify";
 import passport from "passport";
 import {
     Strategy,
@@ -10,20 +10,17 @@ import jwt from "jwt-simple";
 import { NextFunction } from "express";
 import _, { toNumber } from "lodash";
 import moment from "moment";
-// import { Collection, ObjectID, ObjectId } from 'mongodb';
 import passportGoogle from "passport-google-oauth20";
-import User, { UserDocument, UserRole } from "../models/user.model";
+import User, { UserDocument } from "../models/user.model";
 import { parseTokenMeta } from "../models/token.model";
 const GoogleStrategy = passportGoogle.Strategy;
 import { Request, Response, ServiceType } from "../types";
 import { ErrorUserInvalid } from "../lib/errors";
 import { UserService } from "./user.service";
 import Token from "../models/token.model";
-// import { MailService } from '.';
 import { lazyInject } from "../container";
-import QuizHistoryModel from "../models/quiz-history";
-import ExamHistoryModel from "../models/exam-history";
 import { logger } from "../lib/logger";
+import { Types } from "mongoose";
 
 @injectable()
 export class AuthService {
@@ -57,14 +54,13 @@ export class AuthService {
                 if (!user) {
                     const newUser = await User.create({
                         googleId: profile.id,
+                        accessLevels: [],
+                        isManager: false,
                         name: profile.displayName,
                         email: profile.emails?.[0].value,
                         picture: profile._json.picture,
-                        role: UserRole.STUDENT,
                         // we are using optional chaining because profile.emails may be undefined.
                     });
-                    await QuizHistoryModel.create({ _id: newUser._id });
-                    await ExamHistoryModel.create({ _id: newUser._id });
                     if (newUser) {
                         done(null, newUser);
                     }
@@ -132,7 +128,8 @@ export class AuthService {
         userId: string,
         googleId: string,
         userAgent: string,
-        role: UserRole
+        accessLevels: Types.ObjectId[],
+        isManager: boolean
     ) {
         const result = await Token.create({
             googleId,
@@ -140,7 +137,8 @@ export class AuthService {
             userId,
             createdAt: moment().unix(),
             expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
-            role,
+            accessLevels: accessLevels,
+            isManager: isManager,
         });
         const EncodeToken = jwt.encode(
             {
@@ -150,7 +148,8 @@ export class AuthService {
                 userId,
                 createdAt: moment().unix(),
                 expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
-                role,
+                accessLevels: accessLevels,
+                isManager: isManager,
             },
             process.env.JWT_SECRET
         );
@@ -163,12 +162,23 @@ export class AuthService {
         userId: string,
         googleId: string,
         email: string,
-        role: UserRole
+        accessLevels: Types.ObjectId[],
+        isManager: boolean
     ) {
-        return await this.createToken(userId, googleId, email, role);
+        return await this.createToken(
+            userId,
+            googleId,
+            email,
+            accessLevels,
+            isManager
+        );
     }
 
-    async generateTokenGoogle(user: UserDocument, role: UserRole) {
+    async generateTokenGoogle(
+        user: UserDocument,
+        accessLevels: Types.ObjectId[],
+        isManager: boolean
+    ) {
         if (_.isEmpty(user)) {
             throw new ErrorUserInvalid("User not exist");
         }
@@ -177,7 +187,8 @@ export class AuthService {
             user._id,
             user.googleId,
             user.email,
-            role
+            accessLevels,
+            isManager
         );
     }
 }

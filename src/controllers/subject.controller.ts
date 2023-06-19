@@ -2,13 +2,16 @@ import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
-import { AuthService } from "../services";
-import { SubjectService } from "../services/subject.service";
-import { MaterialService } from "../services/material.service";
-import { PreviousExamService } from "../services/previous-exams.service";
-import { UserRole, userMayCreateSubject } from "../models/user.model";
+import {
+    AuthService,
+    SubjectService,
+    MaterialService,
+    PreviousExamService,
+    AccessLevelService,
+} from "../services/index";
 import mongoose, { Types } from "mongoose";
 import _ from "lodash";
+import { Permission } from "../models/access_level.model";
 
 @injectable()
 export class SubjectController extends Controller {
@@ -20,7 +23,9 @@ export class SubjectController extends Controller {
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.Material) private materialService: MaterialService,
         @inject(ServiceType.PreviousExam)
-        private previousExamService: PreviousExamService
+        private previousExamService: PreviousExamService,
+        @inject(ServiceType.AccessLevel)
+        private accessLevelService: AccessLevelService
     ) {
         super();
 
@@ -40,11 +45,19 @@ export class SubjectController extends Controller {
             const { name } = req.body;
             let { description } = req.body;
             if (!description) description = "";
-            if (!userMayCreateSubject(req.tokenMeta.role)) {
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    req.tokenMeta.accessLevels,
+                    Permission.CREATE_SUBJECT,
+                    req.tokenMeta.isManager
+                ))
+            ) {
                 throw new Error(
-                    `You don't have the permission to perform this action`
+                    `Your role(s) does not have the permission to perform this action`
                 );
             }
+
             if (!name) {
                 throw new Error(`Missing 'name' field`);
             }
@@ -85,36 +98,29 @@ export class SubjectController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRole = req.tokenMeta.role;
+            const userAccessLevels = req.tokenMeta.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.EDIT_SUBJECT,
+                    req.tokenMeta.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.subjectService.findOne({
                 _id: docId,
-                writeAccess: userRole,
             });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
 
-            const info = _.pick(req.body, [
-                "name",
-                "writeAccess",
-                "description",
-            ]);
-
-            if (info.writeAccess) {
-                const wa: UserRole[] = info.writeAccess;
-                if (!wa.every((r) => Object.values(UserRole).includes(r))) {
-                    throw new Error(`Write access contains unrecognized role`);
-                }
-                if (
-                    doc.writeAccess.includes(userRole) &&
-                    !wa.includes(userRole)
-                ) {
-                    throw new Error(
-                        `You cannot remove your own role's write access to this document`
-                    );
-                }
-            }
+            const info = _.pick(req.body, ["name", "description"]);
 
             await this.subjectService.findOneAndUpdate(
                 { _id: docId },
@@ -138,10 +144,23 @@ export class SubjectController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
+            const userAccessLevels = req.tokenMeta.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.DELETE_SUBJECT,
+                    req.tokenMeta.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
             const docId = new Types.ObjectId(req.params.docId);
             const sub = await this.subjectService.findOne({
                 _id: docId,
-                writeAccess: req.tokenMeta.role,
             });
             if (!sub) {
                 throw new Error(`Subject doesn't exist`);
@@ -157,9 +176,11 @@ export class SubjectController extends Controller {
                     `There is still a material or previous exam that has this subject, please delete them first`
                 );
             }
-            await this.subjectService.findOneAndDelete({ _id: docId });
+            const result = await this.subjectService.findOneAndDelete({
+                _id: docId,
+            });
             await session.commitTransaction();
-            res.composer.success(true);
+            res.composer.success(result);
         } catch (error) {
             console.log(error);
             await session.abortTransaction();

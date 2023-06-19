@@ -5,6 +5,7 @@ import { FileUploadService } from "./file-upload.service";
 import { MaterialService } from "./material.service";
 import { PreviousExamService } from "./previous-exams.service";
 import { SubjectService } from "./subject.service";
+import { AccessLevelService } from "./access_level.service";
 
 export {
     AuthService,
@@ -14,4 +15,5 @@ export {
     MaterialService,
     PreviousExamService,
     SubjectService,
+    AccessLevelService,
 };

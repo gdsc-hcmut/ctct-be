@@ -1,7 +1,6 @@
 import { injectable } from "inversify";
-import SubjectModel from "../models/subject.model";
-import { Types } from "mongoose";
-import { UserRole } from "../models/user.model";
+import SubjectModel, { SubjectDocument } from "../models/subject.model";
+import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { logger } from "../lib/logger";
 
 @injectable()
@@ -14,7 +13,6 @@ export class SubjectService {
         const t = Date.now();
         return await SubjectModel.create({
             name: name,
-            writeAccess: [UserRole.ADMIN],
             description: description,
             createdAt: t,
             createdBy: userId,
@@ -22,7 +20,7 @@ export class SubjectService {
         });
     }
 
-    async findOneAndDelete(query: any) {
+    async findOneAndDelete(query: FilterQuery<SubjectDocument>) {
         return await SubjectModel.findOneAndDelete(query);
     }
 
@@ -30,15 +28,19 @@ export class SubjectService {
         return await SubjectModel.findById(id);
     }
 
-    async findOne(query: any) {
+    async findOne(query: FilterQuery<SubjectDocument>) {
         return await SubjectModel.findOne(query);
     }
 
-    async findOneAndUpdate(query: any, upd: any) {
-        return await SubjectModel.findOneAndUpdate(query, upd);
+    async findOneAndUpdate(
+        query: FilterQuery<SubjectDocument>,
+        upd: UpdateQuery<SubjectDocument>,
+        opt: QueryOptions<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.findOneAndUpdate(query, upd, opt);
     }
 
-    async find(query: any) {
+    async find(query: FilterQuery<SubjectDocument>) {
         return await SubjectModel.find(query);
     }
 }

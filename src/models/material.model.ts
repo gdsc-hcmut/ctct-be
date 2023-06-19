@@ -1,19 +1,11 @@
 import mongoose, { Types, Schema } from "mongoose";
-import { UserRole } from "./user.model";
-
-/**
- * Materials are organized in a tree structure
- * Each material holds references to its parent and children
- * It also has has tag and a boolean to check if it's a folder
- */
 
 export type MaterialDocument = Document & {
     name: string;
     subject: Types.ObjectId;
     chapter: number;
 
-    readAccess: UserRole[];
-    writeAccess: UserRole[];
+    visibleTo: Types.ObjectId[];
 
     subtitle: string;
     description: string;
@@ -28,8 +20,7 @@ const materialSchema = new Schema<MaterialDocument>({
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
     chapter: Number,
 
-    readAccess: [{ type: String, enum: UserRole }],
-    writeAccess: [{ type: String, enum: UserRole }],
+    visibleTo: [{ type: Schema.Types.ObjectId, ref: "access_levels" }],
 
     subtitle: String,
     description: String,

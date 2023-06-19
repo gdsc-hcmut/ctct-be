@@ -1,11 +1,12 @@
 import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
-import { Types } from "mongoose";
-import PreviousExamModel from "../models/previous-exam.model";
+import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import PreviousExamModel, {
+    PreviousExamDocument,
+} from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
-import { UserRole } from "../models/user.model";
 import { logger } from "../lib/logger";
 
 @injectable()
@@ -33,7 +34,8 @@ export class PreviousExamService {
         subject: Types.ObjectId,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
-        compressionStrategy: FileCompressionStrategy
+        compressionStrategy: FileCompressionStrategy,
+        visibleTo: Types.ObjectId[]
     ) {
         console.assert(files.length === 1);
         const uploadedAttachments = await this.fileUploadService.uploadFiles(
@@ -49,8 +51,7 @@ export class PreviousExamService {
             subtitle: subtitle,
             description: description,
 
-            readAccess: [UserRole.STUDENT, UserRole.ADMIN],
-            writeAccess: [UserRole.ADMIN],
+            visibleTo: visibleTo,
             resource: uploadedAttachments[0]._id,
             createdBy: userId,
             createdAt: currentTime,
@@ -73,15 +74,19 @@ export class PreviousExamService {
         return true;
     }
 
-    async findOneAndUpdate(query: any, upd: any) {
-        return await PreviousExamModel.findOneAndUpdate(query, upd);
+    async findOneAndUpdate(
+        query: FilterQuery<PreviousExamDocument>,
+        upd: UpdateQuery<PreviousExamDocument>,
+        opt: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.findOneAndUpdate(query, upd, opt);
     }
 
     async findById(id: Types.ObjectId) {
         return await PreviousExamModel.findById(id);
     }
 
-    async findOne(query: any) {
+    async findOne(query: FilterQuery<PreviousExamDocument>) {
         return await PreviousExamModel.findOne(query);
     }
 
@@ -89,11 +94,22 @@ export class PreviousExamService {
         return await PreviousExamModel.findById(id).populate(query);
     }
 
-    async find(query: any) {
+    async find(query: FilterQuery<PreviousExamDocument>) {
         return await PreviousExamModel.find(query);
     }
 
-    async findPopulated(f: any, p: string | string[]) {
+    async findPopulated(
+        f: FilterQuery<PreviousExamDocument>,
+        p: string | string[]
+    ) {
         return await PreviousExamModel.find(f).populate(p);
+    }
+
+    async updateMany(
+        query: FilterQuery<PreviousExamDocument>,
+        update: UpdateQuery<PreviousExamDocument>,
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.updateMany(query, update, options);
     }
 }
