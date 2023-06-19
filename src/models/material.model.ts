@@ -1,12 +1,11 @@
 import mongoose, { Types, Schema } from "mongoose";
-import { UserRole } from "./user.model";
 
 export type MaterialDocument = Document & {
     name: string;
     subject: Types.ObjectId;
     chapter: number;
 
-    visibleTo: UserRole[];
+    visibleTo: Types.ObjectId[];
 
     subtitle: string;
     description: string;
@@ -21,7 +20,7 @@ const materialSchema = new Schema<MaterialDocument>({
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
     chapter: Number,
 
-    visibleTo: Array<UserRole>,
+    visibleTo: [{ type: Schema.Types.ObjectId, ref: "access_levels" }],
 
     subtitle: String,
     description: String,

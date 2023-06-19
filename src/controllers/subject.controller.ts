@@ -7,12 +7,11 @@ import {
     SubjectService,
     MaterialService,
     PreviousExamService,
-    PermissionService,
+    AccessLevelService,
 } from "../services/index";
-import { UserRole } from "../models/user.model";
 import mongoose, { Types } from "mongoose";
 import _ from "lodash";
-import { Permission } from "../models/permission.model";
+import { Permission } from "../models/access_level.model";
 
 @injectable()
 export class SubjectController extends Controller {
@@ -25,8 +24,8 @@ export class SubjectController extends Controller {
         @inject(ServiceType.Material) private materialService: MaterialService,
         @inject(ServiceType.PreviousExam)
         private previousExamService: PreviousExamService,
-        @inject(ServiceType.Permission)
-        private permissionService: PermissionService
+        @inject(ServiceType.AccessLevel)
+        private accessLevelService: AccessLevelService
     ) {
         super();
 
@@ -48,9 +47,10 @@ export class SubjectController extends Controller {
             if (!description) description = "";
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    req.tokenMeta.roles,
-                    Permission.CREATE_SUBJECT
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    req.tokenMeta.accessLevels,
+                    Permission.CREATE_SUBJECT,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -98,12 +98,13 @@ export class SubjectController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles = req.tokenMeta.roles;
+            const userAccessLevels = req.tokenMeta.accessLevels;
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
-                    Permission.EDIT_SUBJECT
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.EDIT_SUBJECT,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -143,12 +144,13 @@ export class SubjectController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles = req.tokenMeta.roles;
+            const userAccessLevels = req.tokenMeta.accessLevels;
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
-                    Permission.DELETE_SUBJECT
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.DELETE_SUBJECT,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(

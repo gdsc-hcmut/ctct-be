@@ -1,14 +1,13 @@
 import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
-import { UserRole } from "../models/user.model";
 import { Request, Response, ServiceType } from "../types";
 import {
     AuthService,
     SubjectService,
     MaterialService,
     FileUploadService,
-    PermissionService,
+    AccessLevelService,
 } from "../services/index";
 import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
@@ -18,7 +17,7 @@ import mongoose, { Types } from "mongoose";
 import { toNumber } from "lodash";
 import _ from "lodash";
 import { logger } from "../lib/logger";
-import { Permission } from "../models/permission.model";
+import { Permission } from "../models/access_level.model";
 
 @injectable()
 export class MaterialController extends Controller {
@@ -31,8 +30,8 @@ export class MaterialController extends Controller {
         @inject(ServiceType.Material) private materialService: MaterialService,
         @inject(ServiceType.FileUpload)
         private fileUploadService: FileUploadService,
-        @inject(ServiceType.Permission)
-        private permissionService: PermissionService
+        @inject(ServiceType.AccessLevel)
+        private accessLevelService: AccessLevelService
     ) {
         super();
 
@@ -61,8 +60,8 @@ export class MaterialController extends Controller {
             if (!description) description = "";
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    req.tokenMeta.roles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    req.tokenMeta.accessLevels,
                     Permission.UPLOAD_MATERIAL
                 ))
             ) {
@@ -106,6 +105,9 @@ export class MaterialController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
+            const allAccessLevels = (
+                await this.accessLevelService.findAccessLevels({})
+            ).map((d) => d._id as Types.ObjectId);
             const doc = await this.materialService.create(
                 name,
                 subtitle,
@@ -114,7 +116,8 @@ export class MaterialController extends Controller {
                 chapter,
                 userId,
                 req.files as Express.Multer.File[],
-                new AgressiveFileCompression()
+                new AgressiveFileCompression(),
+                allAccessLevels
             );
 
             await session.commitTransaction();
@@ -133,13 +136,10 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
-
+            const userAccessLevels = req.tokenMeta?.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_MATERIAL
                 ))
             ) {
@@ -156,8 +156,8 @@ export class MaterialController extends Controller {
                 throw new Error(`Document not found`);
             }
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {
@@ -181,13 +181,10 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
-
+            const userAccessLevels = req.tokenMeta?.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_MATERIAL
                 ))
             ) {
@@ -201,8 +198,8 @@ export class MaterialController extends Controller {
                     subject: subject,
                 })
             ).filter((d) =>
-                this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     d.visibleTo
                 )
             );
@@ -222,13 +219,10 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
-
+            const userAccessLevels = req.tokenMeta?.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    req.tokenMeta.roles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_MATERIAL
                 ))
             ) {
@@ -245,8 +239,8 @@ export class MaterialController extends Controller {
                 throw new Error(`Document doesn't exist`);
             }
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {
@@ -279,13 +273,10 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
-
+            const userAccessLevels = req.tokenMeta?.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_MATERIAL
                 ))
             ) {
@@ -295,8 +286,8 @@ export class MaterialController extends Controller {
             }
 
             const ans = (await this.materialService.find({})).filter((d) =>
-                this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     d.visibleTo
                 )
             );
@@ -316,11 +307,10 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles = req.tokenMeta.roles;
-
+            const userAccessLevels = req.tokenMeta.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    req.tokenMeta.roles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.EDIT_MATERIAL
                 ))
             ) {
@@ -337,8 +327,8 @@ export class MaterialController extends Controller {
                 throw new Error(`The required document doesn't exist`);
             }
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {
@@ -366,12 +356,16 @@ export class MaterialController extends Controller {
                 info.chapter = toNumber(info.chapter);
             }
             if (info.visibleTo) {
-                if (!userRoles.includes(UserRole.ADMIN)) {
-                    throw new Error(
-                        `Only role ${UserRole.ADMIN} can change permission of material`
-                    );
+                info.visibleTo = (info.visibleTo as string[]).map(
+                    (x) => new Types.ObjectId(x)
+                );
+                if (
+                    !(await this.accessLevelService.accessLevelsExist(
+                        info.visibleTo
+                    ))
+                ) {
+                    throw new Error(`One or more access levels don't exist`);
                 }
-                info.visibleTo = info.visibleTo as UserRole[];
             }
             // subject must be empty or valid, so we check if it collides with any other document
             const changedLoc =
@@ -415,11 +409,11 @@ export class MaterialController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles = req.tokenMeta.roles;
+            const userAccessLevels = req.tokenMeta.accessLevels;
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    req.tokenMeta.roles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.DELETE_MATERIAL
                 ))
             ) {
@@ -437,8 +431,8 @@ export class MaterialController extends Controller {
             }
 
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {

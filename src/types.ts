@@ -19,7 +19,7 @@ export const ServiceType = {
     Subject: Symbol.for("Subject"),
     Material: Symbol.for("Material"),
     Cache: Symbol.for("Cache"),
-    Permission: Symbol.for("Permission"),
+    AccessLevel: Symbol.for("AccessLevel"),
 };
 
 export enum PrivacyType {

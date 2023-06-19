@@ -1,14 +1,13 @@
 import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
-import { UserRole } from "../models/user.model";
 import { Request, Response, ServiceType } from "../types";
 import {
     AuthService,
     PreviousExamService,
     FileUploadService,
     SubjectService,
-    PermissionService,
+    AccessLevelService,
 } from "../services/index";
 import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
@@ -17,7 +16,7 @@ import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-val
 import mongoose, { Types } from "mongoose";
 import _ from "lodash";
 import { logger } from "../lib/logger";
-import { Permission } from "../models/permission.model";
+import { Permission } from "../models/access_level.model";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -31,8 +30,8 @@ export class PreviousExamController extends Controller {
         @inject(ServiceType.FileUpload)
         private fileUploadService: FileUploadService,
         @inject(ServiceType.Subject) private subjectService: SubjectService,
-        @inject(ServiceType.Permission)
-        private permissionService: PermissionService
+        @inject(ServiceType.AccessLevel)
+        private accessLevelService: AccessLevelService
     ) {
         super();
 
@@ -61,9 +60,10 @@ export class PreviousExamController extends Controller {
             if (!description) description = "";
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    req.tokenMeta.roles,
-                    Permission.UPLOAD_PREVIOUS_EXAM
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    req.tokenMeta.accessLevels,
+                    Permission.UPLOAD_PREVIOUS_EXAM,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -94,6 +94,9 @@ export class PreviousExamController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
+            const allAccessLevels = (
+                await this.accessLevelService.findAccessLevels({})
+            ).map((d) => d._id as Types.ObjectId);
             const doc = await this.previousExamService.create(
                 name,
                 subtitle,
@@ -101,7 +104,8 @@ export class PreviousExamController extends Controller {
                 subject,
                 userId,
                 req.files as Express.Multer.File[],
-                new AgressiveFileCompression()
+                new AgressiveFileCompression(),
+                allAccessLevels
             );
 
             await session.commitTransaction();
@@ -120,13 +124,11 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
+            const userAccessLevels = req.tokenMeta?.accessLevels;
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM
                 ))
             ) {
@@ -143,8 +145,8 @@ export class PreviousExamController extends Controller {
                 throw new Error(`Document not found`);
             }
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {
@@ -168,12 +170,10 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
+            const userAccessLevels = req.tokenMeta?.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM
                 ))
             ) {
@@ -188,8 +188,8 @@ export class PreviousExamController extends Controller {
                     subject: subject,
                 })
             ).filter((d) =>
-                this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     d.visibleTo
                 )
             );
@@ -209,13 +209,10 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
-
+            const userAccessLevels = req.tokenMeta?.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM
                 ))
             ) {
@@ -232,8 +229,8 @@ export class PreviousExamController extends Controller {
                 throw new Error(`Document doesn't exist`);
             }
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {
@@ -266,13 +263,10 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles: UserRole[] = req.tokenMeta
-                ? req.tokenMeta.roles
-                : [UserRole.STUDENT];
-
+            const userAccessLevels = req.tokenMeta?.accessLevels;
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM
                 ))
             ) {
@@ -282,8 +276,8 @@ export class PreviousExamController extends Controller {
             }
 
             const ans = (await this.previousExamService.find({})).filter((d) =>
-                this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     d.visibleTo
                 )
             );
@@ -304,11 +298,11 @@ export class PreviousExamController extends Controller {
         session.startTransaction();
         try {
             const docId = new Types.ObjectId(req.params.docId);
-            const userRoles = req.tokenMeta.roles;
+            const userAccessLevels = req.tokenMeta.accessLevels;
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.EDIT_PREVIOUS_EXAM
                 ))
             ) {
@@ -324,8 +318,8 @@ export class PreviousExamController extends Controller {
                 throw new Error(`The required document doesn't exist`);
             }
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {
@@ -346,13 +340,16 @@ export class PreviousExamController extends Controller {
                 info.subject = new Types.ObjectId(info.subject);
             }
             if (info.visibleTo) {
-                // permissions can only be changed by ADMIN
-                if (!userRoles.includes(UserRole.ADMIN)) {
-                    throw new Error(
-                        `Only role ${UserRole.ADMIN} can change permission of previous exams`
-                    );
+                info.visibleTo = (info.visibleTo as string[]).map(
+                    (x) => new Types.ObjectId(x)
+                );
+                if (
+                    !(await this.accessLevelService.accessLevelsExist(
+                        info.visibleTo
+                    ))
+                ) {
+                    throw new Error(`One or more access levels don't exist`);
                 }
-                info.visibleTo = info.visibleTo as UserRole[];
             }
             if (info.subject) {
                 const subject = new Types.ObjectId(info.subject);
@@ -384,11 +381,11 @@ export class PreviousExamController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userRoles = req.tokenMeta.roles;
+            const userAccessLevels = req.tokenMeta.accessLevels;
 
             if (
-                !(await this.permissionService.rolesCanPerformAction(
-                    userRoles,
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
                     Permission.DELETE_PREVIOUS_EXAM
                 ))
             ) {
@@ -405,8 +402,8 @@ export class PreviousExamController extends Controller {
                 throw new Error(`Requested document doesn't exist`);
             }
             if (
-                !this.permissionService.rolesOverlapWithAllowedList(
-                    userRoles,
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
                     doc.visibleTo
                 )
             ) {

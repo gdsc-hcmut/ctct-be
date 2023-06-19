@@ -31,6 +31,10 @@ export class CacheService {
         return await this.client.get(key);
     }
 
+    async del(key: string) {
+        return await this.client.del(key);
+    }
+
     /**
      * Get a key, and also put a value there if no key matches
      * Should probably use this in practice, since it solves cache stampede :D

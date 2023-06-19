@@ -1,5 +1,4 @@
 import mongoose, { Types, Schema } from "mongoose";
-import { UserRole } from "./user.model";
 
 export type SubjectDocument = Document & {
     name: string;

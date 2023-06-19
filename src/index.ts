@@ -12,7 +12,7 @@ import {
     MaterialService,
     PreviousExamService,
     SubjectService,
-    PermissionService,
+    AccessLevelService,
 } from "./services/index";
 
 import {
@@ -22,6 +22,7 @@ import {
     PreviousExamController,
     SubjectController,
     UserController,
+    AccessLevelController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -68,8 +69,8 @@ container
     .to(CacheService)
     .inSingletonScope();
 container
-    .bind<PermissionService>(ServiceType.Permission)
-    .to(PermissionService)
+    .bind<AccessLevelService>(ServiceType.AccessLevel)
+    .to(AccessLevelService)
     .inSingletonScope();
 
 // Initialize service first
@@ -84,6 +85,7 @@ Promise.all([
             container.resolve<PreviousExamController>(PreviousExamController),
             container.resolve<SubjectController>(SubjectController),
             container.resolve<MaterialController>(MaterialController),
+            container.resolve<AccessLevelController>(AccessLevelController),
         ],
         toNumber(process.env.PORT),
         [

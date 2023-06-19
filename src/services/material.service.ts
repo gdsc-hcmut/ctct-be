@@ -1,11 +1,10 @@
 import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
-import { Types } from "mongoose";
-import MaterialModel from "../models/material.model";
+import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import MaterialModel, { MaterialDocument } from "../models/material.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
-import { UserRole } from "../models/user.model";
 import { logger } from "../lib/logger";
 
 @injectable()
@@ -26,7 +25,8 @@ export class MaterialService {
         chapter: number,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
-        compressionStrategy: FileCompressionStrategy
+        compressionStrategy: FileCompressionStrategy,
+        visibleTo: Types.ObjectId[]
     ) {
         console.assert(files.length === 1);
         const compressedFiles = await this.fileUploadService.uploadFiles(
@@ -43,7 +43,7 @@ export class MaterialService {
             subtitle: subtitle,
             description: description,
 
-            visibleTo: Object.values(UserRole),
+            visibleTo: visibleTo,
             resource: compressedFiles[0]._id,
             createdBy: userId,
             createdAt: currentTime,
@@ -61,15 +61,19 @@ export class MaterialService {
         return true;
     }
 
-    async findOneAndUpdate(query: any, upd: any) {
-        return await MaterialModel.findOneAndUpdate(query, upd);
+    async findOneAndUpdate(
+        query: FilterQuery<MaterialDocument>,
+        upd: UpdateQuery<MaterialDocument>,
+        opt: QueryOptions<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.findOneAndUpdate(query, upd, opt);
     }
 
     async findById(id: Types.ObjectId) {
         return await MaterialModel.findById(id);
     }
 
-    async findOne(query: any) {
+    async findOne(query: FilterQuery<MaterialDocument>) {
         return await MaterialModel.findOne(query);
     }
 
@@ -77,11 +81,22 @@ export class MaterialService {
         return await MaterialModel.findById(id).populate(query);
     }
 
-    async find(query: any) {
+    async find(query: FilterQuery<MaterialDocument>) {
         return await MaterialModel.find(query);
     }
 
-    async findPopulated(f: any, p: string | string[]) {
+    async findPopulated(
+        f: FilterQuery<MaterialDocument>,
+        p: string | string[]
+    ) {
         return await MaterialModel.find(f).populate(p);
+    }
+
+    async updateMany(
+        query: FilterQuery<MaterialDocument>,
+        update: UpdateQuery<MaterialDocument>,
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.updateMany(query, update, options);
     }
 }
