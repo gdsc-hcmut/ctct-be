@@ -23,6 +23,7 @@ import {
     SubjectController,
     UserController,
     AccessLevelController,
+    QuestionController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -86,6 +87,7 @@ Promise.all([
             container.resolve<SubjectController>(SubjectController),
             container.resolve<MaterialController>(MaterialController),
             container.resolve<AccessLevelController>(AccessLevelController),
+            container.resolve<QuestionController>(QuestionController),
         ],
         toNumber(process.env.PORT),
         [

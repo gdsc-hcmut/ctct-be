@@ -486,6 +486,118 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 }
                 return Math.round(num * m) / m;
             }
+            case "sin": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'sin' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'sin' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                return Math.sin(x as number);
+            }
+            case "cos": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'cos' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'cos' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                return Math.cos(x as number);
+            }
+            case "tan": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'tan' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'tan' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                if (Math.abs(Math.cos(x as number)) <= DEFAULT_EPS) {
+                    throw new Error(
+                        `Math error: cos(${
+                            x as number
+                        }) = 0, so tan is undefined`
+                    );
+                }
+                return Math.tan(x as number);
+            }
+            case "sec": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'sec' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'sec' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                if (Math.abs(Math.cos(x as number)) <= DEFAULT_EPS) {
+                    throw new Error(
+                        `Math error: cos(${
+                            x as number
+                        }) = 0, so sec is undefined`
+                    );
+                }
+                return 1 / Math.cos(x as number);
+            }
+            case "csc": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'csc' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'csc' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                if (Math.abs(Math.sin(x as number)) <= DEFAULT_EPS) {
+                    throw new Error(
+                        `Math error: sin(${
+                            x as number
+                        }) = 0, so csc is undefined`
+                    );
+                }
+                return 1 / Math.sin(x as number);
+            }
+            case "cot": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'cot' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'cot' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                if (Math.abs(Math.sin(x as number)) <= DEFAULT_EPS) {
+                    throw new Error(
+                        `Math error: sin(${
+                            x as number
+                        }) = 0, so cot is undefined`
+                    );
+                }
+                return Math.cos(x as number) / Math.sin(x as number);
+            }
             default: {
                 throw new Error(`Unknown function name ${funcName}`);
             }
