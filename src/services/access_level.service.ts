@@ -98,6 +98,9 @@ export class AccessLevelService {
         action: Permission,
         isManager = false
     ): Promise<boolean> {
+        if (isManager) {
+            return true;
+        }
         if (!accessLevels) {
             // use "visitor" access level
             accessLevels = [this.VISITOR_ID];

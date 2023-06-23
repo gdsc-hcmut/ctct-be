@@ -20,6 +20,7 @@ export const ServiceType = {
     Material: Symbol.for("Material"),
     Cache: Symbol.for("Cache"),
     AccessLevel: Symbol.for("AccessLevel"),
+    QuestionTemplate: Symbol.for("QuestionTemplate"),
 };
 
 export enum PrivacyType {

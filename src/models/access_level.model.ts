@@ -14,6 +14,9 @@ export enum Permission {
     CREATE_SUBJECT = "CREATE_SUBJECT",
     EDIT_SUBJECT = "EDIT_SUBJECT",
     DELETE_SUBJECT = "DELETE_SUBJECT",
+
+    // question generation
+    CREATE_QUESTION_TEMPLATE = "CREATE_QUESTION_TEMPLATE",
 }
 
 export type AccessLevelDocument = Document & {
