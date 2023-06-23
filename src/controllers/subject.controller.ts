@@ -67,8 +67,8 @@ export class SubjectController extends Controller {
                 userId,
                 description
             );
-            await session.commitTransaction();
             res.composer.success(doc);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();
@@ -83,8 +83,8 @@ export class SubjectController extends Controller {
         session.startTransaction();
         try {
             const ans = await this.subjectService.find({});
-            await session.commitTransaction();
             res.composer.success(ans);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();
@@ -129,8 +129,8 @@ export class SubjectController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
-            await session.commitTransaction();
             res.composer.success(true);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();
@@ -179,8 +179,8 @@ export class SubjectController extends Controller {
             const result = await this.subjectService.findOneAndDelete({
                 _id: docId,
             });
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();

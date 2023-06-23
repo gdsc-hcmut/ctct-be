@@ -108,8 +108,8 @@ export class PreviousExamController extends Controller {
                 allAccessLevels
             );
 
-            await session.commitTransaction();
             res.composer.success(doc);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -155,8 +155,8 @@ export class PreviousExamController extends Controller {
                     `This document has been configured to be hidden from you`
                 );
             }
-            await session.commitTransaction();
             res.composer.success(doc);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -195,8 +195,8 @@ export class PreviousExamController extends Controller {
                     d.visibleTo
                 )
             );
-            await session.commitTransaction();
             res.composer.success(ans);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -245,13 +245,13 @@ export class PreviousExamController extends Controller {
             const file = await this.fileUploadService.downloadFile(
                 doc.resource
             );
-            await session.commitTransaction();
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=${file.originalName}`
+                `attachment; filename=${encodeURI(file.originalName)}`
             );
             res.setHeader("Content-Type", `${file.mimetype}`);
             res.end(file.buffer);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -285,8 +285,8 @@ export class PreviousExamController extends Controller {
                     d.visibleTo
                 )
             );
-            await session.commitTransaction();
             res.composer.success(ans);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -370,8 +370,8 @@ export class PreviousExamController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
-            await session.commitTransaction();
             res.composer.success(true);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -419,8 +419,8 @@ export class PreviousExamController extends Controller {
             }
 
             await this.previousExamService.deleteById(docId);
-            await session.commitTransaction();
             res.composer.success(true);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);

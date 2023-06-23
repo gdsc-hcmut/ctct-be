@@ -236,8 +236,8 @@ export class QuestionTemplateController extends Controller {
                 userId,
                 req.body
             );
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);

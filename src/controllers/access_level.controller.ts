@@ -52,8 +52,8 @@ export class AccessLevelController extends Controller {
                 throw new Error(`Missing administrative permissions`);
             }
             const result = await this.accessLevelService.findAccessLevels({});
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -87,8 +87,8 @@ export class AccessLevelController extends Controller {
                 description,
                 permissions
             );
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -137,8 +137,8 @@ export class AccessLevelController extends Controller {
                 accessLevelId.toString()
             );
 
-            await session.commitTransaction();
             res.composer.success(deletedAccessLevel);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -204,8 +204,8 @@ export class AccessLevelController extends Controller {
                 accessLevelId.toString()
             );
 
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -246,8 +246,8 @@ export class AccessLevelController extends Controller {
             if (!result) {
                 throw new Error(`User not found`);
             }
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
