@@ -62,7 +62,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     req.tokenMeta.accessLevels,
-                    Permission.UPLOAD_MATERIAL
+                    Permission.UPLOAD_MATERIAL,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -140,7 +141,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -185,7 +187,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -223,7 +226,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -277,7 +281,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -311,7 +316,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.EDIT_MATERIAL
+                    Permission.EDIT_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -414,7 +420,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.DELETE_MATERIAL
+                    Permission.DELETE_MATERIAL,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(

@@ -129,7 +129,8 @@ export class PreviousExamController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM
+                    Permission.VIEW_PREVIOUS_EXAM,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -174,7 +175,8 @@ export class PreviousExamController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM
+                    Permission.VIEW_PREVIOUS_EXAM,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -213,7 +215,8 @@ export class PreviousExamController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM
+                    Permission.VIEW_PREVIOUS_EXAM,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -267,7 +270,8 @@ export class PreviousExamController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM
+                    Permission.VIEW_PREVIOUS_EXAM,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -303,7 +307,8 @@ export class PreviousExamController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.EDIT_PREVIOUS_EXAM
+                    Permission.EDIT_PREVIOUS_EXAM,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -386,7 +391,8 @@ export class PreviousExamController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.DELETE_PREVIOUS_EXAM
+                    Permission.DELETE_PREVIOUS_EXAM,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
