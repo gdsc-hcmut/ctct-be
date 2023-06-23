@@ -598,6 +598,99 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 }
                 return Math.cos(x as number) / Math.sin(x as number);
             }
+            case "arcsin": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'arcsin' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'arcsin' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                const num = x as number;
+                if (num < -1 || num > 1) {
+                    throw new Error(
+                        `Argument to 'arcsin' should be in range [-1, 1] (received ${num})`
+                    );
+                }
+                return Math.asin(num);
+            }
+            case "arccos": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'arccos' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'arccos' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                const num = x as number;
+                if (num < -1 || num > 1) {
+                    throw new Error(
+                        `Argument to 'arccos' should be in range [-1, 1] (received ${num})`
+                    );
+                }
+                return Math.acos(num);
+            }
+            case "arctan": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'arctan' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [x] = [this.visit(exprList[0])];
+                if (typeof x !== "number") {
+                    throw new Error(
+                        `'arctan' expects to receive a number argument, received '${typeof x}'`
+                    );
+                }
+                const num = x as number;
+                return Math.atan(num);
+            }
+            case "atan2": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'atan2' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `Both arguments to 'atan2' should be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
+                    );
+                }
+                const [y, x] = [arg1 as number, arg2 as number];
+                if (Math.abs(x) <= DEFAULT_EPS && Math.abs(y) <= DEFAULT_EPS) {
+                    throw new Error(
+                        `(0, 0) is undefined for 'atan2'. Received (${y}, ${x})`
+                    );
+                }
+                return Math.atan2(y, x);
+            }
+            case "abs": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'abs' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'abs' expects to receive a number argument, receive ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                return Math.abs(x);
+            }
             default: {
                 throw new Error(`Unknown function name ${funcName}`);
             }
