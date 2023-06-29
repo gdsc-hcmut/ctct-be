@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-export type PredefinedAccessLevelName = "visitor";
+export type PredefinedAccessLevelName = "visitor" | "student";
 
 export enum Permission {
     UPLOAD_MATERIAL = "UPLOAD_MATERIAL",

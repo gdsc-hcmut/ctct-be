@@ -17,6 +17,7 @@ import mongoose, {
 export class AccessLevelService {
     ACCESS_LEVEL_CACHE_TIME: number = 60 * 30; // 30 minutes
     private VISITOR_ID: Types.ObjectId;
+    private STUDENT_ID: Types.ObjectId;
 
     constructor(@inject(ServiceType.Cache) private cacheService: CacheService) {
         logger.info("Constructing Permission service");
@@ -40,7 +41,24 @@ export class AccessLevelService {
                     createdAt: Date.now(),
                 });
             }
+            let student = await AccessLevelModel.findOne({
+                predefinedId: "student",
+            });
+            if (!student) {
+                student = await AccessLevelModel.create({
+                    name: "Student",
+                    predefinedId: "student",
+                    description:
+                        "This access level is automatically granted for users who just logged in, can be assigned",
+                    permissions: [
+                        Permission.VIEW_MATERIAL,
+                        Permission.VIEW_PREVIOUS_EXAM,
+                    ],
+                    createdAt: Date.now(),
+                });
+            }
             this.VISITOR_ID = visitor._id;
+            this.STUDENT_ID = student._id;
             logger.info("[AccessLevel] Created predefined access levels");
             await session.commitTransaction();
         } catch (error) {
@@ -147,15 +165,23 @@ export class AccessLevelService {
     }
 
     public async verifyAssignAccessLevel(levels: Types.ObjectId[]) {
-        // check that all given id's exist and they are not predefined levels
+        // check that all given id's exist and they can be assigned
+        // a role can be assigned if it's either not predefined, or
+        // 'student'
         const result = await Promise.all(
             levels.map((l) =>
                 (async () => await AccessLevelModel.findById(l))()
             )
         );
-        return result.every(
-            (x) => x != undefined && x.predefinedId == undefined
-        );
+        return result.every((x) => {
+            if (x === undefined) {
+                return false;
+            }
+            if (x.predefinedId !== undefined && x.predefinedId === "visitor") {
+                return false;
+            }
+            return true;
+        });
     }
 
     public async findAccessLevels(query: FilterQuery<AccessLevelDocument>) {
@@ -187,5 +213,9 @@ export class AccessLevelService {
 
     public async invalidateCache(key: string) {
         await this.cacheService.del(key);
+    }
+
+    getStudentAccessLevelId() {
+        return this.STUDENT_ID;
     }
 }

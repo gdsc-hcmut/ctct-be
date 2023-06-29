@@ -1,4 +1,4 @@
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import passport from "passport";
 import {
     Strategy,
@@ -16,16 +16,19 @@ import { parseTokenMeta } from "../models/token.model";
 const GoogleStrategy = passportGoogle.Strategy;
 import { Request, Response, ServiceType } from "../types";
 import { ErrorUserInvalid } from "../lib/errors";
-import { UserService } from "./user.service";
 import Token from "../models/token.model";
 import { lazyInject } from "../container";
 import { logger } from "../lib/logger";
 import { Types } from "mongoose";
+import { UserService, AccessLevelService } from "../services/index";
 
 @injectable()
 export class AuthService {
     @lazyInject(ServiceType.User) private userService: UserService;
-    constructor() {
+    constructor(
+        @inject(ServiceType.AccessLevel)
+        private accessLevelService: AccessLevelService
+    ) {
         logger.info("Constructing Auth service");
     }
 
@@ -54,7 +57,9 @@ export class AuthService {
                 if (!user) {
                     const newUser = await User.create({
                         googleId: profile.id,
-                        accessLevels: [],
+                        accessLevels: [
+                            this.accessLevelService.getStudentAccessLevelId(),
+                        ],
                         isManager: false,
                         name: profile.displayName,
                         email: profile.emails?.[0].value,
