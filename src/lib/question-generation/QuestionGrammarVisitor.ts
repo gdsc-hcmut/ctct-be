@@ -281,7 +281,6 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
     };
 
     visitStringValue = (ctx: StringValueContext): QuestionReturnType => {
-        console.log(ctx.STRING().getText());
         return ctx.STRING().getText().slice(1, -1); // remove first and last character
     };
 

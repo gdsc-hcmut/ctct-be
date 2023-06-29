@@ -13,7 +13,7 @@ import { CharStream, CommonTokenStream } from "antlr4";
 import QuestionGrammarVisitor from "../lib/question-generation/QuestionGrammarVisitor";
 import GrammarParser from "../lib/question-generation/GrammarParser";
 import GrammarLexer from "../lib/question-generation/GrammarLexer";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Permission } from "../models/access_level.model";
 import { QuestionType } from "../models/question_template.model";
 
@@ -34,6 +34,10 @@ export class QuestionTemplateController extends Controller {
         this.router.all("*", authService.authenticate());
 
         this.router.post("/test_code", this.testCode.bind(this));
+        this.router.post(
+            "/test_concrete_question/:questionId",
+            this.testConcreteQuestionGeneration.bind(this)
+        );
         this.router.post("/", this.create.bind(this));
     }
 
@@ -57,6 +61,25 @@ export class QuestionTemplateController extends Controller {
             const symbols = visitor.getSymbols();
             logger.debug(symbols);
             res.composer.success(Object.fromEntries(symbols));
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async testConcreteQuestionGeneration(req: Request, res: Response) {
+        try {
+            if (!req.tokenMeta.isManager) {
+                throw new Error(`Missing manager permission`);
+            }
+            const questionId = new Types.ObjectId(req.params.questionId);
+            const question = await this.questionTemplateService.findOne({
+                _id: questionId,
+            });
+            const result =
+                this.questionTemplateService.generateConcreteQuestion(question);
+            res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -100,7 +123,6 @@ export class QuestionTemplateController extends Controller {
                     "answerKey",
                     "answerKeys",
                     "answerField",
-                    "parseAnswerField",
                     "matchCase",
                     "maximumError",
                 ]);
@@ -183,17 +205,10 @@ export class QuestionTemplateController extends Controller {
                     case QuestionType.TEXT: {
                         if (
                             questions[i].answerField === undefined ||
-                            !["number", "string"].includes(
-                                typeof questions[i].answerField
-                            )
+                            typeof questions[i].answerField !== "string"
                         ) {
                             throw new Error(
-                                `Question missing 'answerField' or 'answerField' is of wrong type (must be string or number)`
-                            );
-                        }
-                        if (questions[i].parseAnswerField === undefined) {
-                            throw new Error(
-                                `Question missing 'parseAnswerField'`
+                                `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
                         if (questions[i].matchCase === undefined) {
@@ -204,17 +219,10 @@ export class QuestionTemplateController extends Controller {
                     case QuestionType.NUMBER: {
                         if (
                             questions[i].answerField === undefined ||
-                            !["number", "string"].includes(
-                                typeof questions[i].answerField
-                            )
+                            typeof questions[i].answerField !== "string"
                         ) {
                             throw new Error(
-                                `Question missing 'answerField' or 'answerField' is of wrong type (must be string or number)`
-                            );
-                        }
-                        if (questions[i].parseAnswerField === undefined) {
-                            throw new Error(
-                                `Question missing 'parseAnswerField'`
+                                `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
                         if (questions[i].maximumError === undefined) {

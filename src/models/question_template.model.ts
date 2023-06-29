@@ -24,6 +24,8 @@ export type ConcreteQuestion = {
         answerField?: string | number;
         matchCase?: boolean;
         maximumError?: number;
+        isCorrect: boolean;
+        hasAnswered: boolean;
     }[];
 };
 
@@ -58,8 +60,7 @@ export type QuestionTemplateDocument = Document & {
         /**
          * Store the correct answer on text or number field questions
          */
-        answerField: string | number;
-        parseAnswerField?: boolean; // parse template answer (only works for string)
+        answerField: string;
         matchCase?: boolean; // require matching case on text questions
         maximumError?: number; // maximum error allowed on numeric questions
     }[];
@@ -85,8 +86,7 @@ const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
             answerKey: { type: Number, required: false },
             answerKeys: { type: Array<number>, required: false },
 
-            answerField: { type: Schema.Types.Mixed, required: false },
-            parseAnswerField: { type: Boolean, required: false },
+            answerField: { type: String, required: false },
             matchCase: { type: Boolean, required: false },
             maximumError: { type: Number, required: false },
         },
