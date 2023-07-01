@@ -11,6 +11,7 @@ import GrammarLexer from "../lib/question-generation/GrammarLexer";
 import GrammarParser from "../lib/question-generation/GrammarParser";
 import QuestionGrammarVisitor from "../lib/question-generation/QuestionGrammarVisitor";
 import Mustache from "mustache";
+import _ from "lodash";
 
 @injectable()
 export class QuestionTemplateService {
@@ -33,6 +34,7 @@ export class QuestionTemplateService {
     generateConcreteQuestion(questionTemplate: QuestionTemplateDocument) {
         const result: ConcreteQuestion = {
             questions: [],
+            hasAnswered: false,
         };
 
         const charStream = new CharStream(questionTemplate.code);
@@ -60,16 +62,17 @@ export class QuestionTemplateService {
                             question.description,
                             symbols
                         ),
-                        options: question.options.map((opt) => ({
-                            description: Mustache.render(
-                                opt.description,
-                                symbols
-                            ),
-                            id: opt.id,
-                        })),
+                        options: _.shuffle(
+                            question.options.map((opt) => ({
+                                description: Mustache.render(
+                                    opt.description,
+                                    symbols
+                                ),
+                                key: opt.key,
+                            }))
+                        ),
                         answerKey: question.answerKey,
                         isCorrect: false,
-                        hasAnswered: false,
                     });
                     break;
                 }
@@ -80,16 +83,17 @@ export class QuestionTemplateService {
                             question.description,
                             symbols
                         ),
-                        options: question.options.map((opt) => ({
-                            description: Mustache.render(
-                                opt.description,
-                                symbols
-                            ),
-                            id: opt.id,
-                        })),
+                        options: _.shuffle(
+                            question.options.map((opt) => ({
+                                description: Mustache.render(
+                                    opt.description,
+                                    symbols
+                                ),
+                                key: opt.key,
+                            }))
+                        ),
                         answerKeys: question.answerKeys,
                         isCorrect: false,
-                        hasAnswered: false,
                     });
                     break;
                 }
@@ -105,7 +109,6 @@ export class QuestionTemplateService {
                         ),
                         maximumError: question.maximumError,
                         isCorrect: false,
-                        hasAnswered: false,
                     });
                     break;
                 }
@@ -122,7 +125,6 @@ export class QuestionTemplateService {
                         ),
                         matchCase: question.matchCase,
                         isCorrect: false,
-                        hasAnswered: false,
                     });
                     break;
                 }

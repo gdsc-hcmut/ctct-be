@@ -6,6 +6,7 @@ import {
     AccessLevelService,
     AuthService,
     QuestionTemplateService,
+    SubjectService,
 } from "../services/index";
 import _ from "lodash";
 import { logger } from "../lib/logger";
@@ -27,7 +28,8 @@ export class QuestionTemplateController extends Controller {
         @inject(ServiceType.QuestionTemplate)
         private questionTemplateService: QuestionTemplateService,
         @inject(ServiceType.AccessLevel)
-        private accessLevelService: AccessLevelService
+        private accessLevelService: AccessLevelService,
+        @inject(ServiceType.Subject) private subjectService: SubjectService
     ) {
         super();
 
@@ -107,12 +109,31 @@ export class QuestionTemplateController extends Controller {
 
             const userId = req.tokenMeta.userId;
 
-            req.body = _.pick(req.body, ["description", "questions", "code"]);
+            req.body = _.pick(req.body, [
+                "description",
+                "questions",
+                "code",
+                "subject",
+                "chapter",
+            ]);
             req.body.code = req.body.code || "";
 
-            const questions: any[] = req.body.questions;
+            const [questions, subject, chapter] = [
+                req.body.questions as any[],
+                new Types.ObjectId(req.body.subject),
+                req.body.chapter as number,
+            ];
             if (!questions) {
                 throw new Error(`Missing 'questions' field`);
+            }
+            if (!subject) {
+                throw new Error(`Missing 'subject' field`);
+            }
+            if (chapter === undefined) {
+                throw new Error(`Missing 'chapter' field`);
+            }
+            if (!(await this.subjectService.findById(subject))) {
+                throw new Error(`Subject doesn't exist`);
             }
 
             for (let i = 0; i < questions.length; i++) {
@@ -133,7 +154,7 @@ export class QuestionTemplateController extends Controller {
                 switch (type) {
                     case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                         const [options, answerKey] = [
-                            questions[i].options as any[],
+                            questions[i].options as string[],
                             questions[i].answerKey as number,
                         ];
                         if (!options) {
@@ -143,31 +164,23 @@ export class QuestionTemplateController extends Controller {
                         }
                         if (answerKey === undefined) {
                             throw new Error(
-                                `Missing answer key for multiple choice, single answer question`
+                                `Missing answer key for multiple choice, multiple answers question`
                             );
                         }
-                        for (const opt of options) {
-                            const [id, questionDescription] = [
-                                opt.id as number,
-                                opt.description as string,
-                            ];
-                            if (id === undefined || !questionDescription) {
-                                throw new Error(
-                                    `Missing id or description for one of the options for multiple choice, single answer question`
-                                );
-                            }
+                        if (answerKey < 0 || answerKey >= options.length) {
+                            throw new Error(`Answer key out of bounds`);
                         }
-                        if (
-                            new Set(options.map((x) => x.id)).size !==
-                            options.length
-                        ) {
-                            throw new Error(`ID's of questions are not unique`);
-                        }
+                        options.forEach((option, index) => {
+                            questions[i].options[index] = {
+                                key: index,
+                                description: option,
+                            };
+                        });
                         break;
                     }
                     case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
                         const [options, answerKeys] = [
-                            questions[i].options as any[],
+                            questions[i].options as string[],
                             questions[i].answerKeys as number[],
                         ];
                         if (!options) {
@@ -177,29 +190,33 @@ export class QuestionTemplateController extends Controller {
                         }
                         if (!answerKeys) {
                             throw new Error(
-                                `Missing answer keys for multiple choice, multiple answers question`
+                                `Missing answerKeys for multiple choice, multiple answers question`
                             );
                         }
-                        for (const opt of options) {
-                            const [id, questionDescription] = [
-                                opt.id as number,
-                                opt.description as string,
-                            ];
-                            if (id === undefined || !questionDescription) {
+                        answerKeys.forEach((key, keyIndex) => {
+                            if (key < 0 || key >= options.length) {
                                 throw new Error(
-                                    `Missing id or description for one of the options for multiple choice, multiple answers question`
+                                    `Answer key ${key} is out of bounds`
                                 );
                             }
-                        }
-                        if (
-                            new Set(options.map((x) => x.id)).size !==
-                            options.length
-                        ) {
-                            throw new Error(`ID's of questions are not unique`);
-                        }
-                        if (new Set(answerKeys).size !== answerKeys.length) {
-                            throw new Error(`Answer keys are not unique`);
-                        }
+                            if (
+                                answerKeys.some(
+                                    (otherKey, otherIndex) =>
+                                        otherKey === key &&
+                                        otherIndex !== keyIndex
+                                )
+                            ) {
+                                throw new Error(
+                                    `Answer keys contain duplicates`
+                                );
+                            }
+                        });
+                        options.forEach((option, index) => {
+                            questions[i].options[index] = {
+                                key: index,
+                                description: option,
+                            };
+                        });
                         break;
                     }
                     case QuestionType.TEXT: {

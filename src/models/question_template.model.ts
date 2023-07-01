@@ -16,7 +16,7 @@ export type ConcreteQuestion = {
         questionType: QuestionType;
         description: string;
         options?: {
-            id: number;
+            key: number;
             description: string;
         }[];
         answerKey?: number;
@@ -25,8 +25,8 @@ export type ConcreteQuestion = {
         matchCase?: boolean;
         maximumError?: number;
         isCorrect: boolean;
-        hasAnswered: boolean;
     }[];
+    hasAnswered: boolean;
 };
 
 export type QuestionTemplateDocument = Document & {
@@ -42,6 +42,8 @@ export type QuestionTemplateDocument = Document & {
      * template into a concrete expression
      */
     code: string;
+    subject: Types.ObjectId;
+    chapter: number;
 
     questions: {
         questionType: QuestionType;
@@ -51,7 +53,7 @@ export type QuestionTemplateDocument = Document & {
          * and the key for the correct answer
          */
         options?: {
-            id: number;
+            key: number;
             description: string;
         }[];
         answerKey?: number;
@@ -72,6 +74,8 @@ export type QuestionTemplateDocument = Document & {
 const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
     description: { type: String, required: false },
     code: { type: String, required: true, default: "" },
+    subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
+    chapter: { type: Number, required: true },
 
     questions: [
         {
@@ -79,7 +83,7 @@ const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
             description: { type: String, required: true },
             options: [
                 {
-                    id: { type: Number, required: true },
+                    key: { type: Number, required: true },
                     description: { type: String, required: true },
                 },
             ],
