@@ -17,6 +17,8 @@ export enum Permission {
 
     // question generation
     CREATE_QUESTION_TEMPLATE = "CREATE_QUESTION_TEMPLATE",
+    VIEW_QUESTION_TEMPLATE = "VIEW_QUESTION_TEMPLATE",
+    DELETE_QUESTION_TEMPLATE = "DELETE_QUESTION_TEMPLATE",
 }
 
 export type AccessLevelDocument = Document & {

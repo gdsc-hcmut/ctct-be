@@ -142,4 +142,16 @@ export class QuestionTemplateService {
     async findOne(query: FilterQuery<QuestionTemplateDocument>) {
         return QuestionTemplateModel.findOne(query);
     }
+
+    async deleteOne(query: FilterQuery<QuestionTemplateDocument>) {
+        return await QuestionTemplateModel.deleteOne(query);
+    }
+
+    async findOneAndDelete(query: FilterQuery<QuestionTemplateDocument>) {
+        return await QuestionTemplateModel.findOneAndDelete(query);
+    }
+
+    async find(query: FilterQuery<QuestionTemplateDocument>) {
+        return await QuestionTemplateModel.find(query);
+    }
 }

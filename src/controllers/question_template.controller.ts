@@ -41,6 +41,8 @@ export class QuestionTemplateController extends Controller {
             this.testConcreteQuestionGeneration.bind(this)
         );
         this.router.post("/", this.create.bind(this));
+        this.router.get("/all", this.getAllQuestionTemplates.bind(this));
+        this.router.delete("/delete/:questionId", this.delete.bind(this));
     }
 
     async testCode(req: Request, res: Response) {
@@ -93,7 +95,7 @@ export class QuestionTemplateController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const userAccessLevels = req.tokenMeta.accessLevels;
 
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
@@ -261,6 +263,77 @@ export class QuestionTemplateController extends Controller {
                 userId,
                 req.body
             );
+            res.composer.success(result);
+            await session.commitTransaction();
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            await session.abortTransaction();
+            res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
+        }
+    }
+
+    async getAllQuestionTemplates(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const userAccessLevels = req.tokenMeta.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.VIEW_QUESTION_TEMPLATE,
+                    req.tokenMeta.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const result = await this.questionTemplateService.find({});
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            await session.abortTransaction();
+            res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
+        }
+    }
+
+    async delete(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const userAccessLevels = req.tokenMeta.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.DELETE_QUESTION_TEMPLATE,
+                    req.tokenMeta.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const questionId = new Types.ObjectId(req.params.questionId);
+            const question = await this.questionTemplateService.findOne({
+                _id: questionId,
+            });
+            if (!question) {
+                throw new Error(`Question template does not exist`);
+            }
+
+            const result = await this.questionTemplateService.findOneAndDelete({
+                _id: questionId,
+            });
             res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
