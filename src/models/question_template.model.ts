@@ -24,12 +24,14 @@ export type ConcreteQuestion = {
         answerField?: string | number;
         matchCase?: boolean;
         maximumError?: number;
+        explanation: string;
         isCorrect: boolean;
     }[];
     hasAnswered: boolean;
 };
 
 export type QuestionTemplateDocument = Document & {
+    name: string;
     /**
      * Description of the question, written in Markdown
      * This is used as a unified description for all subquestions, since
@@ -65,6 +67,8 @@ export type QuestionTemplateDocument = Document & {
         answerField: string;
         matchCase?: boolean; // require matching case on text questions
         maximumError?: number; // maximum error allowed on numeric questions
+
+        explanation?: string;
     }[];
 
     createdAt: number;
@@ -72,8 +76,9 @@ export type QuestionTemplateDocument = Document & {
 };
 
 const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
-    description: { type: String, required: false },
-    code: { type: String, required: true, default: "" },
+    name: { type: String, required: true, default: "" },
+    description: { type: String, required: false, default: "" },
+    code: { type: String, required: false, default: "" },
     subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
     chapter: { type: Number, required: true },
 
@@ -93,6 +98,8 @@ const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
             answerField: { type: String, required: false },
             matchCase: { type: Boolean, required: false },
             maximumError: { type: Number, required: false },
+
+            explanation: { type: String, required: false, default: "" },
         },
     ],
 

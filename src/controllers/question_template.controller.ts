@@ -112,24 +112,29 @@ export class QuestionTemplateController extends Controller {
             const userId = req.tokenMeta.userId;
 
             req.body = _.pick(req.body, [
+                "name",
                 "description",
                 "questions",
                 "code",
                 "subject",
                 "chapter",
             ]);
-            req.body.code = req.body.code || "";
+            req.body.code = req.body.code ?? "";
 
-            const [questions, subject, chapter] = [
+            const [questions, subject, chapter, name] = [
                 req.body.questions as any[],
                 new Types.ObjectId(req.body.subject),
                 req.body.chapter as number,
+                req.body.name as string,
             ];
             if (!questions) {
                 throw new Error(`Missing 'questions' field`);
             }
             if (!subject) {
                 throw new Error(`Missing 'subject' field`);
+            }
+            if (!name) {
+                throw new Error(`Missing 'name' field`);
             }
             if (chapter === undefined) {
                 throw new Error(`Missing 'chapter' field`);
@@ -148,10 +153,15 @@ export class QuestionTemplateController extends Controller {
                     "answerField",
                     "matchCase",
                     "maximumError",
+                    "explanation",
                 ]);
                 if (!questions[i].description) {
-                    throw new Error(`Missing description for question`);
+                    throw new Error(
+                        `Missing description for question ${i + 1}`
+                    );
                 }
+                req.body.questions[i].explanation =
+                    req.body.questions[i].explanation ?? "";
                 const type = questions[i].questionType as QuestionType;
                 switch (type) {
                     case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {

@@ -72,6 +72,10 @@ export class QuestionTemplateService {
                             }))
                         ),
                         answerKey: question.answerKey,
+                        explanation: Mustache.render(
+                            question.explanation,
+                            symbols
+                        ),
                         isCorrect: false,
                     });
                     break;
@@ -93,6 +97,10 @@ export class QuestionTemplateService {
                             }))
                         ),
                         answerKeys: question.answerKeys,
+                        explanation: Mustache.render(
+                            question.explanation,
+                            symbols
+                        ),
                         isCorrect: false,
                     });
                     break;
@@ -108,6 +116,10 @@ export class QuestionTemplateService {
                             Mustache.render(question.answerField, symbols)
                         ),
                         maximumError: question.maximumError,
+                        explanation: Mustache.render(
+                            question.explanation,
+                            symbols
+                        ),
                         isCorrect: false,
                     });
                     break;
@@ -124,6 +136,10 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         matchCase: question.matchCase,
+                        explanation: Mustache.render(
+                            question.explanation,
+                            symbols
+                        ),
                         isCorrect: false,
                     });
                     break;
