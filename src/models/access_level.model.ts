@@ -15,10 +15,13 @@ export enum Permission {
     EDIT_SUBJECT = "EDIT_SUBJECT",
     DELETE_SUBJECT = "DELETE_SUBJECT",
 
-    // question generation
+    // question templates
     CREATE_QUESTION_TEMPLATE = "CREATE_QUESTION_TEMPLATE",
     VIEW_QUESTION_TEMPLATE = "VIEW_QUESTION_TEMPLATE",
     DELETE_QUESTION_TEMPLATE = "DELETE_QUESTION_TEMPLATE",
+
+    // quiz template
+    CREATE_QUIZ_TEMPLATE = "CREATE_QUIZ_TEMPLATE",
 }
 
 export type AccessLevelDocument = Document & {

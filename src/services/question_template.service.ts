@@ -155,6 +155,19 @@ export class QuestionTemplateService {
         return result;
     }
 
+    async questionTemplatesExist(questions: Types.ObjectId[]) {
+        const result = await Promise.all(
+            questions.map((question) =>
+                (async () => {
+                    return (
+                        (await QuestionTemplateModel.findById(question)) != null
+                    );
+                })()
+            )
+        );
+        return result.every((x) => x);
+    }
+
     async findOne(query: FilterQuery<QuestionTemplateDocument>) {
         return QuestionTemplateModel.findOne(query);
     }

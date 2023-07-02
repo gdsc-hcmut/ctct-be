@@ -106,9 +106,17 @@ export class MaterialController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
-            const allAccessLevels = (
-                await this.accessLevelService.findAccessLevels({})
-            ).map((d) => d._id as Types.ObjectId);
+
+            if (!req.body.visibleTo) {
+                throw new Error(`Missing 'visibleTo' field`);
+            }
+            const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
+                (x) => new Types.ObjectId(x)
+            );
+            if (!(await this.accessLevelService.accessLevelsExist(visibleTo))) {
+                throw new Error(`One or more access levels does not exist`);
+            }
+
             const doc = await this.materialService.create(
                 name,
                 subtitle,
@@ -118,7 +126,7 @@ export class MaterialController extends Controller {
                 userId,
                 req.files as Express.Multer.File[],
                 new AgressiveFileCompression(),
-                allAccessLevels
+                visibleTo
             );
 
             res.composer.success(doc);

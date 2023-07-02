@@ -9,6 +9,7 @@ import {
     PreviousExamService,
     AccessLevelService,
     QuestionTemplateService,
+    QuizTemplateService,
 } from "../services/index";
 import mongoose, { Types } from "mongoose";
 import _ from "lodash";
@@ -28,7 +29,9 @@ export class SubjectController extends Controller {
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
         @inject(ServiceType.QuestionTemplate)
-        private questionTemplateService: QuestionTemplateService
+        private questionTemplateService: QuestionTemplateService,
+        @inject(ServiceType.QuizTemplate)
+        private quizTemplateService: QuizTemplateService
     ) {
         super();
 
@@ -174,6 +177,7 @@ export class SubjectController extends Controller {
                 materialWithThisSubject,
                 previousExamWithThisSubject,
                 questionTemplateWithThisSubject,
+                quizTemplateWithThisSubject,
             ] = await Promise.all([
                 (async () => {
                     return (
@@ -196,6 +200,13 @@ export class SubjectController extends Controller {
                         })) != null
                     );
                 })(),
+                (async () => {
+                    return (
+                        (await this.quizTemplateService.findOne({
+                            subject: docId,
+                        })) != null
+                    );
+                })(),
             ]);
             if (materialWithThisSubject) {
                 throw new Error(
@@ -210,6 +221,11 @@ export class SubjectController extends Controller {
             if (questionTemplateWithThisSubject) {
                 throw new Error(
                     `There are still question templates that belong to this subject. Please delete them first`
+                );
+            }
+            if (quizTemplateWithThisSubject) {
+                throw new Error(
+                    `There are still quiz templates that belong to this subject. Please delete them first`
                 );
             }
 

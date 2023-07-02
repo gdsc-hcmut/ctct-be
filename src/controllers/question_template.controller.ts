@@ -6,6 +6,7 @@ import {
     AccessLevelService,
     AuthService,
     QuestionTemplateService,
+    QuizTemplateService,
     SubjectService,
 } from "../services/index";
 import _ from "lodash";
@@ -29,7 +30,9 @@ export class QuestionTemplateController extends Controller {
         private questionTemplateService: QuestionTemplateService,
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
-        @inject(ServiceType.Subject) private subjectService: SubjectService
+        @inject(ServiceType.Subject) private subjectService: SubjectService,
+        @inject(ServiceType.QuizTemplate)
+        private quizTemplateService: QuizTemplateService
     ) {
         super();
 
@@ -305,6 +308,7 @@ export class QuestionTemplateController extends Controller {
 
             const result = await this.questionTemplateService.find({});
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -339,6 +343,22 @@ export class QuestionTemplateController extends Controller {
             });
             if (!question) {
                 throw new Error(`Question template does not exist`);
+            }
+
+            // check if any quiz templates or exam templates that use this question
+            const [quizTemplateWithThisQuestion] = await Promise.all([
+                (async () => {
+                    return (
+                        (await this.quizTemplateService.findOne({
+                            potentialQuestions: questionId,
+                        })) != null
+                    );
+                })(),
+            ]);
+            if (quizTemplateWithThisQuestion) {
+                throw new Error(
+                    `There are quiz templates that contain this question. Please delete them first`
+                );
             }
 
             const result = await this.questionTemplateService.findOneAndDelete({

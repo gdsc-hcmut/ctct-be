@@ -11,6 +11,7 @@ import {
     UserService,
     MaterialService,
     PreviousExamService,
+    QuizTemplateService,
 } from "../services/index";
 import _ from "lodash";
 
@@ -26,7 +27,9 @@ export class AccessLevelController extends Controller {
         @inject(ServiceType.User) private userService: UserService,
         @inject(ServiceType.Material) private materialService: MaterialService,
         @inject(ServiceType.PreviousExam)
-        private previousExamService: PreviousExamService
+        private previousExamService: PreviousExamService,
+        @inject(ServiceType.QuizTemplate)
+        private quizTemplateService: QuizTemplateService
     ) {
         super();
 
@@ -129,6 +132,10 @@ export class AccessLevelController extends Controller {
                     { $pull: { visibleTo: accessLevelId } }
                 ),
                 this.previousExamService.updateMany(
+                    {},
+                    { $pull: { visibleTo: accessLevelId } }
+                ),
+                this.quizTemplateService.updateMany(
                     {},
                     { $pull: { visibleTo: accessLevelId } }
                 ),
