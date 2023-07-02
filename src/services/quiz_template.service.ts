@@ -35,4 +35,16 @@ export class QuizTemplateService {
     async findOne(query: FilterQuery<QuizTemplateDocument>) {
         return await QuizTemplateModel.findOne(query);
     }
+
+    async findOneAndUpdate(
+        query: FilterQuery<QuizTemplateDocument>,
+        update: UpdateQuery<QuizTemplateDocument>,
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return await QuizTemplateModel.findOneAndUpdate(query, update, options);
+    }
+
+    async findById(id: Types.ObjectId) {
+        return await QuizTemplateModel.findById(id);
+    }
 }

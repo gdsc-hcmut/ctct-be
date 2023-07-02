@@ -12,7 +12,7 @@ import {
 import mongoose, { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
-import _, { sample, sampleSize } from "lodash";
+import _ from "lodash";
 
 @injectable()
 export class QuizTemplateController extends Controller {
@@ -34,6 +34,7 @@ export class QuizTemplateController extends Controller {
         this.router.all("*", authService.authenticate());
 
         this.router.post("/", this.create.bind(this));
+        this.router.patch("/edit/:quizTemplateId", this.edit.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -94,6 +95,88 @@ export class QuizTemplateController extends Controller {
             const result = await this.quizTemplateService.create(
                 userId,
                 req.body
+            );
+            res.composer.success(result);
+            await session.commitTransaction();
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            await session.abortTransaction();
+            res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
+        }
+    }
+
+    async edit(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const userAccessLevels = req.tokenMeta.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.EDIT_QUIZ_TEMPLATE,
+                    req.tokenMeta.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const quizTemplateId = new Types.ObjectId(
+                req.params.quizTemplateId
+            );
+            const quizTemplate = await this.quizTemplateService.findById(
+                quizTemplateId
+            );
+            if (!quizTemplate) {
+                throw new Error(`Quiz template not found`);
+            }
+
+            req.body = _.pick(req.body, [
+                "name",
+                "description",
+                "subject",
+                "visibleTo",
+                "duration",
+                "potentialQuestions",
+                "sampleSize",
+            ]);
+
+            const [subject, levels, questions, sampleSize] = [
+                req.body.subject as Types.ObjectId,
+                (req.body.visibleTo as string[]).map(
+                    (x) => new Types.ObjectId(x)
+                ),
+                (req.body.potentialQuestions as string[]).map(
+                    (x) => new Types.ObjectId(x)
+                ),
+                req.body.sampleSize as number,
+            ];
+            if (!(await this.subjectService.findById(subject))) {
+                throw new Error(`Subject doesn't exist`);
+            }
+            if (!(await this.accessLevelService.accessLevelsExist(levels))) {
+                throw new Error(`One or more access levels does not exist`);
+            }
+            if (sampleSize <= 0 || sampleSize > questions.length) {
+                throw new Error(`Sample size is invalid`);
+            }
+            if (
+                !(await this.questionTemplateService.questionTemplatesExist(
+                    questions
+                ))
+            ) {
+                throw new Error(`One or more questions does not exist`);
+            }
+
+            const result = await this.quizTemplateService.findOneAndUpdate(
+                { _id: quizTemplateId },
+                { ...req.body },
+                { new: true }
             );
             res.composer.success(result);
             await session.commitTransaction();

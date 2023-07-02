@@ -22,6 +22,7 @@ export enum Permission {
 
     // quiz template
     CREATE_QUIZ_TEMPLATE = "CREATE_QUIZ_TEMPLATE",
+    EDIT_QUIZ_TEMPLATE = "EDIT_QUIZ_TEMPLATE",
 }
 
 export type AccessLevelDocument = Document & {
