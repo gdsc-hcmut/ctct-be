@@ -13,6 +13,8 @@ import {
     PreviousExamService,
     SubjectService,
     AccessLevelService,
+    QuestionTemplateService,
+    QuizTemplateService,
 } from "./services/index";
 
 import {
@@ -23,6 +25,8 @@ import {
     SubjectController,
     UserController,
     AccessLevelController,
+    QuestionTemplateController,
+    QuizTemplateController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -72,6 +76,14 @@ container
     .bind<AccessLevelService>(ServiceType.AccessLevel)
     .to(AccessLevelService)
     .inSingletonScope();
+container
+    .bind<QuestionTemplateService>(ServiceType.QuestionTemplate)
+    .to(QuestionTemplateService)
+    .inSingletonScope();
+container
+    .bind<QuizTemplateService>(ServiceType.QuizTemplate)
+    .to(QuizTemplateService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -86,6 +98,10 @@ Promise.all([
             container.resolve<SubjectController>(SubjectController),
             container.resolve<MaterialController>(MaterialController),
             container.resolve<AccessLevelController>(AccessLevelController),
+            container.resolve<QuestionTemplateController>(
+                QuestionTemplateController
+            ),
+            container.resolve<QuizTemplateController>(QuizTemplateController),
         ],
         toNumber(process.env.PORT),
         [

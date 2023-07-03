@@ -62,7 +62,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     req.tokenMeta.accessLevels,
-                    Permission.UPLOAD_MATERIAL
+                    Permission.UPLOAD_MATERIAL,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -105,9 +106,17 @@ export class MaterialController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
-            const allAccessLevels = (
-                await this.accessLevelService.findAccessLevels({})
-            ).map((d) => d._id as Types.ObjectId);
+
+            if (!req.body.visibleTo) {
+                throw new Error(`Missing 'visibleTo' field`);
+            }
+            const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
+                (x) => new Types.ObjectId(x)
+            );
+            if (!(await this.accessLevelService.accessLevelsExist(visibleTo))) {
+                throw new Error(`One or more access levels does not exist`);
+            }
+
             const doc = await this.materialService.create(
                 name,
                 subtitle,
@@ -117,11 +126,11 @@ export class MaterialController extends Controller {
                 userId,
                 req.files as Express.Multer.File[],
                 new AgressiveFileCompression(),
-                allAccessLevels
+                visibleTo
             );
 
-            await session.commitTransaction();
             res.composer.success(doc);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -140,7 +149,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -165,8 +175,8 @@ export class MaterialController extends Controller {
                     `This document has been configured to be hidden from you`
                 );
             }
-            await session.commitTransaction();
             res.composer.success(doc);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -185,7 +195,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -203,8 +214,8 @@ export class MaterialController extends Controller {
                     d.visibleTo
                 )
             );
-            await session.commitTransaction();
             res.composer.success(ans);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -223,7 +234,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -252,13 +264,13 @@ export class MaterialController extends Controller {
             const file = await this.fileUploadService.downloadFile(
                 doc.resource
             );
-            await session.commitTransaction();
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=${file.originalName}`
+                `attachment; filename=${encodeURI(file.originalName)}`
             );
             res.setHeader("Content-Type", `${file.mimetype}`);
             res.end(file.buffer);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -277,7 +289,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_MATERIAL
+                    Permission.VIEW_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -291,8 +304,8 @@ export class MaterialController extends Controller {
                     d.visibleTo
                 )
             );
-            await session.commitTransaction();
             res.composer.success(ans);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -311,7 +324,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.EDIT_MATERIAL
+                    Permission.EDIT_MATERIAL,
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(
@@ -393,8 +407,8 @@ export class MaterialController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
-            await session.commitTransaction();
             res.composer.success(true);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -414,7 +428,8 @@ export class MaterialController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.DELETE_MATERIAL
+                    Permission.DELETE_MATERIAL,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -442,8 +457,8 @@ export class MaterialController extends Controller {
             }
 
             await this.materialService.deleteById(docId);
-            await session.commitTransaction();
             res.composer.success(true);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);

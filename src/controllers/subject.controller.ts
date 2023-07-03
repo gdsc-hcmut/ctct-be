@@ -8,6 +8,8 @@ import {
     MaterialService,
     PreviousExamService,
     AccessLevelService,
+    QuestionTemplateService,
+    QuizTemplateService,
 } from "../services/index";
 import mongoose, { Types } from "mongoose";
 import _ from "lodash";
@@ -25,7 +27,11 @@ export class SubjectController extends Controller {
         @inject(ServiceType.PreviousExam)
         private previousExamService: PreviousExamService,
         @inject(ServiceType.AccessLevel)
-        private accessLevelService: AccessLevelService
+        private accessLevelService: AccessLevelService,
+        @inject(ServiceType.QuestionTemplate)
+        private questionTemplateService: QuestionTemplateService,
+        @inject(ServiceType.QuizTemplate)
+        private quizTemplateService: QuizTemplateService
     ) {
         super();
 
@@ -67,8 +73,8 @@ export class SubjectController extends Controller {
                 userId,
                 description
             );
-            await session.commitTransaction();
             res.composer.success(doc);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();
@@ -83,8 +89,8 @@ export class SubjectController extends Controller {
         session.startTransaction();
         try {
             const ans = await this.subjectService.find({});
-            await session.commitTransaction();
             res.composer.success(ans);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();
@@ -129,8 +135,8 @@ export class SubjectController extends Controller {
                     lastUpdatedAt: Date.now(),
                 }
             );
-            await session.commitTransaction();
             res.composer.success(true);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();
@@ -166,21 +172,68 @@ export class SubjectController extends Controller {
                 throw new Error(`Subject doesn't exist`);
             }
 
-            // there must be no material and prev exams that have this subject
-            const ans = await Promise.all([
-                this.materialService.findOne({ subject: docId }),
-                this.previousExamService.findOne({ subject: docId }),
+            // check if anything holds a reference to this subject
+            const [
+                materialWithThisSubject,
+                previousExamWithThisSubject,
+                questionTemplateWithThisSubject,
+                quizTemplateWithThisSubject,
+            ] = await Promise.all([
+                (async () => {
+                    return (
+                        (await this.materialService.findOne({
+                            subject: docId,
+                        })) != null
+                    );
+                })(),
+                (async () => {
+                    return (
+                        (await this.previousExamService.findOne({
+                            subject: docId,
+                        })) != null
+                    );
+                })(),
+                (async () => {
+                    return (
+                        (await this.questionTemplateService.findOne({
+                            subject: docId,
+                        })) != null
+                    );
+                })(),
+                (async () => {
+                    return (
+                        (await this.quizTemplateService.findOne({
+                            subject: docId,
+                        })) != null
+                    );
+                })(),
             ]);
-            if (ans[0] || ans[1]) {
+            if (materialWithThisSubject) {
                 throw new Error(
-                    `There is still a material or previous exam that has this subject, please delete them first`
+                    `There are still materials that belong to this subject. Please delete them first`
                 );
             }
+            if (previousExamWithThisSubject) {
+                throw new Error(
+                    `There are still previous exams that belong to this subject. Please delete them first`
+                );
+            }
+            if (questionTemplateWithThisSubject) {
+                throw new Error(
+                    `There are still question templates that belong to this subject. Please delete them first`
+                );
+            }
+            if (quizTemplateWithThisSubject) {
+                throw new Error(
+                    `There are still quiz templates that belong to this subject. Please delete them first`
+                );
+            }
+
             const result = await this.subjectService.findOneAndDelete({
                 _id: docId,
             });
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             console.log(error);
             await session.abortTransaction();

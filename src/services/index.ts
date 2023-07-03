@@ -6,6 +6,8 @@ import { MaterialService } from "./material.service";
 import { PreviousExamService } from "./previous-exams.service";
 import { SubjectService } from "./subject.service";
 import { AccessLevelService } from "./access_level.service";
+import { QuestionTemplateService } from "./question_template.service";
+import { QuizTemplateService } from "./quiz_template.service";
 
 export {
     AuthService,
@@ -16,4 +18,6 @@ export {
     PreviousExamService,
     SubjectService,
     AccessLevelService,
+    QuestionTemplateService,
+    QuizTemplateService,
 };

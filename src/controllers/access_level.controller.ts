@@ -11,6 +11,7 @@ import {
     UserService,
     MaterialService,
     PreviousExamService,
+    QuizTemplateService,
 } from "../services/index";
 import _ from "lodash";
 
@@ -26,7 +27,9 @@ export class AccessLevelController extends Controller {
         @inject(ServiceType.User) private userService: UserService,
         @inject(ServiceType.Material) private materialService: MaterialService,
         @inject(ServiceType.PreviousExam)
-        private previousExamService: PreviousExamService
+        private previousExamService: PreviousExamService,
+        @inject(ServiceType.QuizTemplate)
+        private quizTemplateService: QuizTemplateService
     ) {
         super();
 
@@ -52,8 +55,8 @@ export class AccessLevelController extends Controller {
                 throw new Error(`Missing administrative permissions`);
             }
             const result = await this.accessLevelService.findAccessLevels({});
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -87,8 +90,8 @@ export class AccessLevelController extends Controller {
                 description,
                 permissions
             );
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -132,13 +135,17 @@ export class AccessLevelController extends Controller {
                     {},
                     { $pull: { visibleTo: accessLevelId } }
                 ),
+                this.quizTemplateService.updateMany(
+                    {},
+                    { $pull: { visibleTo: accessLevelId } }
+                ),
             ]);
             await this.accessLevelService.invalidateCache(
                 accessLevelId.toString()
             );
 
-            await session.commitTransaction();
             res.composer.success(deletedAccessLevel);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -204,8 +211,8 @@ export class AccessLevelController extends Controller {
                 accessLevelId.toString()
             );
 
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -246,8 +253,8 @@ export class AccessLevelController extends Controller {
             if (!result) {
                 throw new Error(`User not found`);
             }
-            await session.commitTransaction();
             res.composer.success(result);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);

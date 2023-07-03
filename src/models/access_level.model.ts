@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-export type PredefinedAccessLevelName = "visitor";
+export type PredefinedAccessLevelName = "visitor" | "student";
 
 export enum Permission {
     UPLOAD_MATERIAL = "UPLOAD_MATERIAL",
@@ -14,6 +14,15 @@ export enum Permission {
     CREATE_SUBJECT = "CREATE_SUBJECT",
     EDIT_SUBJECT = "EDIT_SUBJECT",
     DELETE_SUBJECT = "DELETE_SUBJECT",
+
+    // question templates
+    CREATE_QUESTION_TEMPLATE = "CREATE_QUESTION_TEMPLATE",
+    VIEW_QUESTION_TEMPLATE = "VIEW_QUESTION_TEMPLATE",
+    DELETE_QUESTION_TEMPLATE = "DELETE_QUESTION_TEMPLATE",
+
+    // quiz template
+    CREATE_QUIZ_TEMPLATE = "CREATE_QUIZ_TEMPLATE",
+    EDIT_QUIZ_TEMPLATE = "EDIT_QUIZ_TEMPLATE",
 }
 
 export type AccessLevelDocument = Document & {

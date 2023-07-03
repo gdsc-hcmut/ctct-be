@@ -34,8 +34,8 @@ export class MeController extends Controller {
                 throw new ErrorNotFound(`Requested user is not found`);
             }
 
-            await session.commitTransaction();
             res.composer.success(user);
+            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
