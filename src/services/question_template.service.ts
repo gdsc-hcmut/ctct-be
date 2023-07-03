@@ -155,6 +155,19 @@ export class QuestionTemplateService {
         return result;
     }
 
+    maskAnswerFromConcreteQuestion(concreteQuestion: ConcreteQuestion) {
+        const result = { ...concreteQuestion };
+        result.questions = result.questions.map((question) =>
+            _.omit(question, [
+                "answerKey",
+                "answerKeys",
+                "answerField",
+                "explanation",
+            ])
+        );
+        return result;
+    }
+
     async questionTemplatesExist(questions: Types.ObjectId[]) {
         const result = await Promise.all(
             questions.map((question) =>

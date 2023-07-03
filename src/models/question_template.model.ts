@@ -24,7 +24,7 @@ export type ConcreteQuestion = {
         answerField?: string | number;
         matchCase?: boolean;
         maximumError?: number;
-        explanation: string;
+        explanation?: string;
         isCorrect: boolean;
     }[];
     hasAnswered: boolean;
@@ -68,7 +68,7 @@ export type QuestionTemplateDocument = Document & {
         matchCase?: boolean; // require matching case on text questions
         maximumError?: number; // maximum error allowed on numeric questions
 
-        explanation?: string;
+        explanation: string;
     }[];
 
     createdAt: number;
