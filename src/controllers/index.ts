@@ -8,6 +8,7 @@ import { SubjectController } from "./subject.controller";
 import { AccessLevelController } from "./access_level.controller";
 import { QuestionTemplateController } from "./question_template.controller";
 import { QuizTemplateController } from "./quiz_template.controller";
+import { QuizController } from "./quiz.controller";
 
 export {
     Controller,
@@ -20,4 +21,5 @@ export {
     AccessLevelController,
     QuestionTemplateController,
     QuizTemplateController,
+    QuizController,
 };

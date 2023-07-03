@@ -85,7 +85,10 @@ export class QuestionTemplateController extends Controller {
                 _id: questionId,
             });
             const result =
-                this.questionTemplateService.generateConcreteQuestion(question);
+                this.questionTemplateService.generateConcreteQuestion(
+                    question,
+                    req.body?.point
+                );
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -350,7 +353,11 @@ export class QuestionTemplateController extends Controller {
                 (async () => {
                     return (
                         (await this.quizTemplateService.findOne({
-                            potentialQuestions: questionId,
+                            potentialQuestions: {
+                                $elemMatch: {
+                                    questionId: questionId,
+                                },
+                            },
                         })) != null
                     );
                 })(),

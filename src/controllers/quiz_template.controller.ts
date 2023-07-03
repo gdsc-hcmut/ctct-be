@@ -12,7 +12,7 @@ import {
 import mongoose, { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
-import _ from "lodash";
+import _, { xor } from "lodash";
 
 @injectable()
 export class QuizTemplateController extends Controller {
@@ -35,6 +35,7 @@ export class QuizTemplateController extends Controller {
 
         this.router.post("/", this.create.bind(this));
         this.router.patch("/edit/:quizTemplateId", this.edit.bind(this));
+        this.router.get("/all", this.getAllQuizTemplates.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -70,9 +71,10 @@ export class QuizTemplateController extends Controller {
                 (req.body.visibleTo as string[]).map(
                     (x) => new Types.ObjectId(x)
                 ),
-                (req.body.potentialQuestions as string[]).map(
-                    (x) => new Types.ObjectId(x)
-                ),
+                (req.body.potentialQuestions as any[]).map((x) => ({
+                    questionId: new Types.ObjectId(x.questionId),
+                    point: x.point as number,
+                })),
                 req.body.sampleSize as number,
             ];
             if (!(await this.subjectService.findById(subject))) {
@@ -86,10 +88,13 @@ export class QuizTemplateController extends Controller {
             }
             if (
                 !(await this.questionTemplateService.questionTemplatesExist(
-                    questions
+                    questions.map((question) => question.questionId)
                 ))
             ) {
                 throw new Error(`One or more questions does not exist`);
+            }
+            if (questions.some((x) => x.point < 0)) {
+                throw new Error(`All points must be non-negative`);
             }
 
             const result = await this.quizTemplateService.create(
@@ -136,6 +141,18 @@ export class QuizTemplateController extends Controller {
                 throw new Error(`Quiz template not found`);
             }
 
+            if (
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    req.tokenMeta.accessLevels,
+                    quizTemplate.visibleTo,
+                    req.tokenMeta.isManager
+                )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
+                );
+            }
+
             req.body = _.pick(req.body, [
                 "name",
                 "description",
@@ -145,15 +162,15 @@ export class QuizTemplateController extends Controller {
                 "potentialQuestions",
                 "sampleSize",
             ]);
-
             const [subject, levels, questions, sampleSize] = [
                 req.body.subject as Types.ObjectId,
                 (req.body.visibleTo as string[]).map(
                     (x) => new Types.ObjectId(x)
                 ),
-                (req.body.potentialQuestions as string[]).map(
-                    (x) => new Types.ObjectId(x)
-                ),
+                (req.body.potentialQuestions as any[]).map((x) => ({
+                    questionId: new Types.ObjectId(x.questionId),
+                    point: x.point as number,
+                })),
                 req.body.sampleSize as number,
             ];
             if (!(await this.subjectService.findById(subject))) {
@@ -167,16 +184,57 @@ export class QuizTemplateController extends Controller {
             }
             if (
                 !(await this.questionTemplateService.questionTemplatesExist(
-                    questions
+                    questions.map((question) => question.questionId)
                 ))
             ) {
                 throw new Error(`One or more questions does not exist`);
+            }
+            if (questions.some((x) => x.point < 0)) {
+                throw new Error(`All points must be non-negative`);
             }
 
             const result = await this.quizTemplateService.findOneAndUpdate(
                 { _id: quizTemplateId },
                 { ...req.body },
                 { new: true }
+            );
+            res.composer.success(result);
+            await session.commitTransaction();
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            await session.abortTransaction();
+            res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
+        }
+    }
+
+    async getAllQuizTemplates(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const userAccessLevels = req.tokenMeta?.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.VIEW_QUIZ_TEMPLATE,
+                    req.tokenMeta.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const result = (await this.quizTemplateService.find({})).filter(
+                (quizTemplate) =>
+                    this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                        userAccessLevels,
+                        quizTemplate.visibleTo,
+                        req.tokenMeta?.isManager
+                    )
             );
             res.composer.success(result);
             await session.commitTransaction();

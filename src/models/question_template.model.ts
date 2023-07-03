@@ -26,6 +26,7 @@ export type ConcreteQuestion = {
         maximumError?: number;
         explanation?: string;
         isCorrect: boolean;
+        point: number;
     }[];
     hasAnswered: boolean;
 };

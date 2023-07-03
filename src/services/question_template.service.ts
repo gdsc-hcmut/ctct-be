@@ -31,7 +31,10 @@ export class QuestionTemplateService {
         });
     }
 
-    generateConcreteQuestion(questionTemplate: QuestionTemplateDocument) {
+    generateConcreteQuestion(
+        questionTemplate: QuestionTemplateDocument,
+        point = 0
+    ) {
         const result: ConcreteQuestion = {
             questions: [],
             hasAnswered: false,
@@ -77,6 +80,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
+                        point: point,
                     });
                     break;
                 }
@@ -102,6 +106,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
+                        point: point,
                     });
                     break;
                 }
@@ -121,6 +126,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
+                        point: point,
                     });
                     break;
                 }
@@ -141,6 +147,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
+                        point: point,
                     });
                     break;
                 }
@@ -152,19 +159,6 @@ export class QuestionTemplateService {
             }
         }
 
-        return result;
-    }
-
-    maskAnswerFromConcreteQuestion(concreteQuestion: ConcreteQuestion) {
-        const result = { ...concreteQuestion };
-        result.questions = result.questions.map((question) =>
-            _.omit(question, [
-                "answerKey",
-                "answerKeys",
-                "answerField",
-                "explanation",
-            ])
-        );
         return result;
     }
 
