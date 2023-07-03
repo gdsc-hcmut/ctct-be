@@ -12,7 +12,7 @@ import {
 import mongoose, { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
-import _, { xor } from "lodash";
+import _ from "lodash";
 
 @injectable()
 export class QuizTemplateController extends Controller {
@@ -31,11 +31,16 @@ export class QuizTemplateController extends Controller {
     ) {
         super();
 
+        this.router.get(
+            "/all",
+            authService.authenticate(false),
+            this.getAllQuizTemplates.bind(this)
+        );
+
         this.router.all("*", authService.authenticate());
 
         this.router.post("/", this.create.bind(this));
         this.router.patch("/edit/:quizTemplateId", this.edit.bind(this));
-        this.router.get("/all", this.getAllQuizTemplates.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -220,7 +225,7 @@ export class QuizTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_QUIZ_TEMPLATE,
-                    req.tokenMeta.isManager
+                    req.tokenMeta?.isManager
                 ))
             ) {
                 throw new Error(

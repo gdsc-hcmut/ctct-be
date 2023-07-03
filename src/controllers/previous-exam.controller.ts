@@ -35,11 +35,24 @@ export class PreviousExamController extends Controller {
     ) {
         super();
 
-        this.router.get("/get/:docId", this.getById.bind(this));
-        this.router.get("/download/:docId", this.download.bind(this));
-        this.router.get("/get", this.getAvailablePreviousExams.bind(this));
+        this.router.get(
+            "/get/:docId",
+            authService.authenticate(false),
+            this.getById.bind(this)
+        );
+        this.router.get(
+            "/download/:docId",
+            authService.authenticate(false),
+            this.download.bind(this)
+        );
+        this.router.get(
+            "/get",
+            authService.authenticate(false),
+            this.getAvailablePreviousExams.bind(this)
+        );
         this.router.get(
             "/getbysubject/:subjectId",
+            authService.authenticate(false),
             this.getBySubject.bind(this)
         );
 
@@ -156,7 +169,8 @@ export class PreviousExamController extends Controller {
             if (
                 !this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
-                    doc.visibleTo
+                    doc.visibleTo,
+                    req.tokenMeta?.isManager
                 )
             ) {
                 throw new Error(
@@ -200,7 +214,8 @@ export class PreviousExamController extends Controller {
             ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
-                    d.visibleTo
+                    d.visibleTo,
+                    req.tokenMeta?.isManager
                 )
             );
             res.composer.success(ans);
@@ -242,7 +257,8 @@ export class PreviousExamController extends Controller {
             if (
                 !this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
-                    doc.visibleTo
+                    doc.visibleTo,
+                    req.tokenMeta?.isManager
                 )
             ) {
                 throw new Error(
@@ -290,7 +306,8 @@ export class PreviousExamController extends Controller {
             const ans = (await this.previousExamService.find({})).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
-                    d.visibleTo
+                    d.visibleTo,
+                    req.tokenMeta?.isManager
                 )
             );
             res.composer.success(ans);
@@ -333,7 +350,8 @@ export class PreviousExamController extends Controller {
             if (
                 !this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
-                    doc.visibleTo
+                    doc.visibleTo,
+                    req.tokenMeta.isManager
                 )
             ) {
                 throw new Error(
@@ -418,7 +436,8 @@ export class PreviousExamController extends Controller {
             if (
                 !this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
-                    doc.visibleTo
+                    doc.visibleTo,
+                    req.tokenMeta.isManager
                 )
             ) {
                 throw new Error(
