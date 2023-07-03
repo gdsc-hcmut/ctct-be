@@ -81,7 +81,7 @@ export class QuizTemplateController extends Controller {
                 ),
                 (req.body.potentialQuestions as any[]).map((x) => ({
                     questionId: new Types.ObjectId(x.questionId),
-                    point: x.point as number,
+                    point: x.point as number[],
                 })),
                 req.body.sampleSize as number,
             ];
@@ -101,8 +101,27 @@ export class QuizTemplateController extends Controller {
             ) {
                 throw new Error(`One or more questions does not exist`);
             }
-            if (questions.some((x) => x.point < 0)) {
-                throw new Error(`All points must be non-negative`);
+            // check that for all questions, the points provided must be of same length as the subquestion count
+            // and that all points are non-negative
+            const pointCondition = await Promise.all(
+                questions.map((question) =>
+                    (async () => {
+                        const questionTemplate =
+                            await this.questionTemplateService.findOne({
+                                _id: question.questionId,
+                            });
+                        return (
+                            questionTemplate.questions.length ===
+                                question.point.length &&
+                            question.point.every((x) => x >= 0)
+                        );
+                    })()
+                )
+            );
+            if (!pointCondition.every((x) => x)) {
+                throw new Error(
+                    `Point and number of subquestions must be the same for each question, and every point must be non-negative`
+                );
             }
 
             const result = await this.quizTemplateService.create(
@@ -177,7 +196,7 @@ export class QuizTemplateController extends Controller {
                 ),
                 (req.body.potentialQuestions as any[]).map((x) => ({
                     questionId: new Types.ObjectId(x.questionId),
-                    point: x.point as number,
+                    point: x.point as number[],
                 })),
                 req.body.sampleSize as number,
             ];
@@ -197,8 +216,27 @@ export class QuizTemplateController extends Controller {
             ) {
                 throw new Error(`One or more questions does not exist`);
             }
-            if (questions.some((x) => x.point < 0)) {
-                throw new Error(`All points must be non-negative`);
+            // check that for all questions, the points provided must be of same length as the subquestion count
+            // and that all points are non-negative
+            const pointCondition = await Promise.all(
+                questions.map((question) =>
+                    (async () => {
+                        const questionTemplate =
+                            await this.questionTemplateService.findOne({
+                                _id: question.questionId,
+                            });
+                        return (
+                            questionTemplate.questions.length ===
+                                question.point.length &&
+                            question.point.every((x) => x >= 0)
+                        );
+                    })()
+                )
+            );
+            if (!pointCondition.every((x) => x)) {
+                throw new Error(
+                    `Point and number of subquestions must be the same for each question, and every point must be non-negative`
+                );
             }
 
             const result = await this.quizTemplateService.findOneAndUpdate(

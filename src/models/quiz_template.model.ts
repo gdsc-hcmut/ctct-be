@@ -9,7 +9,7 @@ export type QuizTemplateDocument = Document & {
     duration: number;
     potentialQuestions: {
         questionId: Types.ObjectId;
-        point: number;
+        point: number[];
     }[];
     sampleSize: number;
 
@@ -30,7 +30,7 @@ const quizTemplateSchema = new Schema<QuizTemplateDocument>({
                 type: Schema.Types.ObjectId,
                 ref: "question_templates",
             },
-            point: { type: Number, default: 0 },
+            point: { type: Array<number>, default: [] },
         },
     ],
     sampleSize: { type: Number, required: true },

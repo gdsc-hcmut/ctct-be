@@ -33,7 +33,9 @@ export class QuestionTemplateService {
 
     generateConcreteQuestion(
         questionTemplate: QuestionTemplateDocument,
-        point = 0
+        point: number[] = new Array<number>(
+            questionTemplate.questions.length
+        ).fill(0)
     ) {
         const result: ConcreteQuestion = {
             questions: [],
@@ -56,7 +58,7 @@ export class QuestionTemplateService {
             );
         }
 
-        for (const question of questionTemplate.questions) {
+        for (const [index, question] of questionTemplate.questions.entries()) {
             switch (question.questionType) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                     result.questions.push({
@@ -80,7 +82,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point,
+                        point: point[index],
                     });
                     break;
                 }
@@ -106,7 +108,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point,
+                        point: point[index],
                     });
                     break;
                 }
@@ -126,7 +128,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point,
+                        point: point[index],
                     });
                     break;
                 }
@@ -147,7 +149,7 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point,
+                        point: point[index],
                     });
                     break;
                 }
