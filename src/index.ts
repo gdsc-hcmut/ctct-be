@@ -15,6 +15,8 @@ import {
     AccessLevelService,
     QuestionTemplateService,
     QuizTemplateService,
+    QuizService,
+    MapperService,
 } from "./services/index";
 
 import {
@@ -27,6 +29,7 @@ import {
     AccessLevelController,
     QuestionTemplateController,
     QuizTemplateController,
+    QuizController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -84,6 +87,14 @@ container
     .bind<QuizTemplateService>(ServiceType.QuizTemplate)
     .to(QuizTemplateService)
     .inSingletonScope();
+container
+    .bind<QuizService>(ServiceType.Quiz)
+    .to(QuizService)
+    .inSingletonScope();
+container
+    .bind<MapperService>(ServiceType.Mapper)
+    .to(MapperService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -102,6 +113,7 @@ Promise.all([
                 QuestionTemplateController
             ),
             container.resolve<QuizTemplateController>(QuizTemplateController),
+            container.resolve<QuizController>(QuizController),
         ],
         toNumber(process.env.PORT),
         [

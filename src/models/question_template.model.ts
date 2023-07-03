@@ -24,7 +24,7 @@ export type ConcreteQuestion = {
         answerField?: string | number;
         matchCase?: boolean;
         maximumError?: number;
-        explanation?: string;
+        explanation: string;
         isCorrect: boolean;
         point: number;
     }[];

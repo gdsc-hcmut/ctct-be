@@ -22,6 +22,8 @@ export const ServiceType = {
     AccessLevel: Symbol.for("AccessLevel"),
     QuestionTemplate: Symbol.for("QuestionTemplate"),
     QuizTemplate: Symbol.for("QuizTemplate"),
+    Quiz: Symbol.for("Quiz"),
+    Mapper: Symbol.for("Mapper"),
 };
 
 export enum PrivacyType {

@@ -9,6 +9,7 @@ import { AccessLevelService } from "./access_level.service";
 import { QuestionTemplateService } from "./question_template.service";
 import { QuizTemplateService } from "./quiz_template.service";
 import { QuizService } from "./quiz.service";
+import { MapperService } from "./mapper.service";
 
 export {
     AuthService,
@@ -22,4 +23,5 @@ export {
     QuestionTemplateService,
     QuizTemplateService,
     QuizService,
+    MapperService,
 };

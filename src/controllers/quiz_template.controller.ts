@@ -5,6 +5,7 @@ import { Request, Response, ServiceType } from "../types";
 import {
     AccessLevelService,
     AuthService,
+    MapperService,
     QuestionTemplateService,
     QuizTemplateService,
     SubjectService,
@@ -27,20 +28,22 @@ export class QuizTemplateController extends Controller {
         private accessLevelService: AccessLevelService,
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.QuestionTemplate)
-        private questionTemplateService: QuestionTemplateService
+        private questionTemplateService: QuestionTemplateService,
+        @inject(ServiceType.Mapper) private mapperService: MapperService
     ) {
         super();
 
         this.router.get(
-            "/all",
+            "/all_limited",
             authService.authenticate(false),
-            this.getAllQuizTemplates.bind(this)
+            this.getQuizTemplatesLimited.bind(this)
         );
 
         this.router.all("*", authService.authenticate());
 
         this.router.post("/", this.create.bind(this));
         this.router.patch("/edit/:quizTemplateId", this.edit.bind(this));
+        this.router.get("/all_full", this.getQuizTemplatesFull.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -215,7 +218,7 @@ export class QuizTemplateController extends Controller {
         }
     }
 
-    async getAllQuizTemplates(req: Request, res: Response) {
+    async getQuizTemplatesFull(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -224,7 +227,7 @@ export class QuizTemplateController extends Controller {
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_QUIZ_TEMPLATE,
+                    Permission.VIEW_FULL_QUIZ_TEMPLATE,
                     req.tokenMeta?.isManager
                 ))
             ) {
@@ -241,6 +244,50 @@ export class QuizTemplateController extends Controller {
                         req.tokenMeta?.isManager
                     )
             );
+            res.composer.success(result);
+            await session.commitTransaction();
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            await session.abortTransaction();
+            res.composer.badRequest(error.message);
+        } finally {
+            await session.endSession();
+        }
+    }
+
+    async getQuizTemplatesLimited(req: Request, res: Response) {
+        // get quiz templates without question list
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const userAccessLevels = req.tokenMeta?.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.VIEW_LIMITED_QUIZ_TEMPLATE,
+                    req.tokenMeta?.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const result = (await this.quizTemplateService.find({}))
+                .filter((quizTemplate) =>
+                    this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                        userAccessLevels,
+                        quizTemplate.visibleTo,
+                        req.tokenMeta?.isManager
+                    )
+                )
+                .map((quizTemplate) =>
+                    this.mapperService.maskQuestionsFromQuizTemplate(
+                        quizTemplate
+                    )
+                );
             res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {

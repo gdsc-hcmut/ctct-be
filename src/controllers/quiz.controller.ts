@@ -1,8 +1,10 @@
 import { inject, injectable } from "inversify";
 import { Controller } from "./controller";
 import { Router } from "express";
-import { ServiceType } from "../types";
+import { Request, Response, ServiceType } from "../types";
 import { AuthService } from "../services";
+import mongoose from "mongoose";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class QuizController extends Controller {
