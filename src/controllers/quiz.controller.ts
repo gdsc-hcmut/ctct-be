@@ -229,7 +229,7 @@ export class QuizController extends Controller {
                 index,
                 questionResult
             );
-            res.composer.success({});
+            res.composer.success(questionResult);
             await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);

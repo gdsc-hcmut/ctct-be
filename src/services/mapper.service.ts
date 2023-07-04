@@ -20,7 +20,6 @@ export class MapperService {
                     "answerKeys",
                     "answerField",
                     "explanation",
-                    "isCorrect",
                 ])
             ),
         };
@@ -48,7 +47,7 @@ export class MapperService {
         switch (status) {
             case QuizStatus.ONGOING: {
                 return {
-                    ..._.omit(data, ["questions", "standardizedScore"]),
+                    ..._.omit(data, ["questions"]),
                     questions: _.map(data.questions, (question) =>
                         this.maskAnswerFromConcreteQuestion(question)
                     ),
