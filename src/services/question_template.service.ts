@@ -37,6 +37,7 @@ export class QuestionTemplateService {
             questionTemplate.questions.length
         ).fill(0)
     ) {
+        console.assert(questionTemplate.questions.length === point.length);
         const result: ConcreteQuestion = {
             questions: [],
             hasAnswered: false,
@@ -164,6 +165,68 @@ export class QuestionTemplateService {
         return result;
     }
 
+    processAnswer(concreteQuestion: ConcreteQuestion, answers: any[]) {
+        console.assert(concreteQuestion.questions.length === answers.length);
+        if (concreteQuestion.hasAnswered) {
+            throw new Error(
+                `You have already given an answer to this question`
+            );
+        }
+        const ans: boolean[] = concreteQuestion.questions.map((question, i) => {
+            const answer = answers[i];
+
+            switch (question.questionType) {
+                case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
+                    if (answer.answerKey == undefined) {
+                        return false;
+                    }
+                    return (answer.answerKey as number) === question.answerKey;
+                }
+                case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
+                    if (answer.answerKeys == undefined) {
+                        return false;
+                    }
+                    const a = (answer.answerKeys as number[]).sort();
+                    const b = [...question.answerKeys].sort();
+                    for (const [i, x] of a.entries()) {
+                        if (x !== b[i]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                case QuestionType.NUMBER: {
+                    const answerField = answer.answerField as number;
+                    if (answerField == undefined) {
+                        throw new Error(`Answer missing 'answerField'`);
+                    }
+                    return (
+                        Math.abs(
+                            answerField - (question.answerField as number)
+                        ) <= question.maximumError
+                    );
+                }
+                case QuestionType.TEXT: {
+                    const answerField = answer.answerField as string;
+                    if (answerField == undefined) {
+                        throw new Error(`Answer missing 'answerField'`);
+                    }
+                    return question.matchCase
+                        ? (question.answerField as string).trim() ===
+                              answerField.trim()
+                        : (question.answerField as string).toLowerCase() ===
+                              answerField.toLowerCase().trim();
+                }
+                default: {
+                    throw new Error(
+                        `Unrecognized question type. Received: ${question.questionType}`
+                    );
+                }
+            }
+        });
+        return ans;
+    }
+
     async questionTemplatesExist(questions: Types.ObjectId[]) {
         const result = await Promise.all(
             questions.map((question) =>
@@ -191,5 +254,9 @@ export class QuestionTemplateService {
 
     async find(query: FilterQuery<QuestionTemplateDocument>) {
         return await QuestionTemplateModel.find(query);
+    }
+
+    async findById(id: Types.ObjectId) {
+        return await QuestionTemplateModel.findById(id);
     }
 }

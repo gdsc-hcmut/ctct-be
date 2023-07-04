@@ -25,6 +25,7 @@ export enum Permission {
     EDIT_QUIZ_TEMPLATE = "EDIT_QUIZ_TEMPLATE",
     VIEW_FULL_QUIZ_TEMPLATE = "VIEW_FULL_QUIZ_TEMPLATE",
     VIEW_LIMITED_QUIZ_TEMPLATE = "VIEW_LIMITED_QUIZ_TEMPLATE",
+    TAKE_QUIZ = "TAKE_QUIZ",
 }
 
 export type AccessLevelDocument = Document & {

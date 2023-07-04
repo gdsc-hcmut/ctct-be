@@ -1,10 +1,13 @@
 import mongoose, { Document, Types, Schema } from "mongoose";
 import { ConcreteQuestion } from "./question_template.model";
 
+/**
+ * There is no REGISTERED state, since taking a quiz means starting it instantly,
+ * maybe add schedule quiz start time?
+ */
 export enum QuizStatus {
-    REGISTERED = "REGISTERED",
     ONGOING = "ONGOING",
-    ENDED = "FINISHED",
+    ENDED = "ENDED",
 }
 
 export type QuizDocument = Document & {

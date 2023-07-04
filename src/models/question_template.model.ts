@@ -78,7 +78,7 @@ export type QuestionTemplateDocument = Document & {
 
 const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
     name: { type: String, required: true, default: "" },
-    description: { type: String, required: false, default: "" },
+    description: { type: String },
     code: { type: String, required: false, default: "" },
     subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
     chapter: { type: Number, required: true },
