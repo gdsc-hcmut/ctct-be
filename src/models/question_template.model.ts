@@ -27,6 +27,11 @@ export type ConcreteQuestion = {
         explanation: string;
         isCorrect: boolean;
         point: number;
+
+        // fields for logging user answer
+        userAnswerKey?: number;
+        userAnswerKeys?: number[];
+        userAnswerField?: string | number;
     }[];
     hasAnswered: boolean;
 };

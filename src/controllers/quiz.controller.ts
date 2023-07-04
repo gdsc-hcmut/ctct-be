@@ -224,6 +224,15 @@ export class QuizController extends Controller {
                 quiz.questions[index],
                 data
             );
+
+            this.questionTemplateService.attachUserAnswerToQuestion(
+                quiz.questions[index],
+                data
+            );
+            console.log(quiz.questions[index]);
+            quiz.markModified("questions");
+            await quiz.save();
+
             await this.quizService.updateQuestionResult(
                 quizId,
                 index,

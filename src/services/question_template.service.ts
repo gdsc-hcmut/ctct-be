@@ -177,13 +177,13 @@ export class QuestionTemplateService {
 
             switch (question.questionType) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                    if (answer.answerKey == undefined) {
+                    if (answer.answerKey === undefined) {
                         return false;
                     }
                     return (answer.answerKey as number) === question.answerKey;
                 }
                 case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                    if (answer.answerKeys == undefined) {
+                    if (answer.answerKeys === undefined) {
                         return false;
                     }
                     const a = (answer.answerKeys as number[]).sort();
@@ -197,7 +197,7 @@ export class QuestionTemplateService {
                 }
                 case QuestionType.NUMBER: {
                     const answerField = answer.answerField as number;
-                    if (answerField == undefined) {
+                    if (answerField === undefined) {
                         throw new Error(`Answer missing 'answerField'`);
                     }
                     return (
@@ -208,7 +208,7 @@ export class QuestionTemplateService {
                 }
                 case QuestionType.TEXT: {
                     const answerField = answer.answerField as string;
-                    if (answerField == undefined) {
+                    if (answerField === undefined) {
                         throw new Error(`Answer missing 'answerField'`);
                     }
                     return question.matchCase
@@ -225,6 +225,57 @@ export class QuestionTemplateService {
             }
         });
         return ans;
+    }
+
+    /**
+     * Receives a concrete question and data for user's answer to that question
+     * and copies the according user answer to dedicated fields of the question.
+     * **Note: This method modifies the original object**
+     */
+    attachUserAnswerToQuestion(
+        concreteQuestion: ConcreteQuestion,
+        answers: any[]
+    ) {
+        console.assert(concreteQuestion.questions.length === answers.length);
+        concreteQuestion.questions.forEach((question, i) => {
+            const answer = answers[i];
+
+            switch (question.questionType) {
+                case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
+                    const answerKey = answer.answerKey as number;
+                    if (answerKey !== undefined) {
+                        question.userAnswerKey = answerKey;
+                    }
+                    break;
+                }
+                case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
+                    const answerKeys = answer.answerKeys as number[];
+                    if (answerKeys !== undefined) {
+                        question.userAnswerKeys = answerKeys;
+                    }
+                    break;
+                }
+                case QuestionType.NUMBER: {
+                    const answerField = answer.answerField as number;
+                    if (answerField !== undefined) {
+                        question.userAnswerField = answerField;
+                    }
+                    break;
+                }
+                case QuestionType.TEXT: {
+                    const answerField = answer.answerField as string;
+                    if (answerField !== undefined) {
+                        question.userAnswerField = answerField;
+                    }
+                    break;
+                }
+                default: {
+                    throw new Error(
+                        `Unrecognized question type. Received: ${question.questionType}`
+                    );
+                }
+            }
+        });
     }
 
     async questionTemplatesExist(questions: Types.ObjectId[]) {
