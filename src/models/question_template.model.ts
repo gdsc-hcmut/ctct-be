@@ -33,7 +33,7 @@ export type ConcreteQuestion = {
         userAnswerKeys?: number[];
         userAnswerField?: string | number;
     }[];
-    hasAnswered: boolean;
+    triesLeft: number;
 };
 
 export type QuestionTemplateDocument = Document & {

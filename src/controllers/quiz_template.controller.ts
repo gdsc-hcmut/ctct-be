@@ -82,6 +82,7 @@ export class QuizTemplateController extends Controller {
                 (req.body.potentialQuestions as any[]).map((x) => ({
                     questionId: new Types.ObjectId(x.questionId),
                     point: x.point as number[],
+                    attempts: x.attempts as number,
                 })),
                 req.body.sampleSize as number,
             ];
@@ -122,6 +123,10 @@ export class QuizTemplateController extends Controller {
                 throw new Error(
                     `Point and number of subquestions must be the same for each question, and every point must be non-negative`
                 );
+            }
+            // check that number of attempts for each question is positive
+            if (!questions.every((question) => question.attempts > 0)) {
+                throw new Error(`Number of attempts must be positive`);
             }
 
             const result = await this.quizTemplateService.create(
@@ -197,6 +202,7 @@ export class QuizTemplateController extends Controller {
                 (req.body.potentialQuestions as any[]).map((x) => ({
                     questionId: new Types.ObjectId(x.questionId),
                     point: x.point as number[],
+                    attempts: x.attempts as number,
                 })),
                 req.body.sampleSize as number,
             ];
@@ -237,6 +243,10 @@ export class QuizTemplateController extends Controller {
                 throw new Error(
                     `Point and number of subquestions must be the same for each question, and every point must be non-negative`
                 );
+            }
+            // check that number of attempts for each question is positive
+            if (!questions.every((question) => question.attempts > 0)) {
+                throw new Error(`Number of attempts must be positive`);
             }
 
             const result = await this.quizTemplateService.findOneAndUpdate(

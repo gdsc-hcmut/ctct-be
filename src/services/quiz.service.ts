@@ -103,7 +103,7 @@ export class QuizService {
         result: boolean[]
     ) {
         const quiz = await QuizModel.findById(quizId);
-        quiz.questions[index].hasAnswered = true;
+        quiz.questions[index].triesLeft--;
         for (const [i, subQuestion] of quiz.questions[
             index
         ].questions.entries()) {

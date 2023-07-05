@@ -10,6 +10,7 @@ export type QuizTemplateDocument = Document & {
     potentialQuestions: {
         questionId: Types.ObjectId;
         point: number[];
+        attempts: number;
     }[];
     sampleSize: number;
 
@@ -31,6 +32,7 @@ const quizTemplateSchema = new Schema<QuizTemplateDocument>({
                 ref: "question_templates",
             },
             point: { type: Array<number>, default: [] },
+            attempts: { type: Number, default: 1 },
         },
     ],
     sampleSize: { type: Number, required: true },

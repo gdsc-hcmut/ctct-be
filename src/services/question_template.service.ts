@@ -35,12 +35,13 @@ export class QuestionTemplateService {
         questionTemplate: QuestionTemplateDocument,
         point: number[] = new Array<number>(
             questionTemplate.questions.length
-        ).fill(0)
+        ).fill(0),
+        triesLeft = 1
     ) {
         console.assert(questionTemplate.questions.length === point.length);
         const result: ConcreteQuestion = {
             questions: [],
-            hasAnswered: false,
+            triesLeft: triesLeft,
         };
 
         const charStream = new CharStream(questionTemplate.code);
@@ -167,11 +168,18 @@ export class QuestionTemplateService {
 
     processAnswer(concreteQuestion: ConcreteQuestion, answers: any[]) {
         console.assert(concreteQuestion.questions.length === answers.length);
-        if (concreteQuestion.hasAnswered) {
+
+        // a user cannot answer if they have no tries left for this question,
+        // or they have already guessed every subquestion correctly
+        if (concreteQuestion.triesLeft === 0) {
+            throw new Error(`You have used all attempts for this question`);
+        }
+        if (concreteQuestion.questions.every((x) => x.isCorrect)) {
             throw new Error(
-                `You have already given an answer to this question`
+                `You have already answered this question correctly`
             );
         }
+
         const ans: boolean[] = concreteQuestion.questions.map((question, i) => {
             const answer = answers[i];
 

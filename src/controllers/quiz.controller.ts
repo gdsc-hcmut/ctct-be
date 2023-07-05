@@ -105,7 +105,7 @@ export class QuizController extends Controller {
                 quizTemplate.sampleSize
             );
             const concreteQuestions = await Promise.all(
-                potentialQuestions.map(({ questionId, point }) =>
+                potentialQuestions.map(({ questionId, point, attempts }) =>
                     (async () => {
                         const questionTemplate =
                             await this.questionTemplateService.findById(
@@ -113,7 +113,8 @@ export class QuizController extends Controller {
                             );
                         return this.questionTemplateService.generateConcreteQuestion(
                             questionTemplate,
-                            point
+                            point,
+                            attempts
                         );
                     })()
                 )
@@ -233,12 +234,12 @@ export class QuizController extends Controller {
             quiz.markModified("questions");
             await quiz.save();
 
-            await this.quizService.updateQuestionResult(
+            const result = await this.quizService.updateQuestionResult(
                 quizId,
                 index,
                 questionResult
             );
-            res.composer.success(questionResult);
+            res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
