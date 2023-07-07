@@ -9,12 +9,16 @@ import {
     QuestionTemplateService,
     QuizService,
     QuizTemplateService,
+    SocketService,
+    TaskSchedulingService,
 } from "../services/index";
 import mongoose, { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { QuizStatus } from "../models/quiz.model";
 import _ from "lodash";
 import { Permission } from "../models/access_level.model";
+import { EndQuizTask } from "../services/task-scheduling/tasks/end_quiz_task";
+import { ScheduledTaskType } from "../services/task-scheduling/schedule_task_type";
 
 @injectable()
 export class QuizController extends Controller {
@@ -31,7 +35,10 @@ export class QuizController extends Controller {
         @inject(ServiceType.QuizTemplate)
         private quizTemplateService: QuizTemplateService,
         @inject(ServiceType.QuestionTemplate)
-        private questionTemplateService: QuestionTemplateService
+        private questionTemplateService: QuestionTemplateService,
+        @inject(ServiceType.Socket) private socketService: SocketService,
+        @inject(ServiceType.TaskScheduling)
+        private taskSchedulingService: TaskSchedulingService
     ) {
         super();
 
@@ -120,14 +127,32 @@ export class QuizController extends Controller {
                 )
             );
 
+            const startTime = Date.now();
+            const endTime = startTime + quizTemplate.duration;
+
             const quiz = await this.quizService.create(
                 userId,
                 QuizStatus.ONGOING,
-                0,
-                0,
+                startTime,
+                endTime,
                 quizTemplateId,
                 concreteQuestions
             );
+            // schedule a task to end this quiz
+            logger.debug(
+                `Scheduling quiz ${quiz._id} to start at ${new Date(
+                    startTime
+                ).toString()} and end at ${new Date(endTime).toString()}`
+            );
+            await this.taskSchedulingService.schedule(
+                new Date(endTime),
+                ScheduledTaskType.END_QUIZ,
+                {
+                    userId: userId,
+                    quizId: quiz._id,
+                }
+            );
+
             const result =
                 this.mapperService.maskQuizDocumentAccordingToStatus(quiz);
             res.composer.success(result);
@@ -252,33 +277,25 @@ export class QuizController extends Controller {
     }
 
     async endQuiz(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
             const quizId = new Types.ObjectId(req.params.quizId);
 
-            const result = await this.quizService.findOneAndUpdate(
-                { _id: quizId, userId: userId, status: QuizStatus.ONGOING },
-                { status: QuizStatus.ENDED },
-                { new: true }
-            );
-            if (!result) {
-                throw new Error(
-                    `The requested quiz was not found, or may have already finished`
-                );
-            }
+            const result = await new EndQuizTask(
+                userId,
+                quizId,
+                this.quizService,
+                this.socketService,
+                this.taskSchedulingService
+            ).execute();
+
             res.composer.success(
                 this.mapperService.maskQuizDocumentAccordingToStatus(result)
             );
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 }

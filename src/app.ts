@@ -9,9 +9,9 @@ import { Controller } from "./controllers";
 
 import cookieSession from "cookie-session";
 import passport from "passport";
-import path from "path";
 import compression from "compression";
 import { logger } from "./lib/logger";
+import * as socketio from "socket.io";
 
 class App {
     public app: Express;
@@ -25,6 +25,15 @@ class App {
 
         this.initializeMiddlewares(middlewares);
         this.initializeControllers(controllers);
+
+        this.io = new socketio.Server(this.server, {
+            cors: {
+                origin: "*",
+                methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+                preflightContinue: false,
+                optionsSuccessStatus: 204,
+            },
+        });
     }
 
     private initializeMiddlewares(middlewares: any[]) {

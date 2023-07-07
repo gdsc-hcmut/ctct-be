@@ -17,6 +17,8 @@ import {
     QuizTemplateService,
     QuizService,
     MapperService,
+    TaskSchedulingService,
+    SocketService,
 } from "./services/index";
 
 import {
@@ -95,6 +97,14 @@ container
     .bind<MapperService>(ServiceType.Mapper)
     .to(MapperService)
     .inSingletonScope();
+container
+    .bind<TaskSchedulingService>(ServiceType.TaskScheduling)
+    .to(TaskSchedulingService)
+    .inSingletonScope();
+container
+    .bind<SocketService>(ServiceType.Socket)
+    .to(SocketService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -123,5 +133,5 @@ Promise.all([
     );
 
     app.listen();
-    // container.get<SocketService>(ServiceType.Socket).initialize(app.io);
+    container.get<SocketService>(ServiceType.Socket).initialize(app.io);
 });

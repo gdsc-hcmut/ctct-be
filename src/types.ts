@@ -24,6 +24,8 @@ export const ServiceType = {
     QuizTemplate: Symbol.for("QuizTemplate"),
     Quiz: Symbol.for("Quiz"),
     Mapper: Symbol.for("Mapper"),
+    TaskScheduling: Symbol.for("TaskScheduling"),
+    Socket: Symbol.for("Socket"),
 };
 
 export enum PrivacyType {
