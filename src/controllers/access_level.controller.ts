@@ -51,9 +51,6 @@ export class AccessLevelController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            if (!req.tokenMeta.isManager) {
-                throw new Error(`Missing administrative permissions`);
-            }
             const result = await this.accessLevelService.findAccessLevels({});
             res.composer.success(result);
             await session.commitTransaction();
