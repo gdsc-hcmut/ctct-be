@@ -33,6 +33,9 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
     constructor() {
         super();
         this.symbols = new Map<string, QuestionReturnType>();
+        // define some mathematical constants
+        this.symbols.set("PI", Math.PI);
+        this.symbols.set("E", Math.E);
     }
 
     visitProg = (ctx: ProgContext): QuestionReturnType => {
@@ -609,12 +612,13 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'arcsin' expects to receive a number argument, received '${typeof x}'`
                     );
                 }
-                const num = x as number;
-                if (num < -1 || num > 1) {
+                let num = x as number;
+                if (num < -1 - DEFAULT_EPS || num > 1 + DEFAULT_EPS) {
                     throw new Error(
                         `Argument to 'arcsin' should be in range [-1, 1] (received ${num})`
                     );
                 }
+                num = Math.max(-1, Math.min(1, x));
                 return Math.asin(num);
             }
             case "arccos": {
@@ -629,12 +633,13 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'arccos' expects to receive a number argument, received '${typeof x}'`
                     );
                 }
-                const num = x as number;
-                if (num < -1 || num > 1) {
+                let num = x as number;
+                if (num < -1 - DEFAULT_EPS || num > 1 + DEFAULT_EPS) {
                     throw new Error(
                         `Argument to 'arccos' should be in range [-1, 1] (received ${num})`
                     );
                 }
+                num = Math.max(-1, Math.min(1, x));
                 return Math.acos(num);
             }
             case "arctan": {
@@ -689,6 +694,117 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 }
                 const [x] = [arg1 as number];
                 return Math.abs(x);
+            }
+            case "floor": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'floor' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'floor' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                return Math.floor(x);
+            }
+            case "ceil": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'ceil' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'ceil' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                return Math.ceil(x);
+            }
+            case "sqrt": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'sqrt' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'sqrt' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                let [x] = [arg1 as number];
+                if (x < -DEFAULT_EPS) {
+                    throw new Error(
+                        `'sqrt' expects to receive a non-negative number, received ${x}`
+                    );
+                }
+                x = Math.max(x, 0);
+                return Math.sqrt(x);
+            }
+            case "ln": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'ln' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'ln' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                if (x <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'ln' expects to receive a positive number, received ${x}`
+                    );
+                }
+                return Math.log(x);
+            }
+            case "log10": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'log10' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'log10' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                if (x <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'log10' expects to receive a positive number, received ${x}`
+                    );
+                }
+                return Math.log10(x);
+            }
+            case "log2": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'log2' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'log2' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                if (x <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'log2' expects to receive a positive number, received ${x}`
+                    );
+                }
+                return Math.log2(x);
             }
             default: {
                 throw new Error(`Unknown function name ${funcName}`);
