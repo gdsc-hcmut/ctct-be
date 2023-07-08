@@ -14,7 +14,7 @@ export class MapperService {
     maskAnswerFromConcreteQuestion(question: ConcreteQuestion) {
         return {
             ..._.omit(question, "questions"),
-            question: _.map(question.questions, (subQuestion) =>
+            questions: _.map(question.questions, (subQuestion) =>
                 _.omit(subQuestion, [
                     "answerKey",
                     "answerKeys",
