@@ -17,7 +17,10 @@ import GrammarParser from "../lib/question-generation/GrammarParser";
 import GrammarLexer from "../lib/question-generation/GrammarLexer";
 import mongoose, { Types } from "mongoose";
 import { Permission } from "../models/access_level.model";
-import { QuestionType } from "../models/question_template.model";
+import {
+    QuestionTemplateDocument,
+    QuestionType,
+} from "../models/question_template.model";
 
 @injectable()
 export class QuestionTemplateController extends Controller {
@@ -43,6 +46,7 @@ export class QuestionTemplateController extends Controller {
             "/test_concrete_question/:questionId",
             this.testConcreteQuestionGeneration.bind(this)
         );
+        this.router.post("/preview", this.previewQuestion.bind(this));
         this.router.post("/", this.create.bind(this));
         this.router.get("/all", this.getAllQuestionTemplates.bind(this));
         this.router.delete("/delete/:questionId", this.delete.bind(this));
@@ -97,9 +101,7 @@ export class QuestionTemplateController extends Controller {
         }
     }
 
-    async create(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+    async previewQuestion(req: Request, res: Response) {
         try {
             const userAccessLevels = req.tokenMeta.accessLevels;
 
@@ -115,42 +117,13 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            const userId = req.tokenMeta.userId;
-
-            req.body = _.pick(req.body, [
-                "name",
-                "description",
-                "questions",
-                "code",
-                "subject",
-                "chapter",
-            ]);
+            req.body = _.pick(req.body, ["code", "questions", "description"]);
+            if (!req.body.questions) {
+                throw new Error(`Missing 'question' field`);
+            }
             req.body.code = req.body.code ?? "";
-
-            const [questions, subject, chapter, name] = [
-                req.body.questions as any[],
-                new Types.ObjectId(req.body.subject),
-                req.body.chapter as number,
-                req.body.name as string,
-            ];
-            if (!questions) {
-                throw new Error(`Missing 'questions' field`);
-            }
-            if (!subject) {
-                throw new Error(`Missing 'subject' field`);
-            }
-            if (!name) {
-                throw new Error(`Missing 'name' field`);
-            }
-            if (chapter === undefined) {
-                throw new Error(`Missing 'chapter' field`);
-            }
-            if (!(await this.subjectService.findById(subject))) {
-                throw new Error(`Subject doesn't exist`);
-            }
-
-            for (let i = 0; i < questions.length; i++) {
-                questions[i] = _.pick(questions[i], [
+            for (let i = 0; i < req.body.questions.length; i++) {
+                req.body.questions[i] = _.pick(req.body.questions[i], [
                     "questionType",
                     "description",
                     "options",
@@ -161,19 +134,16 @@ export class QuestionTemplateController extends Controller {
                     "maximumError",
                     "explanation",
                 ]);
-                if (!questions[i].description) {
-                    throw new Error(
-                        `Missing description for question ${i + 1}`
-                    );
-                }
+                req.body.questions[i].description =
+                    req.body.questions[i].description ?? "";
                 req.body.questions[i].explanation =
                     req.body.questions[i].explanation ?? "";
-                const type = questions[i].questionType as QuestionType;
+                const type = req.body.questions[i].questionType as QuestionType;
                 switch (type) {
                     case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                         const [options, answerKey] = [
-                            questions[i].options as string[],
-                            questions[i].answerKey as number,
+                            req.body.questions[i].options as string[],
+                            req.body.questions[i].answerKey as number,
                         ];
                         if (!options) {
                             throw new Error(
@@ -189,7 +159,7 @@ export class QuestionTemplateController extends Controller {
                             throw new Error(`Answer key out of bounds`);
                         }
                         options.forEach((option, index) => {
-                            questions[i].options[index] = {
+                            req.body.questions[i].options[index] = {
                                 key: index,
                                 description: option,
                             };
@@ -198,8 +168,8 @@ export class QuestionTemplateController extends Controller {
                     }
                     case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
                         const [options, answerKeys] = [
-                            questions[i].options as string[],
-                            questions[i].answerKeys as number[],
+                            req.body.questions[i].options as string[],
+                            req.body.questions[i].answerKeys as number[],
                         ];
                         if (!options) {
                             throw new Error(
@@ -230,7 +200,7 @@ export class QuestionTemplateController extends Controller {
                             }
                         });
                         options.forEach((option, index) => {
-                            questions[i].options[index] = {
+                            req.body.questions[i].options[index] = {
                                 key: index,
                                 description: option,
                             };
@@ -239,28 +209,223 @@ export class QuestionTemplateController extends Controller {
                     }
                     case QuestionType.TEXT: {
                         if (
-                            questions[i].answerField === undefined ||
-                            typeof questions[i].answerField !== "string"
+                            req.body.questions[i].answerField === undefined ||
+                            typeof req.body.questions[i].answerField !==
+                                "string"
                         ) {
                             throw new Error(
                                 `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
-                        if (questions[i].matchCase === undefined) {
+                        if (req.body.questions[i].matchCase === undefined) {
                             throw new Error(`Question missing 'matchCase'`);
                         }
                         break;
                     }
                     case QuestionType.NUMBER: {
                         if (
-                            questions[i].answerField === undefined ||
-                            typeof questions[i].answerField !== "string"
+                            req.body.questions[i].answerField === undefined ||
+                            typeof req.body.questions[i].answerField !==
+                                "string"
                         ) {
                             throw new Error(
                                 `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
-                        if (questions[i].maximumError === undefined) {
+                        if (req.body.questions[i].maximumError === undefined) {
+                            throw new Error(`Question missing 'maximumError'`);
+                        }
+                        break;
+                    }
+                    default: {
+                        throw new Error(
+                            `questionType should be one of [${Object.values(
+                                QuestionType
+                            )}], received '${type}'`
+                        );
+                    }
+                }
+            }
+            const questionTemplate = req.body as QuestionTemplateDocument;
+            const result =
+                this.questionTemplateService.generateConcreteQuestion(
+                    questionTemplate,
+                    Array(req.body.questions.length).fill(0),
+                    1
+                );
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async create(req: Request, res: Response) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const userAccessLevels = req.tokenMeta.accessLevels;
+
+            if (
+                !(await this.accessLevelService.accessLevelsCanPerformAction(
+                    userAccessLevels,
+                    Permission.CREATE_QUESTION_TEMPLATE,
+                    req.tokenMeta.isManager
+                ))
+            ) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const userId = req.tokenMeta.userId;
+
+            req.body = _.pick(req.body, [
+                "name",
+                "description",
+                "questions",
+                "code",
+                "subject",
+                "chapter",
+            ]);
+            req.body.code = req.body.code ?? "";
+
+            const [subject, chapter, name] = [
+                new Types.ObjectId(req.body.subject),
+                req.body.chapter as number,
+                req.body.name as string,
+            ];
+            if (!req.body.questions) {
+                throw new Error(`Missing 'questions' field`);
+            }
+            if (!subject) {
+                throw new Error(`Missing 'subject' field`);
+            }
+            if (!name) {
+                throw new Error(`Missing 'name' field`);
+            }
+            if (chapter === undefined) {
+                throw new Error(`Missing 'chapter' field`);
+            }
+            if (!(await this.subjectService.findById(subject))) {
+                throw new Error(`Subject doesn't exist`);
+            }
+
+            for (let i = 0; i < req.body.questions.length; i++) {
+                req.body.questions[i] = _.pick(req.body.questions[i], [
+                    "questionType",
+                    "description",
+                    "options",
+                    "answerKey",
+                    "answerKeys",
+                    "answerField",
+                    "matchCase",
+                    "maximumError",
+                    "explanation",
+                ]);
+                if (!req.body.questions[i].description) {
+                    throw new Error(
+                        `Missing description for question ${i + 1}`
+                    );
+                }
+                req.body.questions[i].explanation =
+                    req.body.questions[i].explanation ?? "";
+                const type = req.body.questions[i].questionType as QuestionType;
+                switch (type) {
+                    case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
+                        const [options, answerKey] = [
+                            req.body.questions[i].options as string[],
+                            req.body.questions[i].answerKey as number,
+                        ];
+                        if (!options) {
+                            throw new Error(
+                                `Missing options for multiple choice, single answer question`
+                            );
+                        }
+                        if (answerKey === undefined) {
+                            throw new Error(
+                                `Missing answer key for multiple choice, multiple answers question`
+                            );
+                        }
+                        if (answerKey < 0 || answerKey >= options.length) {
+                            throw new Error(`Answer key out of bounds`);
+                        }
+                        options.forEach((option, index) => {
+                            req.body.questions[i].options[index] = {
+                                key: index,
+                                description: option,
+                            };
+                        });
+                        break;
+                    }
+                    case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
+                        const [options, answerKeys] = [
+                            req.body.questions[i].options as string[],
+                            req.body.questions[i].answerKeys as number[],
+                        ];
+                        if (!options) {
+                            throw new Error(
+                                `Missing options for multiple choice, multiple answers question`
+                            );
+                        }
+                        if (!answerKeys) {
+                            throw new Error(
+                                `Missing answerKeys for multiple choice, multiple answers question`
+                            );
+                        }
+                        answerKeys.forEach((key, keyIndex) => {
+                            if (key < 0 || key >= options.length) {
+                                throw new Error(
+                                    `Answer key ${key} is out of bounds`
+                                );
+                            }
+                            if (
+                                answerKeys.some(
+                                    (otherKey, otherIndex) =>
+                                        otherKey === key &&
+                                        otherIndex !== keyIndex
+                                )
+                            ) {
+                                throw new Error(
+                                    `Answer keys contain duplicates`
+                                );
+                            }
+                        });
+                        options.forEach((option, index) => {
+                            req.body.questions[i].options[index] = {
+                                key: index,
+                                description: option,
+                            };
+                        });
+                        break;
+                    }
+                    case QuestionType.TEXT: {
+                        if (
+                            req.body.questions[i].answerField === undefined ||
+                            typeof req.body.questions[i].answerField !==
+                                "string"
+                        ) {
+                            throw new Error(
+                                `Question missing 'answerField' or 'answerField' is not a string`
+                            );
+                        }
+                        if (req.body.questions[i].matchCase === undefined) {
+                            throw new Error(`Question missing 'matchCase'`);
+                        }
+                        break;
+                    }
+                    case QuestionType.NUMBER: {
+                        if (
+                            req.body.questions[i].answerField === undefined ||
+                            typeof req.body.questions[i].answerField !==
+                                "string"
+                        ) {
+                            throw new Error(
+                                `Question missing 'answerField' or 'answerField' is not a string`
+                            );
+                        }
+                        if (req.body.questions[i].maximumError === undefined) {
                             throw new Error(`Question missing 'maximumError'`);
                         }
                         break;
