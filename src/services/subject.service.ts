@@ -1,35 +1,65 @@
 import { injectable } from "inversify";
 import SubjectModel, { SubjectDocument } from "../models/subject.model";
-import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    SaveOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import { logger } from "../lib/logger";
 
 @injectable()
 export class SubjectService {
     constructor() {
-        logger.info("Constructing Subject service");
+        logger.info("[Subject] Initializing...");
     }
 
-    async create(name: string, userId: Types.ObjectId, description: string) {
+    async create(
+        name: string,
+        userId: Types.ObjectId,
+        description: string,
+        options: SaveOptions = {}
+    ) {
         const t = Date.now();
-        return await SubjectModel.create({
-            name: name,
-            description: description,
-            createdAt: t,
-            createdBy: userId,
-            lastUpdatedAt: t,
-        });
+        return (
+            await SubjectModel.create(
+                [
+                    {
+                        name: name,
+                        description: description,
+                        createdAt: t,
+                        createdBy: userId,
+                        lastUpdatedAt: t,
+                    },
+                ],
+                options
+            )
+        )[0];
     }
 
-    async findOneAndDelete(query: FilterQuery<SubjectDocument>) {
-        return await SubjectModel.findOneAndDelete(query);
+    async findOneAndDelete(
+        query: FilterQuery<SubjectDocument>,
+        options: QueryOptions<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.findOneAndDelete(query, options);
     }
 
-    async findById(id: Types.ObjectId) {
-        return await SubjectModel.findById(id);
+    async findById(
+        id: Types.ObjectId,
+        projection: ProjectionType<SubjectDocument> = {},
+        options: QueryOptions<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.findById(id, projection, options);
     }
 
-    async findOne(query: FilterQuery<SubjectDocument>) {
-        return await SubjectModel.findOne(query);
+    async findOne(
+        query: FilterQuery<SubjectDocument>,
+        projection: ProjectionType<SubjectDocument> = {},
+        options: QueryOptions<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.findOne(query, projection, options);
     }
 
     async findOneAndUpdate(
@@ -40,7 +70,11 @@ export class SubjectService {
         return await SubjectModel.findOneAndUpdate(query, upd, opt);
     }
 
-    async find(query: FilterQuery<SubjectDocument>) {
-        return await SubjectModel.find(query);
+    async find(
+        query: FilterQuery<SubjectDocument>,
+        projection: ProjectionType<SubjectDocument> = {},
+        options: QueryOptions<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.find(query, projection, options);
     }
 }

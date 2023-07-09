@@ -36,7 +36,7 @@ export class MaterialController extends Controller {
         super();
 
         this.router.get(
-            "/get/:docId",
+            "/:docId",
             authService.authenticate(false),
             this.getById.bind(this)
         );
@@ -46,20 +46,20 @@ export class MaterialController extends Controller {
             this.download.bind(this)
         );
         this.router.get(
-            "/get",
+            "/",
             authService.authenticate(false),
-            this.getAvaliableMaterial.bind(this)
+            this.getAvailable.bind(this)
         );
         this.router.get(
-            "/getbysubject/:subjectId",
+            "/subject/:subjectId",
             authService.authenticate(false),
             this.getBySubject.bind(this)
         );
 
         this.router.all("*", authService.authenticate());
-        this.router.patch("/edit/:docId", this.editMaterial.bind(this));
-        this.router.delete("/delete/:docId", this.deleteById.bind(this));
-        this.router.post("/create", fileUploader.any(), this.create.bind(this));
+        this.router.patch("/:docId", this.edit.bind(this));
+        this.router.delete("/:docId", this.delete.bind(this));
+        this.router.post("/", fileUploader.any(), this.create.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -67,16 +67,20 @@ export class MaterialController extends Controller {
         session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
-            const { name } = req.body;
-            let { subject, chapter, subtitle, description } = req.body;
-            if (!subtitle) subtitle = "";
-            if (!description) description = "";
+            const {
+                name,
+                subject: subjectString,
+                chapter: chapterNumber,
+                subtitle = "",
+                description = "",
+            } = req.body;
 
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     req.tokenMeta.accessLevels,
                     Permission.UPLOAD_MATERIAL,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -86,24 +90,34 @@ export class MaterialController extends Controller {
             if (!name) {
                 throw new Error(`Missing 'name' field`);
             }
-            if (!subject) {
+            if (!subjectString) {
                 throw new Error(`Missing 'subject' field`);
             }
-            if (!chapter) {
+            if (!chapterNumber) {
                 throw new Error(`Missing 'chapter' field`);
             }
-            subject = new Types.ObjectId(subject);
-            chapter = toNumber(chapter);
+            const subject = new Types.ObjectId(subjectString);
+            const chapter = toNumber(chapterNumber);
 
-            if (!(await this.subjectService.findById(subject))) {
+            if (
+                !(await this.subjectService.findById(
+                    subject,
+                    {},
+                    { session: session }
+                ))
+            ) {
                 throw new Error(`Subject doesn't exist`);
             }
 
             if (
-                await this.materialService.findOne({
-                    subject: subject,
-                    chapter: chapter,
-                })
+                await this.materialService.findOne(
+                    {
+                        subject: subject,
+                        chapter: chapter,
+                    },
+                    {},
+                    { session: session }
+                )
             ) {
                 throw new Error(`This chapter already exists`);
             }
@@ -117,6 +131,9 @@ export class MaterialController extends Controller {
                 { _id: subject },
                 {
                     lastUpdatedAt: Date.now(),
+                },
+                {
+                    session: session,
                 }
             );
 
@@ -126,7 +143,11 @@ export class MaterialController extends Controller {
             const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
                 (x) => new Types.ObjectId(x)
             );
-            if (!(await this.accessLevelService.accessLevelsExist(visibleTo))) {
+            if (
+                !(await this.accessLevelService.accessLevelsExist(visibleTo, {
+                    session: session,
+                }))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
 
@@ -139,7 +160,8 @@ export class MaterialController extends Controller {
                 userId,
                 req.files as Express.Multer.File[],
                 new AgressiveFileCompression(),
-                visibleTo
+                visibleTo,
+                { session: session }
             );
 
             res.composer.success(doc);
@@ -163,7 +185,8 @@ export class MaterialController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -172,9 +195,13 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-            });
+            const doc = await this.materialService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`Document not found`);
             }
@@ -210,7 +237,8 @@ export class MaterialController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -219,9 +247,13 @@ export class MaterialController extends Controller {
             }
             const subject = new Types.ObjectId(req.params.subjectId);
             const ans = (
-                await this.materialService.find({
-                    subject: subject,
-                })
+                await this.materialService.find(
+                    {
+                        subject: subject,
+                    },
+                    {},
+                    { session: session }
+                )
             ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
@@ -250,7 +282,8 @@ export class MaterialController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -259,9 +292,13 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-            });
+            const doc = await this.materialService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
@@ -278,7 +315,8 @@ export class MaterialController extends Controller {
             }
 
             const file = await this.fileUploadService.downloadFile(
-                doc.resource
+                doc.resource,
+                { session: session }
             );
             res.setHeader(
                 "Content-Disposition",
@@ -297,7 +335,7 @@ export class MaterialController extends Controller {
         }
     }
 
-    async getAvaliableMaterial(req: Request, res: Response) {
+    async getAvailable(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -306,7 +344,8 @@ export class MaterialController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -314,7 +353,9 @@ export class MaterialController extends Controller {
                 );
             }
 
-            const ans = (await this.materialService.find({})).filter((d) =>
+            const ans = (
+                await this.materialService.find({}, {}, { session: session })
+            ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
                     d.visibleTo,
@@ -333,7 +374,7 @@ export class MaterialController extends Controller {
         }
     }
 
-    async editMaterial(req: Request, res: Response) {
+    async edit(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -342,7 +383,8 @@ export class MaterialController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.EDIT_MATERIAL,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -351,9 +393,13 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-            });
+            const doc = await this.materialService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
             }
@@ -380,7 +426,13 @@ export class MaterialController extends Controller {
 
             if (info.subject) {
                 info.subject = new Types.ObjectId(info.subject);
-                if (!(await this.subjectService.findById(info.subject))) {
+                if (
+                    !(await this.subjectService.findById(
+                        info.subject,
+                        {},
+                        { session: session }
+                    ))
+                ) {
                     throw new Error(`Subject doesn't exist`);
                 }
             }
@@ -393,7 +445,8 @@ export class MaterialController extends Controller {
                 );
                 if (
                     !(await this.accessLevelService.accessLevelsExist(
-                        info.visibleTo
+                        info.visibleTo,
+                        { session: session }
                     ))
                 ) {
                     throw new Error(`One or more access levels don't exist`);
@@ -407,10 +460,14 @@ export class MaterialController extends Controller {
                 const nSubject = info.subject ? info.subject : doc.subject;
                 const nChapter = info.chapter ? info.chapter : doc.chapter;
                 if (
-                    await this.materialService.findOne({
-                        subject: nSubject,
-                        chapter: nChapter,
-                    })
+                    await this.materialService.findOne(
+                        {
+                            subject: nSubject,
+                            chapter: nChapter,
+                        },
+                        {},
+                        { session: session }
+                    )
                 ) {
                     throw new Error(
                         `A document with the same subject and chapter id already exists`
@@ -418,14 +475,18 @@ export class MaterialController extends Controller {
                 }
             }
 
-            await this.materialService.findOneAndUpdate(
+            const result = await this.materialService.findOneAndUpdate(
                 { _id: docId },
                 {
                     ...info,
                     lastUpdatedAt: Date.now(),
+                },
+                {
+                    new: true,
+                    session: session,
                 }
             );
-            res.composer.success(true);
+            res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
@@ -437,7 +498,7 @@ export class MaterialController extends Controller {
         }
     }
 
-    async deleteById(req: Request, res: Response) {
+    async delete(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -447,7 +508,8 @@ export class MaterialController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.DELETE_MATERIAL,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -456,9 +518,13 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-            });
+            const doc = await this.materialService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
             }
@@ -475,8 +541,10 @@ export class MaterialController extends Controller {
                 );
             }
 
-            await this.materialService.deleteById(docId);
-            res.composer.success(true);
+            const result = await this.materialService.deleteById(docId, {
+                session: session,
+            });
+            res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);

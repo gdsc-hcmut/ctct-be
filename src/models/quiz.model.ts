@@ -15,8 +15,10 @@ export type QuizDocument = Document & {
     status: QuizStatus;
 
     createdAt: number;
-    startsAt: number;
-    endsAt: number;
+    duration: number;
+    startTime: number;
+    // the time at which the user finished the test, not necessarily startTime + duration
+    endTime?: number;
 
     // percentage of points ([0, 100])
     standardizedScore: number;
@@ -30,8 +32,9 @@ const quizSchema = new Schema<QuizDocument>({
     status: { type: String, required: true, enum: QuizStatus },
 
     createdAt: { type: Number, required: true },
-    startsAt: { type: Number, required: true },
-    endsAt: { type: Number, required: true },
+    duration: { type: Number, required: true },
+    startTime: { type: Number, required: true },
+    endTime: { type: Number, required: false },
     standardizedScore: { type: Number, required: false, default: 0 },
 
     fromTemplate: { type: Schema.Types.ObjectId, ref: "quiz_templates" },

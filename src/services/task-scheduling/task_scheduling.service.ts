@@ -20,9 +20,7 @@ export class TaskSchedulingService {
     }
 
     async initialize() {
-        logger.info(
-            "[Task Scheduling] Initializing Task scheduling service..."
-        );
+        logger.info("[TaskScheduling] Initializing...");
         this.agenda = new Agenda({
             db: {
                 address: process.env.DB_URI,

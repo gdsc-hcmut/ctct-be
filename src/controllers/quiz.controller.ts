@@ -44,17 +44,14 @@ export class QuizController extends Controller {
 
         this.router.all("*", authService.authenticate());
 
-        this.router.get("/my", this.getMyQuizzes.bind(this));
-        this.router.get("/getbyid/:quizId", this.getQuizById.bind(this));
-        this.router.post("/take/:quizTemplateId", this.takeQuiz.bind(this));
-        this.router.post(
-            "/answer/:quizId/:index",
-            this.answerQuestion.bind(this)
-        );
+        this.router.get("/", this.getMy.bind(this));
+        this.router.get("/:quizId", this.getById.bind(this));
+        this.router.post("/:quizTemplateId", this.take.bind(this));
+        this.router.post("/answer/:quizId/:index", this.answer.bind(this));
         this.router.post("/end/:quizId", this.endQuiz.bind(this));
     }
 
-    async takeQuiz(req: Request, res: Response) {
+    async take(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -71,7 +68,8 @@ export class QuizController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.TAKE_QUIZ,
-                    isManager
+                    isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -82,7 +80,8 @@ export class QuizController extends Controller {
             if (
                 await this.quizService.userHasUnfinishedQuiz(
                     userId,
-                    quizTemplateId
+                    quizTemplateId,
+                    { session: session }
                 )
             ) {
                 throw new Error(
@@ -91,7 +90,9 @@ export class QuizController extends Controller {
             }
 
             const quizTemplate = await this.quizTemplateService.findById(
-                quizTemplateId
+                quizTemplateId,
+                {},
+                { session: session }
             );
 
             if (
@@ -116,7 +117,9 @@ export class QuizController extends Controller {
                     (async () => {
                         const questionTemplate =
                             await this.questionTemplateService.findById(
-                                questionId
+                                questionId,
+                                {},
+                                { session: session }
                             );
                         return this.questionTemplateService.generateConcreteQuestion(
                             questionTemplate,
@@ -128,24 +131,25 @@ export class QuizController extends Controller {
             );
 
             const startTime = Date.now();
-            const endTime = startTime + quizTemplate.duration;
+            const quizDeadline = startTime + quizTemplate.duration;
 
             const quiz = await this.quizService.create(
                 userId,
                 QuizStatus.ONGOING,
+                quizTemplate.duration,
                 startTime,
-                endTime,
                 quizTemplateId,
-                concreteQuestions
+                concreteQuestions,
+                { session: session }
             );
             // schedule a task to end this quiz
             logger.debug(
                 `Scheduling quiz ${quiz._id} to start at ${new Date(
                     startTime
-                ).toString()} and end at ${new Date(endTime).toString()}`
+                ).toString()} and end at ${new Date(quizDeadline).toString()}`
             );
             await this.taskSchedulingService.schedule(
-                new Date(endTime),
+                new Date(quizDeadline),
                 ScheduledTaskType.END_QUIZ,
                 {
                     userId: userId,
@@ -167,12 +171,14 @@ export class QuizController extends Controller {
         }
     }
 
-    async getMyQuizzes(req: Request, res: Response) {
+    async getMy(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
             const userId = req.tokenMeta.userId;
-            const quizzes = await this.quizService.getAllQuizByUser(userId);
+            const quizzes = await this.quizService.getAllQuizByUser(userId, {
+                session: session,
+            });
             const result = (quizzes as any[]).map((quiz) =>
                 this.mapperService.maskQuizDocumentAccordingToStatus(quiz)
             );
@@ -188,15 +194,19 @@ export class QuizController extends Controller {
         }
     }
 
-    async getQuizById(req: Request, res: Response) {
+    async getById(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
             const quizId = new Types.ObjectId(req.params.quizId);
-            const quiz = await this.quizService.getUserQuizById(userId, quizId);
+            const quiz = await this.quizService.getUserQuizById(
+                userId,
+                quizId,
+                { session: session }
+            );
             if (!quiz) {
-                res.composer.success({});
+                throw new Error(`Quiz doesn't exist`);
             }
 
             const result = this.mapperService.maskQuizDocumentAccordingToStatus(
@@ -214,7 +224,7 @@ export class QuizController extends Controller {
         }
     }
 
-    async answerQuestion(req: Request, res: Response) {
+    async answer(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -227,11 +237,15 @@ export class QuizController extends Controller {
                 throw new Error(`Missing 'answer' field`);
             }
 
-            const quiz = await this.quizService.findOne({
-                _id: quizId,
-                userId: userId,
-                status: QuizStatus.ONGOING,
-            });
+            const quiz = await this.quizService.findOne(
+                {
+                    _id: quizId,
+                    userId: userId,
+                    status: QuizStatus.ONGOING,
+                },
+                {},
+                { session: session }
+            );
             if (!quiz) {
                 throw new Error(
                     `The requested quiz does not exist, or it has already finished`
@@ -262,7 +276,8 @@ export class QuizController extends Controller {
             const result = await this.quizService.updateQuestionResult(
                 quizId,
                 index,
-                questionResult
+                questionResult,
+                { session: session }
             );
             res.composer.success(result);
             await session.commitTransaction();

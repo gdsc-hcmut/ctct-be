@@ -1,6 +1,13 @@
 import { injectable } from "inversify";
 import SubjectModel, { SubjectDocument } from "../models/subject.model";
-import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    SaveOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import { logger } from "../lib/logger";
 import QuizTemplateModel, {
     QuizTemplateDocument,
@@ -9,19 +16,30 @@ import QuizTemplateModel, {
 @injectable()
 export class QuizTemplateService {
     constructor() {
-        logger.info("Constructing Quiz Template service");
+        logger.info("[QuizTemplate] Initializing...");
     }
 
-    async create(userId: Types.ObjectId, data: any) {
-        return await QuizTemplateModel.create({
-            ...data,
-            createdBy: userId,
-            createdAt: Date.now(),
-        });
+    async create(userId: Types.ObjectId, data: any, options: SaveOptions = {}) {
+        return (
+            await QuizTemplateModel.create(
+                [
+                    {
+                        ...data,
+                        createdBy: userId,
+                        createdAt: Date.now(),
+                    },
+                ],
+                options
+            )
+        )[0];
     }
 
-    async find(query: FilterQuery<QuizTemplateDocument>) {
-        return await QuizTemplateModel.find(query);
+    async find(
+        query: FilterQuery<QuizTemplateDocument>,
+        projection: ProjectionType<QuizTemplateDocument> = {},
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return await QuizTemplateModel.find(query, projection, options);
     }
 
     async updateMany(
@@ -32,8 +50,12 @@ export class QuizTemplateService {
         return await QuizTemplateModel.updateMany(query, update, options);
     }
 
-    async findOne(query: FilterQuery<QuizTemplateDocument>) {
-        return await QuizTemplateModel.findOne(query);
+    async findOne(
+        query: FilterQuery<QuizTemplateDocument>,
+        projection: ProjectionType<QuizTemplateDocument> = {},
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return await QuizTemplateModel.findOne(query, projection, options);
     }
 
     async findOneAndUpdate(
@@ -44,7 +66,11 @@ export class QuizTemplateService {
         return await QuizTemplateModel.findOneAndUpdate(query, update, options);
     }
 
-    async findById(id: Types.ObjectId) {
-        return await QuizTemplateModel.findById(id);
+    async findById(
+        id: Types.ObjectId,
+        projection: ProjectionType<QuizTemplateDocument> = {},
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return await QuizTemplateModel.findById(id, projection, options);
     }
 }

@@ -8,7 +8,9 @@ import { ServiceType } from "../types";
 import { CacheService } from "./index";
 import mongoose, {
     FilterQuery,
+    ProjectionType,
     QueryOptions,
+    SaveOptions,
     Types,
     UpdateQuery,
 } from "mongoose";
@@ -20,7 +22,7 @@ export class AccessLevelService {
     private STUDENT_ID: Types.ObjectId;
 
     constructor(@inject(ServiceType.Cache) private cacheService: CacheService) {
-        logger.info("Constructing Permission service");
+        logger.info("[AccessLevel] Initializing Access Level service");
         this.createPredefinedAccessLevels();
     }
 
@@ -28,34 +30,56 @@ export class AccessLevelService {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            let visitor = await AccessLevelModel.findOne({
-                predefinedId: "visitor",
-            });
-            if (!visitor) {
-                visitor = await AccessLevelModel.create({
-                    name: "Visitor",
+            let visitor = await AccessLevelModel.findOne(
+                {
                     predefinedId: "visitor",
-                    description:
-                        "This access level is used automatically when a user is not logged in",
-                    permissions: [],
-                    createdAt: Date.now(),
-                });
+                },
+                {},
+                { session: session }
+            );
+            if (!visitor) {
+                visitor = (
+                    await AccessLevelModel.create(
+                        [
+                            {
+                                name: "Visitor",
+                                predefinedId: "visitor",
+                                description:
+                                    "This access level is used automatically when a user is not logged in",
+                                permissions: [],
+                                createdAt: Date.now(),
+                            },
+                        ],
+                        { session: session }
+                    )
+                )[0];
             }
-            let student = await AccessLevelModel.findOne({
-                predefinedId: "student",
-            });
-            if (!student) {
-                student = await AccessLevelModel.create({
-                    name: "Student",
+            let student = await AccessLevelModel.findOne(
+                {
                     predefinedId: "student",
-                    description:
-                        "This access level is automatically granted for users who just logged in, can be assigned",
-                    permissions: [
-                        Permission.VIEW_MATERIAL,
-                        Permission.VIEW_PREVIOUS_EXAM,
-                    ],
-                    createdAt: Date.now(),
-                });
+                },
+                {},
+                { session: session }
+            );
+            if (!student) {
+                student = (
+                    await AccessLevelModel.create(
+                        [
+                            {
+                                name: "Student",
+                                predefinedId: "student",
+                                description:
+                                    "This access level is automatically granted for users who just logged in, can be assigned",
+                                permissions: [
+                                    Permission.VIEW_MATERIAL,
+                                    Permission.VIEW_PREVIOUS_EXAM,
+                                ],
+                                createdAt: Date.now(),
+                            },
+                        ],
+                        { session: session }
+                    )
+                )[0];
             }
             this.VISITOR_ID = visitor._id;
             this.STUDENT_ID = student._id;
@@ -74,21 +98,30 @@ export class AccessLevelService {
         userId: Types.ObjectId,
         name: string,
         description: string,
-        permissions: Permission[]
+        permissions: Permission[],
+        options: SaveOptions = {}
     ) {
-        return await AccessLevelModel.create({
-            name: name,
-            description: description,
-            permissions: permissions,
-            createdAt: Date.now(),
-            createdBy: userId,
-        });
+        return (
+            await AccessLevelModel.create(
+                [
+                    {
+                        name: name,
+                        description: description,
+                        permissions: permissions,
+                        createdAt: Date.now(),
+                        createdBy: userId,
+                    },
+                ],
+                options
+            )
+        )[0];
     }
 
     private async accessLevelCanPerformAction(
         accessLevel: Types.ObjectId,
         action: Permission,
-        isManager = false
+        isManager = false,
+        options: QueryOptions<AccessLevelDocument> = {}
     ): Promise<boolean> {
         if (isManager) {
             return true;
@@ -97,7 +130,11 @@ export class AccessLevelService {
             await this.cacheService.getWithPopulate(
                 `access_level ${accessLevel.toString()}`,
                 async () => {
-                    const d = await AccessLevelModel.findById(accessLevel);
+                    const d = await AccessLevelModel.findById(
+                        accessLevel,
+                        {},
+                        options
+                    );
                     if (!d) {
                         return "[]";
                     }
@@ -114,7 +151,8 @@ export class AccessLevelService {
     public async accessLevelsCanPerformAction(
         accessLevels: Types.ObjectId[],
         action: Permission,
-        isManager = false
+        isManager = false,
+        options: QueryOptions<AccessLevelDocument> = {}
     ): Promise<boolean> {
         if (isManager) {
             return true;
@@ -129,7 +167,8 @@ export class AccessLevelService {
                     await this.accessLevelCanPerformAction(
                         l,
                         action,
-                        isManager
+                        isManager,
+                        options
                     ))()
             )
         );
@@ -155,26 +194,34 @@ export class AccessLevelService {
         return accessLevels.some((l) => permitted.some((p) => p.equals(l)));
     }
 
-    public async accessLevelsExist(levels: Types.ObjectId[]) {
+    public async accessLevelsExist(
+        levels: Types.ObjectId[],
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
         const result = await Promise.all(
             levels.map((level) =>
-                (async () => (await AccessLevelModel.findById(level)) != null)()
+                (async () =>
+                    (await AccessLevelModel.findById(level, {}, options)) !=
+                    null)()
             )
         );
         return result.every((x) => x);
     }
 
-    public async verifyAssignAccessLevel(levels: Types.ObjectId[]) {
+    public async verifyAssignAccessLevel(
+        levels: Types.ObjectId[],
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
         // check that all given id's exist and they can be assigned
         // a role can be assigned if it's either not predefined, or
         // 'student'
         const result = await Promise.all(
             levels.map((l) =>
-                (async () => await AccessLevelModel.findById(l))()
+                (async () => await AccessLevelModel.findById(l, {}, options))()
             )
         );
         return result.every((x) => {
-            if (x === undefined) {
+            if (x == undefined) {
                 return false;
             }
             if (x.predefinedId !== undefined && x.predefinedId === "visitor") {
@@ -184,8 +231,12 @@ export class AccessLevelService {
         });
     }
 
-    public async findAccessLevels(query: FilterQuery<AccessLevelDocument>) {
-        return await AccessLevelModel.find(query);
+    public async find(
+        query: FilterQuery<AccessLevelDocument>,
+        projection: ProjectionType<AccessLevelDocument> = {},
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
+        return await AccessLevelModel.find(query, projection, options);
     }
 
     public async findOneAndDelete(
@@ -203,12 +254,20 @@ export class AccessLevelService {
         return await AccessLevelModel.findOneAndUpdate(query, update, options);
     }
 
-    public async findOne(query: FilterQuery<AccessLevelDocument>) {
-        return await AccessLevelModel.findOne(query);
+    public async findOne(
+        query: FilterQuery<AccessLevelDocument>,
+        projection: ProjectionType<AccessLevelDocument> = {},
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
+        return await AccessLevelModel.findOne(query, projection, options);
     }
 
-    public async findById(id: Types.ObjectId) {
-        return await AccessLevelModel.findById(id);
+    public async findById(
+        id: Types.ObjectId,
+        projection: ProjectionType<AccessLevelDocument> = {},
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
+        return await AccessLevelModel.findById(id, projection, options);
     }
 
     public async invalidateCache(key: string) {

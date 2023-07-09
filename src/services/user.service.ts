@@ -1,10 +1,9 @@
 import { injectable } from "inversify";
-import { toNumber } from "lodash";
-import crypto from "crypto";
 
 import User, { UserDocument } from "../models/user.model";
 import mongoose, {
     FilterQuery,
+    ProjectionType,
     QueryOptions,
     Types,
     UpdateQuery,
@@ -15,13 +14,7 @@ import { logger } from "../lib/logger";
 @injectable()
 export class UserService {
     constructor() {
-        this.setupIndexes();
-        logger.info("Constructing User service");
-    }
-
-    private async setupIndexes() {
-        // TODO: build indexes once app reaches stable
-        // TODO: hash googleId for faster authentication?
+        logger.info("[User] Initializing...");
     }
 
     async registerNewDevice(token: string): Promise<DeviceTokenDocument> {
@@ -50,68 +43,28 @@ export class UserService {
         return opUpdateResult.modifiedCount;
     }
 
-    async findUserById(id: Types.ObjectId) {
-        return await User.findById(id);
-    }
-
-    async verifyAccountRequest(email: string) {
-        let user = null;
-        try {
-            user = await this.findOne({ email }, true);
-        } catch (err) {
-            throw new Error(
-                `The email address that you've entered doesn't match any account.`
-            );
-        }
-
-        const verifyAccountCode = crypto
-            .randomBytes(toNumber(process.env.VERIFY_CODE_LENGTH))
-            .toString("hex");
-        await this.updateOne(user._id, { verifyAccountCode });
-    }
-
-    async verifyAccount(verifyAccountCode: string) {
-        let user = null;
-        try {
-            user = await this.findOne({ verifyAccountCode }, true);
-        } catch (err) {
-            throw new Error(
-                `The email address that you've entered doesn't match any account.`
-            );
-        }
-
-        await this.updateOne(user._id, {
-            verifyAccountCode: "",
-            isVerified: true,
-        });
-    }
-
-    async find(query: any = {}) {
-        return await User.find(query);
-    }
-
-    async findOne(query: any = {}, keepAll = false) {
-        return await User.findOne(query);
-    }
-
-    async updateOne(userId: mongoose.Types.ObjectId, data: any) {
-        const opUpdateResult = await User.findOneAndUpdate(
-            { _id: userId },
-            { $set: data }
-        );
-        return opUpdateResult;
-    }
-
-    async increase(
-        userId: mongoose.Types.ObjectId,
-        field: string,
-        value: number
+    async findById(
+        id: Types.ObjectId,
+        projection: ProjectionType<UserDocument> = {},
+        options: QueryOptions<UserDocument> = {}
     ) {
-        const opUpdateResult = await User.updateOne(
-            { _id: userId },
-            { $inc: { [field]: value } }
-        );
-        return opUpdateResult.modifiedCount;
+        return await User.findById(id, projection, options);
+    }
+
+    async find(
+        query: FilterQuery<UserDocument>,
+        projection: ProjectionType<UserDocument> = {},
+        options: QueryOptions<UserDocument> = {}
+    ) {
+        return await User.find(query, projection, options);
+    }
+
+    async findOne(
+        query: FilterQuery<UserDocument>,
+        projection: ProjectionType<UserDocument> = {},
+        options: QueryOptions<UserDocument> = {}
+    ) {
+        return await User.findOne(query, projection, options);
     }
 
     async updateMany(

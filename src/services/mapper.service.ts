@@ -8,7 +8,7 @@ import { QuizDocument, QuizStatus } from "../models/quiz.model";
 @injectable()
 export class MapperService {
     constructor() {
-        logger.info("Constructing Mapper service");
+        logger.info("[Mapper] Initializing...");
     }
 
     maskAnswerFromConcreteQuestion(question: ConcreteQuestion) {

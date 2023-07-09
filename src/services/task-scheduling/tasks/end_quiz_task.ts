@@ -48,14 +48,15 @@ export class EndQuizTask implements ScheduledTask<QuizDocument> {
                 );
             }
 
+            const quizEndTime = Date.now();
             const result = await this.quizService.findOneAndUpdate(
                 {
                     _id: this.quizId,
                     userId: this.userId,
                     status: QuizStatus.ONGOING,
                 },
-                { status: QuizStatus.ENDED },
-                { new: true }
+                { status: QuizStatus.ENDED, endTime: quizEndTime },
+                { new: true, session: session }
             );
             if (!result) {
                 throw new Error(

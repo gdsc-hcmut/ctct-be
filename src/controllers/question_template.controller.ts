@@ -48,8 +48,8 @@ export class QuestionTemplateController extends Controller {
         );
         this.router.post("/preview", this.previewQuestion.bind(this));
         this.router.post("/", this.create.bind(this));
-        this.router.get("/all", this.getAllQuestionTemplates.bind(this));
-        this.router.delete("/delete/:questionId", this.delete.bind(this));
+        this.router.get("/", this.getAll.bind(this));
+        this.router.delete("/:questionId", this.delete.bind(this));
     }
 
     async testCode(req: Request, res: Response) {
@@ -271,7 +271,8 @@ export class QuestionTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.CREATE_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -442,7 +443,8 @@ export class QuestionTemplateController extends Controller {
 
             const result = await this.questionTemplateService.create(
                 userId,
-                req.body
+                req.body,
+                { session: session }
             );
             res.composer.success(result);
             await session.commitTransaction();
@@ -456,7 +458,7 @@ export class QuestionTemplateController extends Controller {
         }
     }
 
-    async getAllQuestionTemplates(req: Request, res: Response) {
+    async getAll(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -466,7 +468,8 @@ export class QuestionTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -474,7 +477,11 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            const result = await this.questionTemplateService.find({});
+            const result = await this.questionTemplateService.find(
+                {},
+                {},
+                { session: session }
+            );
             res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
@@ -497,7 +504,8 @@ export class QuestionTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.DELETE_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -506,9 +514,13 @@ export class QuestionTemplateController extends Controller {
             }
 
             const questionId = new Types.ObjectId(req.params.questionId);
-            const question = await this.questionTemplateService.findOne({
-                _id: questionId,
-            });
+            const question = await this.questionTemplateService.findOne(
+                {
+                    _id: questionId,
+                },
+                {},
+                { session: session }
+            );
             if (!question) {
                 throw new Error(`Question template does not exist`);
             }
@@ -517,13 +529,17 @@ export class QuestionTemplateController extends Controller {
             const [quizTemplateWithThisQuestion] = await Promise.all([
                 (async () => {
                     return (
-                        (await this.quizTemplateService.findOne({
-                            potentialQuestions: {
-                                $elemMatch: {
-                                    questionId: questionId,
+                        (await this.quizTemplateService.findOne(
+                            {
+                                potentialQuestions: {
+                                    $elemMatch: {
+                                        questionId: questionId,
+                                    },
                                 },
                             },
-                        })) != null
+                            {},
+                            { session: session }
+                        )) != null
                     );
                 })(),
             ]);

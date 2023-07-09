@@ -35,12 +35,12 @@ export class SubjectController extends Controller {
     ) {
         super();
 
-        this.router.get("/all", this.getAllSubjects.bind(this));
+        this.router.get("/", this.getAllSubjects.bind(this));
 
         this.router.all("*", authService.authenticate());
         this.router.post("/", this.create.bind(this));
-        this.router.patch("/edit/:docId", this.editSubject.bind(this));
-        this.router.delete("/delete/:docId", this.deleteOne.bind(this));
+        this.router.patch("/:docId", this.editSubject.bind(this));
+        this.router.delete("/:docId", this.deleteOne.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -48,15 +48,14 @@ export class SubjectController extends Controller {
         session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
-            const { name } = req.body;
-            let { description } = req.body;
-            if (!description) description = "";
+            const { name, description = "" } = req.body;
 
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     req.tokenMeta.accessLevels,
                     Permission.CREATE_SUBJECT,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -71,7 +70,8 @@ export class SubjectController extends Controller {
             const doc = await this.subjectService.create(
                 name,
                 userId,
-                description
+                description,
+                { session: session }
             );
             res.composer.success(doc);
             await session.commitTransaction();
@@ -88,7 +88,11 @@ export class SubjectController extends Controller {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const ans = await this.subjectService.find({});
+            const ans = await this.subjectService.find(
+                {},
+                {},
+                { session: session }
+            );
             res.composer.success(ans);
             await session.commitTransaction();
         } catch (error) {
@@ -110,7 +114,8 @@ export class SubjectController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.EDIT_SUBJECT,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -119,23 +124,31 @@ export class SubjectController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.subjectService.findOne({
-                _id: docId,
-            });
+            const doc = await this.subjectService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
 
             const info = _.pick(req.body, ["name", "description"]);
 
-            await this.subjectService.findOneAndUpdate(
+            const result = await this.subjectService.findOneAndUpdate(
                 { _id: docId },
                 {
                     ...info,
                     lastUpdatedAt: Date.now(),
+                },
+                {
+                    new: true,
+                    session: session,
                 }
             );
-            res.composer.success(true);
+            res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
             console.log(error);
@@ -156,7 +169,8 @@ export class SubjectController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.DELETE_SUBJECT,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -165,9 +179,13 @@ export class SubjectController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const sub = await this.subjectService.findOne({
-                _id: docId,
-            });
+            const sub = await this.subjectService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!sub) {
                 throw new Error(`Subject doesn't exist`);
             }
@@ -229,9 +247,12 @@ export class SubjectController extends Controller {
                 );
             }
 
-            const result = await this.subjectService.findOneAndDelete({
-                _id: docId,
-            });
+            const result = await this.subjectService.findOneAndDelete(
+                {
+                    _id: docId,
+                },
+                { session: session }
+            );
             res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {

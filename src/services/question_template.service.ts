@@ -1,6 +1,12 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { FilterQuery, Types } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    SaveOptions,
+    Types,
+} from "mongoose";
 import QuestionTemplateModel, {
     ConcreteQuestion,
     QuestionTemplateDocument,
@@ -16,19 +22,26 @@ import _ from "lodash";
 @injectable()
 export class QuestionTemplateService {
     constructor() {
-        logger.info("Constructing Question Template service");
+        logger.info("[QuestionTemplate] Initializing...");
     }
 
-    async create(userId: Types.ObjectId, data: any) {
+    async create(userId: Types.ObjectId, data: any, options: SaveOptions = {}) {
         /**
          * data should include metadata (as indicated by the model)
          * except createdBy and createdAt (automatically generated)
          */
-        return await QuestionTemplateModel.create({
-            ...data,
-            createdAt: Date.now(),
-            createdBy: userId,
-        });
+        return (
+            await QuestionTemplateModel.create(
+                [
+                    {
+                        ...data,
+                        createdAt: Date.now(),
+                        createdBy: userId,
+                    },
+                ],
+                options
+            )
+        )[0];
     }
 
     generateConcreteQuestion(
@@ -286,12 +299,19 @@ export class QuestionTemplateService {
         });
     }
 
-    async questionTemplatesExist(questions: Types.ObjectId[]) {
+    async questionTemplatesExist(
+        questions: Types.ObjectId[],
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
         const result = await Promise.all(
             questions.map((question) =>
                 (async () => {
                     return (
-                        (await QuestionTemplateModel.findById(question)) != null
+                        (await QuestionTemplateModel.findById(
+                            question,
+                            {},
+                            options
+                        )) != null
                     );
                 })()
             )
@@ -299,23 +319,41 @@ export class QuestionTemplateService {
         return result.every((x) => x);
     }
 
-    async findOne(query: FilterQuery<QuestionTemplateDocument>) {
-        return QuestionTemplateModel.findOne(query);
+    async findOne(
+        query: FilterQuery<QuestionTemplateDocument>,
+        projection: ProjectionType<QuestionTemplateDocument> = {},
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
+        return QuestionTemplateModel.findOne(query, projection, options);
     }
 
-    async deleteOne(query: FilterQuery<QuestionTemplateDocument>) {
-        return await QuestionTemplateModel.deleteOne(query);
+    async deleteOne(
+        query: FilterQuery<QuestionTemplateDocument>,
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
+        return await QuestionTemplateModel.deleteOne(query, options);
     }
 
-    async findOneAndDelete(query: FilterQuery<QuestionTemplateDocument>) {
-        return await QuestionTemplateModel.findOneAndDelete(query);
+    async findOneAndDelete(
+        query: FilterQuery<QuestionTemplateDocument>,
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
+        return await QuestionTemplateModel.findOneAndDelete(query, options);
     }
 
-    async find(query: FilterQuery<QuestionTemplateDocument>) {
-        return await QuestionTemplateModel.find(query);
+    async find(
+        query: FilterQuery<QuestionTemplateDocument>,
+        projection: ProjectionType<QuestionTemplateDocument> = {},
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
+        return await QuestionTemplateModel.find(query, projection, options);
     }
 
-    async findById(id: Types.ObjectId) {
-        return await QuestionTemplateModel.findById(id);
+    async findById(
+        id: Types.ObjectId,
+        projection: ProjectionType<QuestionTemplateDocument> = {},
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
+        return await QuestionTemplateModel.findById(id, projection, options);
     }
 }

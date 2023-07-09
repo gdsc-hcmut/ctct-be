@@ -28,7 +28,11 @@ export class MeController extends Controller {
         session.startTransaction();
         try {
             const userId = req.tokenMeta.userId;
-            const user = await this.userService.findUserById(userId);
+            const user = await this.userService.findById(
+                userId,
+                {},
+                { session: session }
+            );
 
             if (!user) {
                 throw new ErrorNotFound(`Requested user is not found`);

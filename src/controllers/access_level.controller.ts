@@ -4,7 +4,7 @@ import { Controller } from "./controller";
 import mongoose, { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Request, Response, ServiceType } from "../types";
-import { AccessLevelDocument, Permission } from "../models/access_level.model";
+import { Permission } from "../models/access_level.model";
 import {
     AccessLevelService,
     AuthService,
@@ -34,24 +34,28 @@ export class AccessLevelController extends Controller {
         super();
 
         this.router.all("*", authService.authenticate());
-        this.router.get("/all", this.viewAllAccessLevels.bind(this));
+        this.router.get("/", this.viewAllAccessLevels.bind(this));
         this.router.post("/", this.createAccessLevel.bind(this));
         this.router.delete(
-            "/delete/:accessLevelId",
+            "/:accessLevelId",
             this.deleteAccessLevel.bind(this)
         );
+        this.router.patch("/:accessLevelId", this.editAccessLevel.bind(this));
         this.router.patch(
-            "/edit/:accessLevelId",
-            this.editAccessLevel.bind(this)
+            "/edituser/:userId",
+            this.setUserAccessLevel.bind(this)
         );
-        this.router.patch("/edituser", this.setUserAccessLevel.bind(this));
     }
 
     async viewAllAccessLevels(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
-            const result = await this.accessLevelService.findAccessLevels({});
+            const result = await this.accessLevelService.find(
+                {},
+                {},
+                { session: session }
+            );
             res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
@@ -74,9 +78,8 @@ export class AccessLevelController extends Controller {
 
             const userId = req.tokenMeta.userId;
             const { name } = req.body;
-            let { description } = req.body;
+            const { description = "" } = req.body;
             if (!name) throw new Error(`Missing 'name' field`);
-            if (!description) description = "";
             const permissions: Permission[] = req.body.permissions
                 ? (req.body.permissions as Permission[])
                 : [];
@@ -85,7 +88,8 @@ export class AccessLevelController extends Controller {
                 userId,
                 name,
                 description,
-                permissions
+                permissions,
+                { session: session }
             );
             res.composer.success(result);
             await session.commitTransaction();
@@ -109,10 +113,13 @@ export class AccessLevelController extends Controller {
 
             const accessLevelId = new Types.ObjectId(req.params.accessLevelId);
             const deletedAccessLevel =
-                await this.accessLevelService.findOneAndDelete({
-                    _id: accessLevelId,
-                    predefinedId: { $exists: false },
-                });
+                await this.accessLevelService.findOneAndDelete(
+                    {
+                        _id: accessLevelId,
+                        predefinedId: { $exists: false },
+                    },
+                    { session: session }
+                );
             if (!deletedAccessLevel) {
                 throw new Error(
                     `Requested access level does not exist, or the level itself cannot be deleted`
@@ -122,19 +129,23 @@ export class AccessLevelController extends Controller {
             await Promise.all([
                 this.userService.updateMany(
                     {},
-                    { $pull: { accessLevels: accessLevelId } }
+                    { $pull: { accessLevels: accessLevelId } },
+                    { session: session }
                 ),
                 this.materialService.updateMany(
                     {},
-                    { $pull: { visibleTo: accessLevelId } }
+                    { $pull: { visibleTo: accessLevelId } },
+                    { session: session }
                 ),
                 this.previousExamService.updateMany(
                     {},
-                    { $pull: { visibleTo: accessLevelId } }
+                    { $pull: { visibleTo: accessLevelId } },
+                    { session: session }
                 ),
                 this.quizTemplateService.updateMany(
                     {},
-                    { $pull: { visibleTo: accessLevelId } }
+                    { $pull: { visibleTo: accessLevelId } },
+                    { session: session }
                 ),
             ]);
             await this.accessLevelService.invalidateCache(
@@ -163,46 +174,30 @@ export class AccessLevelController extends Controller {
 
             const accessLevelId = new Types.ObjectId(req.params.accessLevelId);
             const accessLevel = await this.accessLevelService.findById(
-                accessLevelId
+                accessLevelId,
+                {},
+                { session: session }
             );
             if (!accessLevel) {
                 throw new Error(`The requested access level does not exist`);
             }
 
-            let result: AccessLevelDocument;
-            if (accessLevel.predefinedId) {
-                const info = _.pick(req.body, ["permissions"]);
-                if (
-                    (info.permissions as Permission[]).some(
-                        (p) => !Object.values(Permission).includes(p)
-                    )
-                ) {
-                    throw new Error(`One or more unknown permissions received`);
-                }
-                result = await this.accessLevelService.findOneAndUpdate(
-                    { _id: accessLevelId },
-                    { ...info },
-                    { new: true }
-                );
-            } else {
-                const info = _.pick(req.body, [
-                    "name",
-                    "description",
-                    "permissions",
-                ]);
-                if (
-                    (info.permissions as Permission[]).some(
-                        (p) => !Object.values(Permission).includes(p)
-                    )
-                ) {
-                    throw new Error(`One or more unknown permissions received`);
-                }
-                result = await this.accessLevelService.findOneAndUpdate(
-                    { _id: accessLevelId },
-                    { ...info },
-                    { new: true }
-                );
+            const editableFields = accessLevel.predefinedId
+                ? ["permissions"]
+                : ["name", "description", "permissions"];
+            const info = _.pick(req.body, editableFields);
+            if (
+                (info.permissions as Permission[]).some(
+                    (p) => !Object.values(Permission).includes(p)
+                )
+            ) {
+                throw new Error(`One or more unknown permissions received`);
             }
+            const result = await this.accessLevelService.findOneAndUpdate(
+                { _id: accessLevelId },
+                { ...info },
+                { new: true, session: session }
+            );
 
             await this.accessLevelService.invalidateCache(
                 accessLevelId.toString()
@@ -228,24 +223,25 @@ export class AccessLevelController extends Controller {
                 throw new Error(`Missing administrative permissions`);
             }
 
-            const userId = new Types.ObjectId(req.body.userId);
+            const userId = new Types.ObjectId(req.params.userId);
             const accessLevelsIds = (req.body.accessLevelsIds as string[]).map(
                 (x) => new Types.ObjectId(x)
             );
             const verify =
                 await this.accessLevelService.verifyAssignAccessLevel(
-                    accessLevelsIds
+                    accessLevelsIds,
+                    { session: session }
                 );
             if (!verify) {
                 throw new Error(
-                    `One or more roles does not exist, or are predefined ones`
+                    `One or more access levels does not exist, or are predefined ones`
                 );
             }
 
             const result = await this.userService.findOneAndUpdate(
                 { _id: userId },
                 { $set: { accessLevels: accessLevelsIds } },
-                { new: true }
+                { new: true, session: session }
             );
             if (!result) {
                 throw new Error(`User not found`);

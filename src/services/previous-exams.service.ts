@@ -1,7 +1,14 @@
 import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
-import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    SaveOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import PreviousExamModel, {
     PreviousExamDocument,
 } from "../models/previous-exam.model";
@@ -15,7 +22,7 @@ export class PreviousExamService {
     private fileUploadService: FileUploadService;
 
     constructor() {
-        logger.info("Constructing Previous Exam service");
+        logger.info("[PreviousExam] Initializing...");
     }
 
     /**
@@ -35,28 +42,37 @@ export class PreviousExamService {
         userId: Types.ObjectId,
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy,
-        visibleTo: Types.ObjectId[]
+        visibleTo: Types.ObjectId[],
+        options: SaveOptions = {}
     ) {
         console.assert(files.length === 1);
         const uploadedAttachments = await this.fileUploadService.uploadFiles(
             files,
-            compressionStrategy
+            compressionStrategy,
+            options
         );
         const currentTime = Date.now();
 
-        return await PreviousExamModel.create({
-            name: name,
-            subject: subject,
+        return (
+            await PreviousExamModel.create(
+                [
+                    {
+                        name: name,
+                        subject: subject,
 
-            subtitle: subtitle,
-            description: description,
+                        subtitle: subtitle,
+                        description: description,
 
-            visibleTo: visibleTo,
-            resource: uploadedAttachments[0]._id,
-            createdBy: userId,
-            createdAt: currentTime,
-            lastUpdatedAt: currentTime,
-        });
+                        visibleTo: visibleTo,
+                        resource: uploadedAttachments[0]._id,
+                        createdBy: userId,
+                        createdAt: currentTime,
+                        lastUpdatedAt: currentTime,
+                    },
+                ],
+                options
+            )
+        )[0];
     }
 
     /**
@@ -64,14 +80,17 @@ export class PreviousExamService {
      * @param id ID of the document to be deleted
      * @returns A boolean of whether the document with that ID exists
      * */
-    async deleteById(id: Types.ObjectId) {
-        const doc = await PreviousExamModel.findOneAndDelete({ _id: id });
+    async deleteById(id: Types.ObjectId, options: QueryOptions = {}) {
+        const doc = await PreviousExamModel.findOneAndDelete(
+            { _id: id },
+            options
+        );
         if (!doc) {
-            return false;
+            return null;
         }
 
-        await this.fileUploadService.deleteFiles([doc.resource]);
-        return true;
+        await this.fileUploadService.deleteFiles([doc.resource], options);
+        return doc;
     }
 
     async findOneAndUpdate(
@@ -82,27 +101,50 @@ export class PreviousExamService {
         return await PreviousExamModel.findOneAndUpdate(query, upd, opt);
     }
 
-    async findById(id: Types.ObjectId) {
-        return await PreviousExamModel.findById(id);
+    async findById(
+        id: Types.ObjectId,
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.findById(id, projection, options);
     }
 
-    async findOne(query: FilterQuery<PreviousExamDocument>) {
-        return await PreviousExamModel.findOne(query);
+    async findOne(
+        query: FilterQuery<PreviousExamDocument>,
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.findOne(query, projection, options);
     }
 
-    async findByIdPopulated(id: Types.ObjectId, query: string | string[]) {
-        return await PreviousExamModel.findById(id).populate(query);
+    async findByIdPopulated(
+        id: Types.ObjectId,
+        query: string | string[],
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.findById(
+            id,
+            projection,
+            options
+        ).populate(query);
     }
 
-    async find(query: FilterQuery<PreviousExamDocument>) {
-        return await PreviousExamModel.find(query);
+    async find(
+        query: FilterQuery<PreviousExamDocument>,
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.find(query, projection, options);
     }
 
     async findPopulated(
         f: FilterQuery<PreviousExamDocument>,
-        p: string | string[]
+        p: string | string[],
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
     ) {
-        return await PreviousExamModel.find(f).populate(p);
+        return await PreviousExamModel.find(f, projection, options).populate(p);
     }
 
     async updateMany(

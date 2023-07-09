@@ -36,7 +36,7 @@ export class PreviousExamController extends Controller {
         super();
 
         this.router.get(
-            "/get/:docId",
+            "/:docId",
             authService.authenticate(false),
             this.getById.bind(this)
         );
@@ -46,20 +46,20 @@ export class PreviousExamController extends Controller {
             this.download.bind(this)
         );
         this.router.get(
-            "/get",
+            "/",
             authService.authenticate(false),
-            this.getAvailablePreviousExams.bind(this)
+            this.getAvailable.bind(this)
         );
         this.router.get(
-            "/getbysubject/:subjectId",
+            "/subject/:subjectId",
             authService.authenticate(false),
             this.getBySubject.bind(this)
         );
 
         this.router.all("*", authService.authenticate());
-        this.router.post("/create", fileUploader.any(), this.create.bind(this));
-        this.router.patch("/edit/:docId", this.editPreviousExam.bind(this));
-        this.router.delete("/delete/:docId", this.deleteById.bind(this));
+        this.router.post("/", fileUploader.any(), this.create.bind(this));
+        this.router.patch("/:docId", this.edit.bind(this));
+        this.router.delete("/:docId", this.delete.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -67,16 +67,19 @@ export class PreviousExamController extends Controller {
         session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
-            const { name } = req.body;
-            let { subject, subtitle, description } = req.body;
-            if (!subtitle) subtitle = "";
-            if (!description) description = "";
+            const {
+                name,
+                subject: subjectString,
+                subtitle = "",
+                description = "",
+            } = req.body;
 
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     req.tokenMeta.accessLevels,
                     Permission.UPLOAD_PREVIOUS_EXAM,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -87,12 +90,18 @@ export class PreviousExamController extends Controller {
             if (!name) {
                 throw new Error(`Missing 'name' field`);
             }
-            if (!subject) {
+            if (!subjectString) {
                 throw new Error(`Missing 'subject' field`);
             }
-            subject = new Types.ObjectId(subject);
+            const subject = new Types.ObjectId(subjectString);
 
-            if (!(await this.subjectService.findById(subject))) {
+            if (
+                !(await this.subjectService.findById(
+                    subject,
+                    {},
+                    { session: session }
+                ))
+            ) {
                 throw new Error(`Subject doesn't exist`);
             }
 
@@ -105,6 +114,9 @@ export class PreviousExamController extends Controller {
                 { _id: subject },
                 {
                     lastUpdatedAt: Date.now(),
+                },
+                {
+                    session: session,
                 }
             );
 
@@ -114,7 +126,11 @@ export class PreviousExamController extends Controller {
             const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
                 (x) => new Types.ObjectId(x)
             );
-            if (!(await this.accessLevelService.accessLevelsExist(visibleTo))) {
+            if (
+                !(await this.accessLevelService.accessLevelsExist(visibleTo, {
+                    session: session,
+                }))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
 
@@ -126,7 +142,8 @@ export class PreviousExamController extends Controller {
                 userId,
                 req.files as Express.Multer.File[],
                 new AgressiveFileCompression(),
-                visibleTo
+                visibleTo,
+                { session: session }
             );
 
             res.composer.success(doc);
@@ -151,7 +168,8 @@ export class PreviousExamController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -160,9 +178,13 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-            });
+            const doc = await this.previousExamService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`Document not found`);
             }
@@ -198,7 +220,8 @@ export class PreviousExamController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -208,9 +231,13 @@ export class PreviousExamController extends Controller {
 
             const subject = new Types.ObjectId(req.params.subjectId);
             const ans = (
-                await this.previousExamService.find({
-                    subject: subject,
-                })
+                await this.previousExamService.find(
+                    {
+                        subject: subject,
+                    },
+                    {},
+                    { session: session }
+                )
             ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
@@ -239,7 +266,8 @@ export class PreviousExamController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -248,9 +276,13 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-            });
+            const doc = await this.previousExamService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
@@ -267,7 +299,8 @@ export class PreviousExamController extends Controller {
             }
 
             const file = await this.fileUploadService.downloadFile(
-                doc.resource
+                doc.resource,
+                { session: session }
             );
             res.setHeader(
                 "Content-Disposition",
@@ -286,7 +319,7 @@ export class PreviousExamController extends Controller {
         }
     }
 
-    async getAvailablePreviousExams(req: Request, res: Response) {
+    async getAvailable(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -295,7 +328,8 @@ export class PreviousExamController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -303,7 +337,13 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            const ans = (await this.previousExamService.find({})).filter((d) =>
+            const ans = (
+                await this.previousExamService.find(
+                    {},
+                    {},
+                    { session: session }
+                )
+            ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
                     d.visibleTo,
@@ -322,7 +362,7 @@ export class PreviousExamController extends Controller {
         }
     }
 
-    async editPreviousExam(req: Request, res: Response) {
+    async edit(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -333,7 +373,8 @@ export class PreviousExamController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.EDIT_PREVIOUS_EXAM,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -341,9 +382,13 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-            });
+            const doc = await this.previousExamService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
             }
@@ -376,7 +421,8 @@ export class PreviousExamController extends Controller {
                 );
                 if (
                     !(await this.accessLevelService.accessLevelsExist(
-                        info.visibleTo
+                        info.visibleTo,
+                        { session: session }
                     ))
                 ) {
                     throw new Error(`One or more access levels don't exist`);
@@ -384,19 +430,29 @@ export class PreviousExamController extends Controller {
             }
             if (info.subject) {
                 const subject = new Types.ObjectId(info.subject);
-                if (!this.subjectService.findById(subject)) {
+                if (
+                    !this.subjectService.findById(
+                        subject,
+                        {},
+                        { session: session }
+                    )
+                ) {
                     throw new Error(`Subject doesn't exist`);
                 }
             }
 
-            await this.previousExamService.findOneAndUpdate(
+            const result = await this.previousExamService.findOneAndUpdate(
                 { _id: docId },
                 {
                     ...info,
                     lastUpdatedAt: Date.now(),
+                },
+                {
+                    new: true,
+                    session: session,
                 }
             );
-            res.composer.success(true);
+            res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
@@ -408,7 +464,7 @@ export class PreviousExamController extends Controller {
         }
     }
 
-    async deleteById(req: Request, res: Response) {
+    async delete(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -418,7 +474,8 @@ export class PreviousExamController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.DELETE_PREVIOUS_EXAM,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -427,9 +484,13 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-            });
+            const doc = await this.previousExamService.findOne(
+                {
+                    _id: docId,
+                },
+                {},
+                { session: session }
+            );
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
             }
@@ -445,8 +506,10 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            await this.previousExamService.deleteById(docId);
-            res.composer.success(true);
+            const result = await this.previousExamService.deleteById(docId, {
+                session: session,
+            });
+            res.composer.success(result);
             await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);

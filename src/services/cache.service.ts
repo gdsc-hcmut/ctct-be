@@ -10,7 +10,7 @@ export class CacheService {
 
     constructor() {
         logger.info(
-            `Constructing Cache service to listen at port ${process.env.CACHE_PORT}`
+            `[Cache] Initializing... (port: ${process.env.CACHE_PORT}))`
         );
         this.client = createClient({
             socket: {

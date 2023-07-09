@@ -11,7 +11,7 @@ export class SocketService {
     socketServer: Server;
 
     constructor() {
-        logger.info("[Socket] Initializing socket service...");
+        logger.info("[Socket] Initializing...");
     }
 
     onConnection(socket: CustomSocket) {

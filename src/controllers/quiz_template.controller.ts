@@ -34,7 +34,7 @@ export class QuizTemplateController extends Controller {
         super();
 
         this.router.get(
-            "/all_limited",
+            "/limited",
             authService.authenticate(false),
             this.getQuizTemplatesLimited.bind(this)
         );
@@ -42,8 +42,8 @@ export class QuizTemplateController extends Controller {
         this.router.all("*", authService.authenticate());
 
         this.router.post("/", this.create.bind(this));
-        this.router.patch("/edit/:quizTemplateId", this.edit.bind(this));
-        this.router.get("/all_full", this.getQuizTemplatesFull.bind(this));
+        this.router.patch("/:quizTemplateId", this.edit.bind(this));
+        this.router.get("/full", this.getQuizTemplatesFull.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -57,7 +57,8 @@ export class QuizTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.CREATE_QUIZ_TEMPLATE,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -86,10 +87,20 @@ export class QuizTemplateController extends Controller {
                 })),
                 req.body.sampleSize as number,
             ];
-            if (!(await this.subjectService.findById(subject))) {
+            if (
+                !(await this.subjectService.findById(
+                    subject,
+                    {},
+                    { session: session }
+                ))
+            ) {
                 throw new Error(`Subject doesn't exist`);
             }
-            if (!(await this.accessLevelService.accessLevelsExist(levels))) {
+            if (
+                !(await this.accessLevelService.accessLevelsExist(levels, {
+                    session: session,
+                }))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
             if (sampleSize <= 0 || sampleSize > questions.length) {
@@ -97,7 +108,8 @@ export class QuizTemplateController extends Controller {
             }
             if (
                 !(await this.questionTemplateService.questionTemplatesExist(
-                    questions.map((question) => question.questionId)
+                    questions.map((question) => question.questionId),
+                    { session: session }
                 ))
             ) {
                 throw new Error(`One or more questions does not exist`);
@@ -108,9 +120,13 @@ export class QuizTemplateController extends Controller {
                 questions.map((question) =>
                     (async () => {
                         const questionTemplate =
-                            await this.questionTemplateService.findOne({
-                                _id: question.questionId,
-                            });
+                            await this.questionTemplateService.findOne(
+                                {
+                                    _id: question.questionId,
+                                },
+                                {},
+                                { session: session }
+                            );
                         return (
                             questionTemplate.questions.length ===
                                 question.point.length &&
@@ -131,7 +147,8 @@ export class QuizTemplateController extends Controller {
 
             const result = await this.quizTemplateService.create(
                 userId,
-                req.body
+                req.body,
+                { session: session }
             );
             res.composer.success(result);
             await session.commitTransaction();
@@ -155,7 +172,8 @@ export class QuizTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.EDIT_QUIZ_TEMPLATE,
-                    req.tokenMeta.isManager
+                    req.tokenMeta.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -167,7 +185,9 @@ export class QuizTemplateController extends Controller {
                 req.params.quizTemplateId
             );
             const quizTemplate = await this.quizTemplateService.findById(
-                quizTemplateId
+                quizTemplateId,
+                {},
+                { session: session }
             );
             if (!quizTemplate) {
                 throw new Error(`Quiz template not found`);
@@ -206,10 +226,20 @@ export class QuizTemplateController extends Controller {
                 })),
                 req.body.sampleSize as number,
             ];
-            if (!(await this.subjectService.findById(subject))) {
+            if (
+                !(await this.subjectService.findById(
+                    subject,
+                    {},
+                    { session: session }
+                ))
+            ) {
                 throw new Error(`Subject doesn't exist`);
             }
-            if (!(await this.accessLevelService.accessLevelsExist(levels))) {
+            if (
+                !(await this.accessLevelService.accessLevelsExist(levels, {
+                    session: session,
+                }))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
             if (sampleSize <= 0 || sampleSize > questions.length) {
@@ -217,7 +247,8 @@ export class QuizTemplateController extends Controller {
             }
             if (
                 !(await this.questionTemplateService.questionTemplatesExist(
-                    questions.map((question) => question.questionId)
+                    questions.map((question) => question.questionId),
+                    { session: session }
                 ))
             ) {
                 throw new Error(`One or more questions does not exist`);
@@ -228,9 +259,13 @@ export class QuizTemplateController extends Controller {
                 questions.map((question) =>
                     (async () => {
                         const questionTemplate =
-                            await this.questionTemplateService.findOne({
-                                _id: question.questionId,
-                            });
+                            await this.questionTemplateService.findOne(
+                                {
+                                    _id: question.questionId,
+                                },
+                                {},
+                                { session: session }
+                            );
                         return (
                             questionTemplate.questions.length ===
                                 question.point.length &&
@@ -252,7 +287,7 @@ export class QuizTemplateController extends Controller {
             const result = await this.quizTemplateService.findOneAndUpdate(
                 { _id: quizTemplateId },
                 { ...req.body },
-                { new: true }
+                { new: true, session: session }
             );
             res.composer.success(result);
             await session.commitTransaction();
@@ -276,7 +311,8 @@ export class QuizTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_FULL_QUIZ_TEMPLATE,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -284,13 +320,18 @@ export class QuizTemplateController extends Controller {
                 );
             }
 
-            const result = (await this.quizTemplateService.find({})).filter(
-                (quizTemplate) =>
-                    this.accessLevelService.accessLevelsOverlapWithAllowedList(
-                        userAccessLevels,
-                        quizTemplate.visibleTo,
-                        req.tokenMeta?.isManager
-                    )
+            const result = (
+                await this.quizTemplateService.find(
+                    {},
+                    {},
+                    { session: session }
+                )
+            ).filter((quizTemplate) =>
+                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
+                    quizTemplate.visibleTo,
+                    req.tokenMeta?.isManager
+                )
             );
             res.composer.success(result);
             await session.commitTransaction();
@@ -315,7 +356,8 @@ export class QuizTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_LIMITED_QUIZ_TEMPLATE,
-                    req.tokenMeta?.isManager
+                    req.tokenMeta?.isManager,
+                    { session: session }
                 ))
             ) {
                 throw new Error(
@@ -323,7 +365,13 @@ export class QuizTemplateController extends Controller {
                 );
             }
 
-            const result = (await this.quizTemplateService.find({}))
+            const result = (
+                await this.quizTemplateService.find(
+                    {},
+                    {},
+                    { session: session }
+                )
+            )
                 .filter((quizTemplate) =>
                     this.accessLevelService.accessLevelsOverlapWithAllowedList(
                         userAccessLevels,
