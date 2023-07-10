@@ -48,15 +48,12 @@ export class CacheService {
         f: () => Promise<string>,
         options: any = {}
     ) {
-        const res = await this.client.get(key);
-        if (res != null) {
-            return res;
-        }
         return await this.lock.acquire(key, async () => {
             let x = await this.client.get(key);
             if (x != null) {
                 return x;
             }
+            logger.debug(`Cache miss on key ${key}`);
             x = await f();
             await this.client.set(key, x, options);
             return x;
