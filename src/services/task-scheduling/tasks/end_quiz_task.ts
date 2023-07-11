@@ -28,8 +28,6 @@ export class EndQuizTask implements ScheduledTask<QuizDocument> {
     }
 
     async execute(): Promise<QuizDocument> {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             logger.info(
                 `Ending quiz ${this.quizId.toString()} by ${this.userId.toString()}`
@@ -56,22 +54,18 @@ export class EndQuizTask implements ScheduledTask<QuizDocument> {
                     status: QuizStatus.ONGOING,
                 },
                 { status: QuizStatus.ENDED, endTime: quizEndTime },
-                { new: true, session: session }
+                { new: true }
             );
             if (!result) {
                 throw new Error(
                     `The requested quiz was not found, or may have already finished`
                 );
             }
-            await session.commitTransaction();
             return result;
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             throw error; // let whatever uses this handle the error
-        } finally {
-            await session.endSession();
         }
     }
 }

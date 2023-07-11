@@ -24,29 +24,19 @@ export class MeController extends Controller {
     }
 
     async getMyProfile(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const userId = req.tokenMeta.userId;
-            const user = await this.userService.findById(
-                userId,
-                {},
-                { session: session }
-            );
+            const user = await this.userService.findById(userId);
 
             if (!user) {
                 throw new ErrorNotFound(`Requested user is not found`);
             }
 
             res.composer.success(user);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 }

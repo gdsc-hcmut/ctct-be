@@ -27,70 +27,50 @@ export class AccessLevelService {
     }
 
     private async createPredefinedAccessLevels() {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
-            let visitor = await AccessLevelModel.findOne(
-                {
-                    predefinedId: "visitor",
-                },
-                {},
-                { session: session }
-            );
+            let visitor = await AccessLevelModel.findOne({
+                predefinedId: "visitor",
+            });
             if (!visitor) {
                 visitor = (
-                    await AccessLevelModel.create(
-                        [
-                            {
-                                name: "Visitor",
-                                predefinedId: "visitor",
-                                description:
-                                    "This access level is used automatically when a user is not logged in",
-                                permissions: [],
-                                createdAt: Date.now(),
-                            },
-                        ],
-                        { session: session }
-                    )
+                    await AccessLevelModel.create([
+                        {
+                            name: "Visitor",
+                            predefinedId: "visitor",
+                            description:
+                                "This access level is used automatically when a user is not logged in",
+                            permissions: [],
+                            createdAt: Date.now(),
+                        },
+                    ])
                 )[0];
             }
-            let student = await AccessLevelModel.findOne(
-                {
-                    predefinedId: "student",
-                },
-                {},
-                { session: session }
-            );
+            let student = await AccessLevelModel.findOne({
+                predefinedId: "student",
+            });
             if (!student) {
                 student = (
-                    await AccessLevelModel.create(
-                        [
-                            {
-                                name: "Student",
-                                predefinedId: "student",
-                                description:
-                                    "This access level is automatically granted for users who just logged in, can be assigned",
-                                permissions: [
-                                    Permission.VIEW_MATERIAL,
-                                    Permission.VIEW_PREVIOUS_EXAM,
-                                ],
-                                createdAt: Date.now(),
-                            },
-                        ],
-                        { session: session }
-                    )
+                    await AccessLevelModel.create([
+                        {
+                            name: "Student",
+                            predefinedId: "student",
+                            description:
+                                "This access level is automatically granted for users who just logged in, can be assigned",
+                            permissions: [
+                                Permission.VIEW_MATERIAL,
+                                Permission.VIEW_PREVIOUS_EXAM,
+                            ],
+                            createdAt: Date.now(),
+                        },
+                    ])
                 )[0];
             }
             this.VISITOR_ID = visitor._id;
             this.STUDENT_ID = student._id;
             logger.info("[AccessLevel] Created predefined access levels");
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
-        } finally {
-            await session.endSession();
         }
     }
 

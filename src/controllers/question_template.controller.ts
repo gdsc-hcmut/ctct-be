@@ -262,8 +262,6 @@ export class QuestionTemplateController extends Controller {
     }
 
     async create(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const userAccessLevels = req.tokenMeta.accessLevels;
 
@@ -271,8 +269,7 @@ export class QuestionTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.CREATE_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager,
-                    { session: session }
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -443,24 +440,17 @@ export class QuestionTemplateController extends Controller {
 
             const result = await this.questionTemplateService.create(
                 userId,
-                req.body,
-                { session: session }
+                req.body
             );
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
     async getAll(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const userAccessLevels = req.tokenMeta.accessLevels;
 
@@ -468,8 +458,7 @@ export class QuestionTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.VIEW_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager,
-                    { session: session }
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -477,26 +466,16 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            const result = await this.questionTemplateService.find(
-                {},
-                {},
-                { session: session }
-            );
+            const result = await this.questionTemplateService.find({});
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
     async delete(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const userAccessLevels = req.tokenMeta.accessLevels;
 
@@ -504,8 +483,7 @@ export class QuestionTemplateController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.DELETE_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager,
-                    { session: session }
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -514,13 +492,9 @@ export class QuestionTemplateController extends Controller {
             }
 
             const questionId = new Types.ObjectId(req.params.questionId);
-            const question = await this.questionTemplateService.findOne(
-                {
-                    _id: questionId,
-                },
-                {},
-                { session: session }
-            );
+            const question = await this.questionTemplateService.findOne({
+                _id: questionId,
+            });
             if (!question) {
                 throw new Error(`Question template does not exist`);
             }
@@ -529,17 +503,13 @@ export class QuestionTemplateController extends Controller {
             const [quizTemplateWithThisQuestion] = await Promise.all([
                 (async () => {
                     return (
-                        (await this.quizTemplateService.findOne(
-                            {
-                                potentialQuestions: {
-                                    $elemMatch: {
-                                        questionId: questionId,
-                                    },
+                        (await this.quizTemplateService.findOne({
+                            potentialQuestions: {
+                                $elemMatch: {
+                                    questionId: questionId,
                                 },
                             },
-                            {},
-                            { session: session }
-                        )) != null
+                        })) != null
                     );
                 })(),
             ]);
@@ -553,14 +523,10 @@ export class QuestionTemplateController extends Controller {
                 _id: questionId,
             });
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 }

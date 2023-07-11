@@ -48,29 +48,17 @@ export class AccessLevelController extends Controller {
     }
 
     async viewAllAccessLevels(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
-            const result = await this.accessLevelService.find(
-                {},
-                {},
-                { session: session }
-            );
+            const result = await this.accessLevelService.find({});
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
     async createAccessLevel(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             if (!req.tokenMeta.isManager) {
                 throw new Error(`Missing administrative permissions`);
@@ -88,18 +76,13 @@ export class AccessLevelController extends Controller {
                 userId,
                 name,
                 description,
-                permissions,
-                { session: session }
+                permissions
             );
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
@@ -165,8 +148,6 @@ export class AccessLevelController extends Controller {
     }
 
     async editAccessLevel(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             if (!req.tokenMeta.isManager) {
                 throw new Error(`Missing administrative permissions`);
@@ -174,9 +155,7 @@ export class AccessLevelController extends Controller {
 
             const accessLevelId = new Types.ObjectId(req.params.accessLevelId);
             const accessLevel = await this.accessLevelService.findById(
-                accessLevelId,
-                {},
-                { session: session }
+                accessLevelId
             );
             if (!accessLevel) {
                 throw new Error(`The requested access level does not exist`);
@@ -196,7 +175,7 @@ export class AccessLevelController extends Controller {
             const result = await this.accessLevelService.findOneAndUpdate(
                 { _id: accessLevelId },
                 { ...info },
-                { new: true, session: session }
+                { new: true }
             );
 
             await this.accessLevelService.invalidateCache(
@@ -204,20 +183,14 @@ export class AccessLevelController extends Controller {
             );
 
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
     async setUserAccessLevel(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             if (!req.tokenMeta.isManager) {
                 throw new Error(`Missing administrative permissions`);
@@ -229,8 +202,7 @@ export class AccessLevelController extends Controller {
             );
             const verify =
                 await this.accessLevelService.verifyAssignAccessLevel(
-                    accessLevelsIds,
-                    { session: session }
+                    accessLevelsIds
                 );
             if (!verify) {
                 throw new Error(
@@ -241,20 +213,16 @@ export class AccessLevelController extends Controller {
             const result = await this.userService.findOneAndUpdate(
                 { _id: userId },
                 { $set: { accessLevels: accessLevelsIds } },
-                { new: true, session: session }
+                { new: true }
             );
             if (!result) {
                 throw new Error(`User not found`);
             }
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
             logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 }

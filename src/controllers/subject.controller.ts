@@ -14,6 +14,7 @@ import {
 import mongoose, { Types } from "mongoose";
 import _ from "lodash";
 import { Permission } from "../models/access_level.model";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class SubjectController extends Controller {
@@ -44,8 +45,6 @@ export class SubjectController extends Controller {
     }
 
     async create(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const { userId } = req.tokenMeta;
             const { name, description = "" } = req.body;
@@ -54,8 +53,7 @@ export class SubjectController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     req.tokenMeta.accessLevels,
                     Permission.CREATE_SUBJECT,
-                    req.tokenMeta.isManager,
-                    { session: session }
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -70,43 +68,28 @@ export class SubjectController extends Controller {
             const doc = await this.subjectService.create(
                 name,
                 userId,
-                description,
-                { session: session }
+                description
             );
             res.composer.success(doc);
-            await session.commitTransaction();
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
     async getAllSubjects(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
-            const ans = await this.subjectService.find(
-                {},
-                {},
-                { session: session }
-            );
+            const ans = await this.subjectService.find({});
             res.composer.success(ans);
-            await session.commitTransaction();
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
     async editSubject(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const userAccessLevels = req.tokenMeta.accessLevels;
 
@@ -114,8 +97,7 @@ export class SubjectController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.EDIT_SUBJECT,
-                    req.tokenMeta.isManager,
-                    { session: session }
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -124,13 +106,9 @@ export class SubjectController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.subjectService.findOne(
-                {
-                    _id: docId,
-                },
-                {},
-                { session: session }
-            );
+            const doc = await this.subjectService.findOne({
+                _id: docId,
+            });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
@@ -145,23 +123,17 @@ export class SubjectController extends Controller {
                 },
                 {
                     new: true,
-                    session: session,
                 }
             );
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
     async deleteOne(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
         try {
             const userAccessLevels = req.tokenMeta.accessLevels;
 
@@ -169,8 +141,7 @@ export class SubjectController extends Controller {
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
                     Permission.DELETE_SUBJECT,
-                    req.tokenMeta.isManager,
-                    { session: session }
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -179,13 +150,9 @@ export class SubjectController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const sub = await this.subjectService.findOne(
-                {
-                    _id: docId,
-                },
-                {},
-                { session: session }
-            );
+            const sub = await this.subjectService.findOne({
+                _id: docId,
+            });
             if (!sub) {
                 throw new Error(`Subject doesn't exist`);
             }
@@ -247,20 +214,14 @@ export class SubjectController extends Controller {
                 );
             }
 
-            const result = await this.subjectService.findOneAndDelete(
-                {
-                    _id: docId,
-                },
-                { session: session }
-            );
+            const result = await this.subjectService.findOneAndDelete({
+                _id: docId,
+            });
             res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 }
