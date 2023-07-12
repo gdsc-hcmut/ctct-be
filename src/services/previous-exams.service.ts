@@ -1,7 +1,7 @@
 import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
-import {
+import mongoose, {
     FilterQuery,
     ProjectionType,
     QueryOptions,
@@ -42,37 +42,47 @@ export class PreviousExamService {
         userId: Types.ObjectId,
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy,
-        visibleTo: Types.ObjectId[],
-        options: SaveOptions = {}
+        visibleTo: Types.ObjectId[]
     ) {
-        console.assert(files.length === 1);
-        const uploadedAttachments = await this.fileUploadService.uploadFiles(
-            files,
-            compressionStrategy,
-            options
-        );
-        const currentTime = Date.now();
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            console.assert(files.length === 1);
+            const uploadedAttachments =
+                await this.fileUploadService.uploadFiles(
+                    files,
+                    compressionStrategy,
+                    { session: session }
+                );
+            const currentTime = Date.now();
 
-        return (
-            await PreviousExamModel.create(
-                [
-                    {
-                        name: name,
-                        subject: subject,
+            const result = (
+                await PreviousExamModel.create(
+                    [
+                        {
+                            name: name,
+                            subject: subject,
 
-                        subtitle: subtitle,
-                        description: description,
+                            subtitle: subtitle,
+                            description: description,
 
-                        visibleTo: visibleTo,
-                        resource: uploadedAttachments[0]._id,
-                        createdBy: userId,
-                        createdAt: currentTime,
-                        lastUpdatedAt: currentTime,
-                    },
-                ],
-                options
-            )
-        )[0];
+                            visibleTo: visibleTo,
+                            resource: uploadedAttachments[0]._id,
+                            createdBy: userId,
+                            createdAt: currentTime,
+                            lastUpdatedAt: currentTime,
+                        },
+                    ],
+                    { session: session }
+                )
+            )[0];
+            return result;
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            await session.endSession();
+        }
     }
 
     /**

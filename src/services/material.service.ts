@@ -1,7 +1,7 @@
 import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
-import {
+import mongoose, {
     FilterQuery,
     ProjectionType,
     QueryOptions,
@@ -32,37 +32,50 @@ export class MaterialService {
         userId: Types.ObjectId,
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy,
-        visibleTo: Types.ObjectId[],
-        options: SaveOptions = {}
+        visibleTo: Types.ObjectId[]
     ) {
-        console.assert(files.length === 1);
-        const compressedFiles = await this.fileUploadService.uploadFiles(
-            files,
-            compressionStrategy
-        );
-        const currentTime = Date.now();
+        // transaction here because the material and attachment
+        // document has to consistent with each other
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            console.assert(files.length === 1);
+            const compressedFiles = await this.fileUploadService.uploadFiles(
+                files,
+                compressionStrategy,
+                { session: session }
+            );
+            const currentTime = Date.now();
+            const result = (
+                await MaterialModel.create(
+                    [
+                        {
+                            name: name,
+                            subject: subject,
+                            chapter: chapter,
 
-        return (
-            await MaterialModel.create(
-                [
-                    {
-                        name: name,
-                        subject: subject,
-                        chapter: chapter,
+                            subtitle: subtitle,
+                            description: description,
 
-                        subtitle: subtitle,
-                        description: description,
+                            visibleTo: visibleTo,
+                            resource: compressedFiles[0]._id,
+                            createdBy: userId,
+                            createdAt: currentTime,
+                            lastUpdatedAt: currentTime,
+                        },
+                    ],
+                    { session: session }
+                )
+            )[0];
 
-                        visibleTo: visibleTo,
-                        resource: compressedFiles[0]._id,
-                        createdBy: userId,
-                        createdAt: currentTime,
-                        lastUpdatedAt: currentTime,
-                    },
-                ],
-                options
-            )
-        )[0];
+            await session.commitTransaction();
+            return result;
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            await session.endSession();
+        }
     }
 
     async deleteById(id: Types.ObjectId, options: QueryOptions = {}) {
