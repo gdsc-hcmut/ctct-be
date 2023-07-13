@@ -179,7 +179,7 @@ export class AccessLevelController extends Controller {
             );
 
             await this.accessLevelService.invalidateCache(
-                accessLevelId.toString()
+                `access_level ${accessLevelId.toString()}`
             );
 
             res.composer.success(result);
