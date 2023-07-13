@@ -306,7 +306,10 @@ export class QuestionTemplateController extends Controller {
             if (chapter === undefined) {
                 throw new Error(`Missing 'chapter' field`);
             }
-            if (!(await this.subjectService.findById(subject))) {
+            if (chapter <= 0) {
+                throw new Error(`Chapter should be greater than 0`);
+            }
+            if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
 
@@ -466,7 +469,9 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            const result = await this.questionTemplateService.find({});
+            const result = await this.questionTemplateService.find({
+                deletedAt: { $exists: false },
+            });
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -494,6 +499,7 @@ export class QuestionTemplateController extends Controller {
             const questionId = new Types.ObjectId(req.params.questionId);
             const question = await this.questionTemplateService.findOne({
                 _id: questionId,
+                deletedAt: { $exists: false },
             });
             if (!question) {
                 throw new Error(`Question template does not exist`);
@@ -504,6 +510,7 @@ export class QuestionTemplateController extends Controller {
                 (async () => {
                     return (
                         (await this.quizTemplateService.findOne({
+                            deletedAt: { $exists: false },
                             potentialQuestions: {
                                 $elemMatch: {
                                     questionId: questionId,
@@ -519,9 +526,9 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            const result = await this.questionTemplateService.findOneAndDelete({
-                _id: questionId,
-            });
+            const result = await this.questionTemplateService.markAsDeleted(
+                questionId
+            );
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

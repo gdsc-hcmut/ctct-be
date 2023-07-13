@@ -92,7 +92,7 @@ export class PreviousExamController extends Controller {
             }
             const subject = new Types.ObjectId(subjectString);
 
-            if (!(await this.subjectService.findById(subject))) {
+            if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
 
@@ -100,13 +100,6 @@ export class PreviousExamController extends Controller {
                 new PreviousExamUploadValidation()
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
-
-            await this.subjectService.findOneAndUpdate(
-                { _id: subject },
-                {
-                    lastUpdatedAt: Date.now(),
-                }
-            );
 
             if (!req.body.visibleTo) {
                 throw new Error(`Missing 'visibleTo' field`);
@@ -156,6 +149,7 @@ export class PreviousExamController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`Document not found`);
@@ -196,9 +190,7 @@ export class PreviousExamController extends Controller {
 
             const subject = new Types.ObjectId(req.params.subjectId);
             const ans = (
-                await this.previousExamService.find({
-                    subject: subject,
-                })
+                await this.previousExamService.findBySubject(subject)
             ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
@@ -232,6 +224,7 @@ export class PreviousExamController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
@@ -279,7 +272,11 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            const ans = (await this.previousExamService.find({})).filter((d) =>
+            const ans = (
+                await this.previousExamService.find({
+                    deletedAt: { $exists: false },
+                })
+            ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
                     d.visibleTo,
@@ -313,6 +310,7 @@ export class PreviousExamController extends Controller {
 
             const doc = await this.previousExamService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
@@ -354,7 +352,7 @@ export class PreviousExamController extends Controller {
             }
             if (info.subject) {
                 const subject = new Types.ObjectId(info.subject);
-                if (!this.subjectService.findById(subject)) {
+                if (!this.subjectService.subjectExists(subject)) {
                     throw new Error(`Subject doesn't exist`);
                 }
             }
@@ -363,7 +361,6 @@ export class PreviousExamController extends Controller {
                 { _id: docId },
                 {
                     ...info,
-                    lastUpdatedAt: Date.now(),
                 },
                 {
                     new: true,
@@ -396,6 +393,7 @@ export class PreviousExamController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
@@ -412,7 +410,7 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            const result = await this.previousExamService.deleteById(docId);
+            const result = await this.previousExamService.markAsDeleted(docId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

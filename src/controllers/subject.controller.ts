@@ -41,7 +41,7 @@ export class SubjectController extends Controller {
         this.router.all("*", authService.authenticate());
         this.router.post("/", this.create.bind(this));
         this.router.patch("/:docId", this.editSubject.bind(this));
-        this.router.delete("/:docId", this.deleteOne.bind(this));
+        this.router.delete("/:docId", this.delete.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -80,7 +80,11 @@ export class SubjectController extends Controller {
 
     async getAllSubjects(req: Request, res: Response) {
         try {
-            const ans = await this.subjectService.find({});
+            const ans = await this.subjectService.find({
+                deletedAt: {
+                    $exists: false,
+                },
+            });
             res.composer.success(ans);
         } catch (error) {
             logger.error(error.message);
@@ -108,9 +112,10 @@ export class SubjectController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.subjectService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
-                throw new Error(`Document doesn't exist`);
+                throw new Error(`Subject doesn't exist or has been deleted`);
             }
 
             const info = _.pick(req.body, ["name", "description"]);
@@ -133,7 +138,7 @@ export class SubjectController extends Controller {
         }
     }
 
-    async deleteOne(req: Request, res: Response) {
+    async delete(req: Request, res: Response) {
         try {
             const userAccessLevels = req.tokenMeta.accessLevels;
 
@@ -152,9 +157,10 @@ export class SubjectController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const sub = await this.subjectService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!sub) {
-                throw new Error(`Subject doesn't exist`);
+                throw new Error(`Subject doesn't exist or has been deleted`);
             }
 
             // check if anything holds a reference to this subject
@@ -168,6 +174,7 @@ export class SubjectController extends Controller {
                     return (
                         (await this.materialService.findOne({
                             subject: docId,
+                            deletedAt: { $exists: false },
                         })) != null
                     );
                 })(),
@@ -175,6 +182,7 @@ export class SubjectController extends Controller {
                     return (
                         (await this.previousExamService.findOne({
                             subject: docId,
+                            deletedAt: { $exists: false },
                         })) != null
                     );
                 })(),
@@ -182,6 +190,7 @@ export class SubjectController extends Controller {
                     return (
                         (await this.questionTemplateService.findOne({
                             subject: docId,
+                            deletedAt: { $exists: false },
                         })) != null
                     );
                 })(),
@@ -189,6 +198,7 @@ export class SubjectController extends Controller {
                     return (
                         (await this.quizTemplateService.findOne({
                             subject: docId,
+                            deletedAt: { $exists: false },
                         })) != null
                     );
                 })(),
@@ -214,9 +224,7 @@ export class SubjectController extends Controller {
                 );
             }
 
-            const result = await this.subjectService.findOneAndDelete({
-                _id: docId,
-            });
+            const result = await this.subjectService.markAsDeleted(docId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

@@ -79,6 +79,7 @@ export type QuestionTemplateDocument = Document & {
 
     createdAt: number;
     createdBy: Types.ObjectId;
+    deletedAt: number;
 };
 
 const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
@@ -111,6 +112,7 @@ const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
 
     createdAt: { type: Number, required: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "users" },
+    deletedAt: Number,
 });
 
 const QuestionTemplateModel = mongoose.model<QuestionTemplateDocument>(

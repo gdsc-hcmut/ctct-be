@@ -96,15 +96,15 @@ export class MaterialController extends Controller {
             const subject = new Types.ObjectId(subjectString);
             const chapter = toNumber(chapterNumber);
 
-            if (!(await this.subjectService.findById(subject))) {
+            if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
 
             if (
-                await this.materialService.findOne({
-                    subject: subject,
-                    chapter: chapter,
-                })
+                await this.materialService.materialWithSubjectAndChapterExists(
+                    subject,
+                    chapter
+                )
             ) {
                 throw new Error(`This chapter already exists`);
             }
@@ -113,13 +113,6 @@ export class MaterialController extends Controller {
                 new MaterialUploadValidation()
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
-
-            await this.subjectService.findOneAndUpdate(
-                { _id: subject },
-                {
-                    lastUpdatedAt: Date.now(),
-                }
-            );
 
             if (!req.body.visibleTo) {
                 throw new Error(`Missing 'visibleTo' field`);
@@ -169,6 +162,7 @@ export class MaterialController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.materialService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`Document not found`);
@@ -208,9 +202,7 @@ export class MaterialController extends Controller {
             }
             const subject = new Types.ObjectId(req.params.subjectId);
             const ans = (
-                await this.materialService.find({
-                    subject: subject,
-                })
+                await this.materialService.findBySubject(subject)
             ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
@@ -244,6 +236,7 @@ export class MaterialController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.materialService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
@@ -291,7 +284,11 @@ export class MaterialController extends Controller {
                 );
             }
 
-            const ans = (await this.materialService.find({})).filter((d) =>
+            const ans = (
+                await this.materialService.find({
+                    deletedAt: { $exists: false },
+                })
+            ).filter((d) =>
                 this.accessLevelService.accessLevelsOverlapWithAllowedList(
                     userAccessLevels,
                     d.visibleTo,
@@ -324,6 +321,7 @@ export class MaterialController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.materialService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
@@ -351,7 +349,7 @@ export class MaterialController extends Controller {
 
             if (info.subject) {
                 info.subject = new Types.ObjectId(info.subject);
-                if (!(await this.subjectService.findById(info.subject))) {
+                if (!(await this.subjectService.subjectExists(info.subject))) {
                     throw new Error(`Subject doesn't exist`);
                 }
             }
@@ -371,20 +369,20 @@ export class MaterialController extends Controller {
                 }
             }
             // subject must be empty or valid, so we check if it collides with any other document
-            const changedLoc =
+            const changedSubjectOrChapter =
                 (info.subject && info.subject != doc.subject) ||
                 (info.chapter && info.chapter != doc.chapter);
-            if (changedLoc) {
-                const nSubject = info.subject ? info.subject : doc.subject;
-                const nChapter = info.chapter ? info.chapter : doc.chapter;
+            if (changedSubjectOrChapter) {
+                const newSubject = info.subject ?? doc.subject;
+                const newChapter = info.chapter ?? doc.chapter;
                 if (
-                    await this.materialService.findOne({
-                        subject: nSubject,
-                        chapter: nChapter,
-                    })
+                    await this.materialService.materialWithSubjectAndChapterExists(
+                        newSubject,
+                        newChapter
+                    )
                 ) {
                     throw new Error(
-                        `A document with the same subject and chapter id already exists`
+                        `A document with the same subject and chapter already exists`
                     );
                 }
             }
@@ -393,7 +391,6 @@ export class MaterialController extends Controller {
                 { _id: docId },
                 {
                     ...info,
-                    lastUpdatedAt: Date.now(),
                 },
                 {
                     new: true,
@@ -426,6 +423,7 @@ export class MaterialController extends Controller {
             const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.materialService.findOne({
                 _id: docId,
+                deletedAt: { $exists: false },
             });
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
@@ -443,7 +441,7 @@ export class MaterialController extends Controller {
                 );
             }
 
-            const result = await this.materialService.deleteById(docId);
+            const result = await this.materialService.markAsDeleted(docId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

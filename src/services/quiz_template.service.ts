@@ -34,6 +34,14 @@ export class QuizTemplateService {
         )[0];
     }
 
+    async markAsDeleted(id: Types.ObjectId) {
+        return await QuizTemplateModel.findOneAndUpdate(
+            { _id: id },
+            { deletedAt: Date.now() },
+            { new: true }
+        );
+    }
+
     async find(
         query: FilterQuery<QuizTemplateDocument>,
         projection: ProjectionType<QuizTemplateDocument> = {},

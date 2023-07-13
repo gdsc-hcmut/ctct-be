@@ -307,8 +307,8 @@ export class QuestionTemplateService {
             questions.map((question) =>
                 (async () => {
                     return (
-                        (await QuestionTemplateModel.findById(
-                            question,
+                        (await QuestionTemplateModel.findOne(
+                            { _id: question, deletedAt: { $exists: false } },
                             {},
                             options
                         )) != null
@@ -334,11 +334,12 @@ export class QuestionTemplateService {
         return await QuestionTemplateModel.deleteOne(query, options);
     }
 
-    async findOneAndDelete(
-        query: FilterQuery<QuestionTemplateDocument>,
-        options: QueryOptions<QuestionTemplateDocument> = {}
-    ) {
-        return await QuestionTemplateModel.findOneAndDelete(query, options);
+    async markAsDeleted(id: Types.ObjectId) {
+        return await QuestionTemplateModel.findOneAndUpdate(
+            { _id: id },
+            { deletedAt: Date.now() },
+            { new: true }
+        );
     }
 
     async find(

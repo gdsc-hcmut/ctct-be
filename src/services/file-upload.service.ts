@@ -109,30 +109,30 @@ export class FileUploadService {
     /**
      * try to delete attachments and return whether they were deleted successfully or not
      */
-    async deleteFiles(
-        ids: Types.ObjectId[],
-        options: QueryOptions<AttachmentDocument> = {}
-    ): Promise<boolean[]> {
-        const ans: boolean[] = await Promise.all(
-            ids.map((id) =>
-                (async () => {
-                    const doc = await AttachmentModel.findOneAndDelete(
-                        {
-                            _id: id,
-                        },
-                        options
-                    );
-                    if (!doc) {
-                        return false;
-                    }
-                    const { refName } = doc;
-                    const file = this.bucket.file(refName);
-                    await file.delete();
-                    return true;
-                })()
-            )
-        );
+    // async deleteFiles(
+    //     ids: Types.ObjectId[],
+    //     options: QueryOptions<AttachmentDocument> = {}
+    // ): Promise<boolean[]> {
+    //     const ans: boolean[] = await Promise.all(
+    //         ids.map((id) =>
+    //             (async () => {
+    //                 const doc = await AttachmentModel.findOneAndDelete(
+    //                     {
+    //                         _id: id,
+    //                     },
+    //                     options
+    //                 );
+    //                 if (!doc) {
+    //                     return false;
+    //                 }
+    //                 const { refName } = doc;
+    //                 const file = this.bucket.file(refName);
+    //                 await file.delete();
+    //                 return true;
+    //             })()
+    //         )
+    //     );
 
-        return ans;
-    }
+    //     return ans;
+    // }
 }

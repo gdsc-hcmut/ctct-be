@@ -85,22 +85,12 @@ export class PreviousExamService {
         }
     }
 
-    /**
-     * Delete a previous exam by id, and return whether the document exists
-     * @param id ID of the document to be deleted
-     * @returns A boolean of whether the document with that ID exists
-     * */
-    async deleteById(id: Types.ObjectId, options: QueryOptions = {}) {
-        const doc = await PreviousExamModel.findOneAndDelete(
+    async markAsDeleted(id: Types.ObjectId) {
+        return await PreviousExamModel.findOneAndUpdate(
             { _id: id },
-            options
+            { deletedAt: Date.now() },
+            { new: true }
         );
-        if (!doc) {
-            return null;
-        }
-
-        await this.fileUploadService.deleteFiles([doc.resource], options);
-        return doc;
     }
 
     async findOneAndUpdate(
@@ -163,5 +153,17 @@ export class PreviousExamService {
         options: QueryOptions<PreviousExamDocument> = {}
     ) {
         return await PreviousExamModel.updateMany(query, update, options);
+    }
+
+    async findBySubject(
+        subject: Types.ObjectId,
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.find(
+            { subject: subject, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
     }
 }

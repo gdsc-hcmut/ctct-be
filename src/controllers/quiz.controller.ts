@@ -85,9 +85,10 @@ export class QuizController extends Controller {
                 );
             }
 
-            const quizTemplate = await this.quizTemplateService.findById(
-                quizTemplateId
-            );
+            const quizTemplate = await this.quizTemplateService.findOne({
+                _id: quizTemplateId,
+                deletedAt: { $exists: false },
+            });
 
             if (
                 !quizTemplate ||

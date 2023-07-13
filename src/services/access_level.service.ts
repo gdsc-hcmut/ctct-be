@@ -110,8 +110,8 @@ export class AccessLevelService {
             await this.cacheService.getWithPopulate(
                 `access_level ${accessLevel.toString()}`,
                 async () => {
-                    const d = await AccessLevelModel.findById(
-                        accessLevel,
+                    const d = await AccessLevelModel.findOne(
+                        { _id: accessLevel, deletedAt: { $exists: false } },
                         {},
                         options
                     );
@@ -181,8 +181,11 @@ export class AccessLevelService {
         const result = await Promise.all(
             levels.map((level) =>
                 (async () =>
-                    (await AccessLevelModel.findById(level, {}, options)) !=
-                    null)()
+                    (await AccessLevelModel.findOne(
+                        { _id: level, deletedAt: { $exists: false } },
+                        {},
+                        options
+                    )) != null)()
             )
         );
         return result.every((x) => x);
@@ -197,7 +200,12 @@ export class AccessLevelService {
         // 'student'
         const result = await Promise.all(
             levels.map((l) =>
-                (async () => await AccessLevelModel.findById(l, {}, options))()
+                (async () =>
+                    await AccessLevelModel.findOne(
+                        { _id: l, deletedAt: { $exists: false } },
+                        {},
+                        options
+                    ))()
             )
         );
         return result.every((x) => {
@@ -217,13 +225,6 @@ export class AccessLevelService {
         options: QueryOptions<AccessLevelDocument> = {}
     ) {
         return await AccessLevelModel.find(query, projection, options);
-    }
-
-    public async findOneAndDelete(
-        query: FilterQuery<AccessLevelDocument>,
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
-        return await AccessLevelModel.findOneAndDelete(query, options);
     }
 
     public async findOneAndUpdate(
@@ -250,8 +251,8 @@ export class AccessLevelService {
         return await AccessLevelModel.findById(id, projection, options);
     }
 
-    public async invalidateCache(key: string) {
-        await this.cacheService.del(key);
+    public async invalidateCache(accessLevelId: Types.ObjectId) {
+        await this.cacheService.del(`access_level ${accessLevelId.toString()}`);
     }
 
     getStudentAccessLevelId() {

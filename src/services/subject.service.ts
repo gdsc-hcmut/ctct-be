@@ -22,28 +22,20 @@ export class SubjectService {
         description: string,
         options: SaveOptions = {}
     ) {
-        const t = Date.now();
+        const now = Date.now();
         return (
             await SubjectModel.create(
                 [
                     {
                         name: name,
                         description: description,
-                        createdAt: t,
+                        createdAt: now,
                         createdBy: userId,
-                        lastUpdatedAt: t,
                     },
                 ],
                 options
             )
         )[0];
-    }
-
-    async findOneAndDelete(
-        query: FilterQuery<SubjectDocument>,
-        options: QueryOptions<SubjectDocument> = {}
-    ) {
-        return await SubjectModel.findOneAndDelete(query, options);
     }
 
     async findById(
@@ -76,5 +68,22 @@ export class SubjectService {
         options: QueryOptions<SubjectDocument> = {}
     ) {
         return await SubjectModel.find(query, projection, options);
+    }
+
+    async markAsDeleted(id: Types.ObjectId) {
+        return await SubjectModel.findOneAndUpdate(
+            { _id: id },
+            { deletedAt: Date.now() },
+            { new: true }
+        );
+    }
+
+    async subjectExists(id: Types.ObjectId) {
+        return (
+            (await SubjectModel.findOne({
+                _id: id,
+                deletedAt: { $exists: false },
+            })) != null
+        );
     }
 }

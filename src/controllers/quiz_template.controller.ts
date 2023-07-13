@@ -5,12 +5,12 @@ import { Request, Response, ServiceType } from "../types";
 import {
     AccessLevelService,
     AuthService,
-    MapperService,
     QuestionTemplateService,
+    QuizService,
     QuizTemplateService,
     SubjectService,
 } from "../services/index";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
 import _ from "lodash";
@@ -29,21 +29,18 @@ export class QuizTemplateController extends Controller {
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.QuestionTemplate)
         private questionTemplateService: QuestionTemplateService,
-        @inject(ServiceType.Mapper) private mapperService: MapperService
+        @inject(ServiceType.Quiz) private quizService: QuizService
     ) {
         super();
 
-        this.router.get(
-            "/limited",
-            authService.authenticate(false),
-            this.getQuizTemplatesLimited.bind(this)
-        );
+        this.router.get("/limited", authService.authenticate(false));
 
         this.router.all("*", authService.authenticate());
 
         this.router.post("/", this.create.bind(this));
         this.router.patch("/:quizTemplateId", this.edit.bind(this));
-        this.router.get("/full", this.getQuizTemplatesFull.bind(this));
+        this.router.delete("/:quizTemplateId", this.delete.bind(this));
+        this.router.get("/full", this.getAllQuizTemplates.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -84,7 +81,7 @@ export class QuizTemplateController extends Controller {
                 })),
                 req.body.sampleSize as number,
             ];
-            if (!(await this.subjectService.findById(subject))) {
+            if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
             if (!(await this.accessLevelService.accessLevelsExist(levels))) {
@@ -106,9 +103,9 @@ export class QuizTemplateController extends Controller {
                 questions.map((question) =>
                     (async () => {
                         const questionTemplate =
-                            await this.questionTemplateService.findOne({
-                                _id: question.questionId,
-                            });
+                            await this.questionTemplateService.findById(
+                                question.questionId
+                            );
                         return (
                             questionTemplate.questions.length ===
                                 question.point.length &&
@@ -158,9 +155,10 @@ export class QuizTemplateController extends Controller {
             const quizTemplateId = new Types.ObjectId(
                 req.params.quizTemplateId
             );
-            const quizTemplate = await this.quizTemplateService.findById(
-                quizTemplateId
-            );
+            const quizTemplate = await this.quizTemplateService.findOne({
+                _id: quizTemplateId,
+                deletedAt: { $exists: false },
+            });
             if (!quizTemplate) {
                 throw new Error(`Quiz template not found`);
             }
@@ -198,7 +196,7 @@ export class QuizTemplateController extends Controller {
                 })),
                 req.body.sampleSize as number,
             ];
-            if (!(await this.subjectService.findById(subject))) {
+            if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
             if (!(await this.accessLevelService.accessLevelsExist(levels))) {
@@ -220,9 +218,9 @@ export class QuizTemplateController extends Controller {
                 questions.map((question) =>
                     (async () => {
                         const questionTemplate =
-                            await this.questionTemplateService.findOne({
-                                _id: question.questionId,
-                            });
+                            await this.questionTemplateService.findById(
+                                question.questionId
+                            );
                         return (
                             questionTemplate.questions.length ===
                                 question.point.length &&
@@ -254,7 +252,7 @@ export class QuizTemplateController extends Controller {
         }
     }
 
-    async getQuizTemplatesFull(req: Request, res: Response) {
+    async getAllQuizTemplates(req: Request, res: Response) {
         try {
             const userAccessLevels = req.tokenMeta?.accessLevels;
 
@@ -270,13 +268,16 @@ export class QuizTemplateController extends Controller {
                 );
             }
 
-            const result = (await this.quizTemplateService.find({})).filter(
-                (quizTemplate) =>
-                    this.accessLevelService.accessLevelsOverlapWithAllowedList(
-                        userAccessLevels,
-                        quizTemplate.visibleTo,
-                        req.tokenMeta?.isManager
-                    )
+            const result = (
+                await this.quizTemplateService.find({
+                    deletedAt: { $exists: false },
+                })
+            ).filter((quizTemplate) =>
+                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    userAccessLevels,
+                    quizTemplate.visibleTo,
+                    req.tokenMeta?.isManager
+                )
             );
             res.composer.success(result);
         } catch (error) {
@@ -286,16 +287,15 @@ export class QuizTemplateController extends Controller {
         }
     }
 
-    async getQuizTemplatesLimited(req: Request, res: Response) {
-        // get quiz templates without question list
+    async delete(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const userAccessLevels = req.tokenMeta.accessLevels;
 
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
                     userAccessLevels,
-                    Permission.VIEW_LIMITED_QUIZ_TEMPLATE,
-                    req.tokenMeta?.isManager
+                    Permission.DELETE_QUIZ_TEMPLATE,
+                    req.tokenMeta.isManager
                 ))
             ) {
                 throw new Error(
@@ -303,19 +303,35 @@ export class QuizTemplateController extends Controller {
                 );
             }
 
-            const result = (await this.quizTemplateService.find({}))
-                .filter((quizTemplate) =>
-                    this.accessLevelService.accessLevelsOverlapWithAllowedList(
-                        userAccessLevels,
-                        quizTemplate.visibleTo,
-                        req.tokenMeta?.isManager
-                    )
+            const quizTemplateId = new Types.ObjectId(
+                req.params.quizTemplateId
+            );
+            const quizTemplate = await this.quizTemplateService.findOne({
+                _id: quizTemplateId,
+                deletedAt: { $exists: false },
+            });
+            if (!quizTemplate) {
+                throw new Error(`Quiz template not found`);
+            }
+
+            if (
+                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                    req.tokenMeta.accessLevels,
+                    quizTemplate.visibleTo,
+                    req.tokenMeta.isManager
                 )
-                .map((quizTemplate) =>
-                    this.mapperService.maskQuestionsFromQuizTemplate(
-                        quizTemplate
-                    )
+            ) {
+                throw new Error(
+                    `This document has been configured to be hidden from you`
                 );
+            }
+
+            // if we delete a quiz template, all quizzes that were created from it
+            // still exist, and can be viewed by the user
+
+            const result = await this.quizTemplateService.markAsDeleted(
+                quizTemplateId
+            );
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

@@ -78,14 +78,12 @@ export class MaterialService {
         }
     }
 
-    async deleteById(id: Types.ObjectId, options: QueryOptions = {}) {
-        const doc = await MaterialModel.findOneAndDelete({ _id: id }, options);
-        if (!doc) {
-            return null;
-        }
-
-        await this.fileUploadService.deleteFiles([doc.resource], options);
-        return doc;
+    async markAsDeleted(id: Types.ObjectId) {
+        return await MaterialModel.findOneAndUpdate(
+            { _id: id },
+            { deletedAt: Date.now() },
+            { new: true }
+        );
     }
 
     async findOneAndUpdate(
@@ -146,5 +144,36 @@ export class MaterialService {
         options: QueryOptions<MaterialDocument> = {}
     ) {
         return await MaterialModel.updateMany(query, update, options);
+    }
+
+    async materialWithSubjectAndChapterExists(
+        subject: Types.ObjectId,
+        chapter: number,
+        projection: ProjectionType<MaterialDocument> = {},
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return (
+            (await MaterialModel.findOne(
+                {
+                    subject: subject,
+                    chapter: chapter,
+                    deletedAt: { $exists: false },
+                },
+                projection,
+                options
+            )) != null
+        );
+    }
+
+    async findBySubject(
+        subject: Types.ObjectId,
+        projection: ProjectionType<MaterialDocument> = {},
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.find(
+            { subject: subject, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
     }
 }

@@ -16,6 +16,7 @@ export type QuizTemplateDocument = Document & {
 
     createdBy: Types.ObjectId;
     createdAt: number;
+    deletedAt: number;
 };
 
 const quizTemplateSchema = new Schema<QuizTemplateDocument>({
@@ -39,6 +40,7 @@ const quizTemplateSchema = new Schema<QuizTemplateDocument>({
 
     createdBy: { type: Schema.Types.ObjectId, ref: "users" },
     createdAt: Number,
+    deletedAt: Number,
 });
 
 const QuizTemplateModel = mongoose.model<QuizTemplateDocument>(

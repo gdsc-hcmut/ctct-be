@@ -34,12 +34,9 @@ export class AccessLevelController extends Controller {
         super();
 
         this.router.all("*", authService.authenticate());
-        this.router.get("/", this.viewAllAccessLevels.bind(this));
-        this.router.post("/", this.createAccessLevel.bind(this));
-        this.router.delete(
-            "/:accessLevelId",
-            this.deleteAccessLevel.bind(this)
-        );
+        this.router.get("/", this.getAllAccessLevels.bind(this));
+        this.router.post("/", this.create.bind(this));
+        this.router.delete("/:accessLevelId", this.delete.bind(this));
         this.router.patch("/:accessLevelId", this.editAccessLevel.bind(this));
         this.router.patch(
             "/edituser/:userId",
@@ -47,9 +44,11 @@ export class AccessLevelController extends Controller {
         );
     }
 
-    async viewAllAccessLevels(req: Request, res: Response) {
+    async getAllAccessLevels(req: Request, res: Response) {
         try {
-            const result = await this.accessLevelService.find({});
+            const result = await this.accessLevelService.find({
+                deletedAt: { $exists: false },
+            });
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -58,7 +57,7 @@ export class AccessLevelController extends Controller {
         }
     }
 
-    async createAccessLevel(req: Request, res: Response) {
+    async create(req: Request, res: Response) {
         try {
             if (!req.tokenMeta.isManager) {
                 throw new Error(`Missing administrative permissions`);
@@ -86,7 +85,7 @@ export class AccessLevelController extends Controller {
         }
     }
 
-    async deleteAccessLevel(req: Request, res: Response) {
+    async delete(req: Request, res: Response) {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -96,16 +95,23 @@ export class AccessLevelController extends Controller {
 
             const accessLevelId = new Types.ObjectId(req.params.accessLevelId);
             const deletedAccessLevel =
-                await this.accessLevelService.findOneAndDelete(
+                await this.accessLevelService.findOneAndUpdate(
                     {
                         _id: accessLevelId,
                         predefinedId: { $exists: false },
+                        deletedAt: { $exists: false },
                     },
-                    { session: session }
+                    {
+                        deletedAt: Date.now(),
+                    },
+                    {
+                        new: true,
+                        session: session,
+                    }
                 );
             if (!deletedAccessLevel) {
                 throw new Error(
-                    `Requested access level does not exist, or the level itself cannot be deleted`
+                    `Access level does not exist, or cannot be deleted`
                 );
             }
 
@@ -131,9 +137,7 @@ export class AccessLevelController extends Controller {
                     { session: session }
                 ),
             ]);
-            await this.accessLevelService.invalidateCache(
-                accessLevelId.toString()
-            );
+            await this.accessLevelService.invalidateCache(accessLevelId);
 
             res.composer.success(deletedAccessLevel);
             await session.commitTransaction();
@@ -154,11 +158,12 @@ export class AccessLevelController extends Controller {
             }
 
             const accessLevelId = new Types.ObjectId(req.params.accessLevelId);
-            const accessLevel = await this.accessLevelService.findById(
-                accessLevelId
-            );
+            const accessLevel = await this.accessLevelService.findOne({
+                _id: accessLevelId,
+                deletedAt: { $exists: false },
+            });
             if (!accessLevel) {
-                throw new Error(`The requested access level does not exist`);
+                throw new Error(`Access level doesn't exist`);
             }
 
             const editableFields = accessLevel.predefinedId
@@ -178,9 +183,7 @@ export class AccessLevelController extends Controller {
                 { new: true }
             );
 
-            await this.accessLevelService.invalidateCache(
-                `access_level ${accessLevelId.toString()}`
-            );
+            await this.accessLevelService.invalidateCache(accessLevelId);
 
             res.composer.success(result);
         } catch (error) {

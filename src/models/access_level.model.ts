@@ -23,6 +23,7 @@ export enum Permission {
     // quiz template
     CREATE_QUIZ_TEMPLATE = "CREATE_QUIZ_TEMPLATE",
     EDIT_QUIZ_TEMPLATE = "EDIT_QUIZ_TEMPLATE",
+    DELETE_QUIZ_TEMPLATE = "DELETE_QUIZ_TEMPLATE",
     VIEW_FULL_QUIZ_TEMPLATE = "VIEW_FULL_QUIZ_TEMPLATE",
     VIEW_LIMITED_QUIZ_TEMPLATE = "VIEW_LIMITED_QUIZ_TEMPLATE",
     TAKE_QUIZ = "TAKE_QUIZ",
@@ -36,6 +37,7 @@ export type AccessLevelDocument = Document & {
     permissions: Permission[];
     createdAt: number;
     createdBy: Types.ObjectId;
+    deletedAt: number;
 };
 
 const accessLevelSchema = new Schema<AccessLevelDocument>({
@@ -45,6 +47,7 @@ const accessLevelSchema = new Schema<AccessLevelDocument>({
     permissions: [{ type: String, enum: Permission }],
     createdAt: Number,
     createdBy: Schema.Types.ObjectId,
+    deletedAt: Number,
 });
 
 const AccessLevelModel = mongoose.model<AccessLevelDocument>(
