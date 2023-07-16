@@ -136,37 +136,4 @@ export class QuizService {
             )) != null
         );
     }
-
-    /**
-     * Update a quiz with a boolean array (the result of the answer given by the user)
-     */
-    async updateQuestionResult(
-        quizId: Types.ObjectId,
-        index: number,
-        result: boolean[],
-        options: QueryOptions<QuizDocument> = {}
-    ) {
-        const quiz = await QuizModel.findById(quizId, {}, options);
-        quiz.questions[index].triesLeft--;
-        for (const [i, subQuestion] of quiz.questions[
-            index
-        ].questions.entries()) {
-            subQuestion.isCorrect = result[i];
-        }
-        // recalculate standardized score
-        let cur = 0,
-            tot = 0;
-        quiz.questions.forEach((question) => {
-            question.questions.forEach(({ point, isCorrect }) => {
-                tot += point;
-                if (isCorrect) {
-                    cur += point;
-                }
-            });
-        });
-        quiz.standardizedScore = tot === 0 ? 0 : (100 * cur) / tot;
-        quiz.markModified("questions");
-        await quiz.save();
-        return quiz;
-    }
 }

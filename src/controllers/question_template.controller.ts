@@ -89,10 +89,7 @@ export class QuestionTemplateController extends Controller {
                 _id: questionId,
             });
             const result =
-                this.questionTemplateService.generateConcreteQuestion(
-                    question,
-                    req.body?.point
-                );
+                this.questionTemplateService.generateConcreteQuestion(question);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -249,9 +246,7 @@ export class QuestionTemplateController extends Controller {
             const questionTemplate = req.body as QuestionTemplateDocument;
             const result =
                 this.questionTemplateService.generateConcreteQuestion(
-                    questionTemplate,
-                    Array(req.body.questions.length).fill(0),
-                    1
+                    questionTemplate
                 );
             res.composer.success(result);
         } catch (error) {

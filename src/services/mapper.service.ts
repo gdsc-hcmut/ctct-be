@@ -20,6 +20,7 @@ export class MapperService {
                     "answerKeys",
                     "answerField",
                     "explanation",
+                    "isCorrect",
                 ])
             ),
         };
@@ -29,7 +30,7 @@ export class MapperService {
         return _.omit(quizTemplate.toObject(), ["potentialQuestions"]);
     }
 
-    maskQuizDocumentAccordingToStatus(quiz: QuizDocument) {
+    adjustQuizDocumentAccordingToStatus(quiz: QuizDocument) {
         const status = quiz.status;
         // remove most metadata about the quiz template, only leaving the name
         const data = _.omit(quiz.toObject(), [
@@ -51,6 +52,7 @@ export class MapperService {
                     questions: _.map(data.questions, (question) =>
                         this.maskAnswerFromConcreteQuestion(question)
                     ),
+                    timeLeft: quiz.startTime + quiz.duration - Date.now(),
                 };
             }
             case QuizStatus.ENDED: {

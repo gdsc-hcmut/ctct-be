@@ -47,7 +47,7 @@ export class QuizController extends Controller {
         this.router.get("/", this.getMy.bind(this));
         this.router.get("/:quizId", this.getById.bind(this));
         this.router.post("/:quizTemplateId", this.take.bind(this));
-        this.router.post("/answer/:quizId/:index", this.answer.bind(this));
+        this.router.post("/save/:quizId", this.saveAnswers.bind(this));
         this.router.post("/end/:quizId", this.endQuiz.bind(this));
     }
 
@@ -108,16 +108,15 @@ export class QuizController extends Controller {
                 quizTemplate.sampleSize
             );
             const concreteQuestions = await Promise.all(
-                potentialQuestions.map(({ questionId, point, attempts }) =>
+                potentialQuestions.map((questionId) =>
                     (async () => {
                         const questionTemplate =
                             await this.questionTemplateService.findById(
                                 questionId
                             );
+                        console.debug(questionTemplate);
                         return this.questionTemplateService.generateConcreteQuestion(
-                            questionTemplate,
-                            point,
-                            attempts
+                            questionTemplate
                         );
                     })()
                 )
@@ -150,7 +149,7 @@ export class QuizController extends Controller {
             );
 
             const result =
-                this.mapperService.maskQuizDocumentAccordingToStatus(quiz);
+                this.mapperService.adjustQuizDocumentAccordingToStatus(quiz);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -164,7 +163,7 @@ export class QuizController extends Controller {
             const userId = req.tokenMeta.userId;
             const quizzes = await this.quizService.getAllQuizByUser(userId);
             const result = (quizzes as any[]).map((quiz) =>
-                this.mapperService.maskQuizDocumentAccordingToStatus(quiz)
+                this.mapperService.adjustQuizDocumentAccordingToStatus(quiz)
             );
             res.composer.success(result);
         } catch (error) {
@@ -183,9 +182,10 @@ export class QuizController extends Controller {
                 throw new Error(`Quiz doesn't exist`);
             }
 
-            const result = this.mapperService.maskQuizDocumentAccordingToStatus(
-                quiz as any
-            );
+            const result =
+                this.mapperService.adjustQuizDocumentAccordingToStatus(
+                    quiz as any
+                );
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -194,54 +194,33 @@ export class QuizController extends Controller {
         }
     }
 
-    async answer(req: Request, res: Response) {
+    async saveAnswers(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
             const quizId = new Types.ObjectId(req.params.quizId);
-            const index = parseInt(req.params.index);
-
-            const data = req.body.answer as any[];
-            if (!data) {
-                throw new Error(`Missing 'answer' field`);
+            const answers = req.body.answers as any[];
+            if (!answers) {
+                throw new Error(`Missing 'answers' field`);
             }
-
             const quiz = await this.quizService.findOne({
                 _id: quizId,
                 userId: userId,
                 status: QuizStatus.ONGOING,
             });
             if (!quiz) {
-                throw new Error(
-                    `The requested quiz does not exist, or it has already finished`
+                throw new Error(`Quiz doesn't exist or has ended`);
+            }
+            quiz.questions.forEach((question, index) => {
+                this.questionTemplateService.attachUserAnswerToQuestion(
+                    question,
+                    answers[index]
                 );
-            }
-            if (index < 0 || index >= quiz.questions.length) {
-                throw new Error(`Index out of bounds`);
-            }
-            if (data.length !== quiz.questions[index].questions.length) {
-                throw new Error(
-                    `Number of answers doesn't match that of the question`
-                );
-            }
-
-            const questionResult = this.questionTemplateService.processAnswer(
-                quiz.questions[index],
-                data
-            );
-
-            this.questionTemplateService.attachUserAnswerToQuestion(
-                quiz.questions[index],
-                data
-            );
+            });
             quiz.markModified("questions");
             await quiz.save();
-
-            const result = await this.quizService.updateQuestionResult(
-                quizId,
-                index,
-                questionResult
+            res.composer.success(
+                this.mapperService.adjustQuizDocumentAccordingToStatus(quiz)
             );
-            res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -253,18 +232,37 @@ export class QuizController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizId = new Types.ObjectId(req.params.quizId);
+            const answers = req.body.answers as any[];
+            if (!answers) {
+                throw new Error(`Missing 'answers' field`);
+            }
+            const quiz = await this.quizService.findOne({
+                _id: quizId,
+                userId: userId,
+                status: QuizStatus.ONGOING,
+            });
+            if (!quiz) {
+                throw new Error(`Quiz doesn't exist or has ended`);
+            }
+            quiz.questions.forEach((question, index) => {
+                this.questionTemplateService.attachUserAnswerToQuestion(
+                    question,
+                    answers[index]
+                );
+            });
+            quiz.markModified("questions");
+            await quiz.save();
 
             const result = await new EndQuizTask(
                 userId,
                 quizId,
                 this.quizService,
                 this.socketService,
-                this.taskSchedulingService
+                this.taskSchedulingService,
+                this.questionTemplateService
             ).execute();
 
-            res.composer.success(
-                this.mapperService.maskQuizDocumentAccordingToStatus(result)
-            );
+            res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.log(error);

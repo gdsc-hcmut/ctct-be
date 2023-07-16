@@ -18,6 +18,7 @@ import GrammarParser from "../lib/question-generation/GrammarParser";
 import QuestionGrammarVisitor from "../lib/question-generation/QuestionGrammarVisitor";
 import Mustache from "mustache";
 import _ from "lodash";
+import { QuizDocument } from "../models/quiz.model";
 
 @injectable()
 export class QuestionTemplateService {
@@ -44,17 +45,9 @@ export class QuestionTemplateService {
         )[0];
     }
 
-    generateConcreteQuestion(
-        questionTemplate: QuestionTemplateDocument,
-        point: number[] = new Array<number>(
-            questionTemplate.questions.length
-        ).fill(0),
-        triesLeft = 1
-    ) {
-        console.assert(questionTemplate.questions.length === point.length);
+    generateConcreteQuestion(questionTemplate: QuestionTemplateDocument) {
         const result: ConcreteQuestion = {
             questions: [],
-            triesLeft: triesLeft,
         };
 
         const charStream = new CharStream(questionTemplate.code);
@@ -73,7 +66,7 @@ export class QuestionTemplateService {
             );
         }
 
-        for (const [index, question] of questionTemplate.questions.entries()) {
+        for (const question of questionTemplate.questions) {
             switch (question.questionType) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                     result.questions.push({
@@ -97,7 +90,6 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point[index],
                     });
                     break;
                 }
@@ -123,7 +115,6 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point[index],
                     });
                     break;
                 }
@@ -143,7 +134,6 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point[index],
                     });
                     break;
                 }
@@ -164,7 +154,6 @@ export class QuestionTemplateService {
                             symbols
                         ),
                         isCorrect: false,
-                        point: point[index],
                     });
                     break;
                 }
@@ -179,124 +168,101 @@ export class QuestionTemplateService {
         return result;
     }
 
-    processAnswer(concreteQuestion: ConcreteQuestion, answers: any[]) {
-        console.assert(concreteQuestion.questions.length === answers.length);
-
-        // a user cannot answer if they have no tries left for this question,
-        // or they have already guessed every subquestion correctly
-        if (concreteQuestion.triesLeft === 0) {
-            throw new Error(`You have used all attempts for this question`);
-        }
-        if (concreteQuestion.questions.every((x) => x.isCorrect)) {
-            throw new Error(
-                `You have already answered this question correctly`
-            );
-        }
-
-        const ans: boolean[] = concreteQuestion.questions.map((question, i) => {
-            const answer = answers[i];
-
-            switch (question.questionType) {
+    /**
+     * Checks if the saved answer of a question is correct, and updates
+     * the question object accordingly
+     */
+    processQuestionAnswer(question: ConcreteQuestion) {
+        for (const subQuestion of question.questions) {
+            switch (subQuestion.questionType) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                    if (answer.answerKey === undefined) {
-                        return false;
+                    if (subQuestion.userAnswerKey !== undefined) {
+                        subQuestion.isCorrect =
+                            subQuestion.userAnswerKey === subQuestion.answerKey;
                     }
-                    return (answer.answerKey as number) === question.answerKey;
+                    break;
                 }
                 case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                    if (answer.answerKeys === undefined) {
-                        return false;
+                    if (subQuestion.userAnswerKeys !== undefined) {
+                        subQuestion.isCorrect = _.isEqual(
+                            subQuestion.userAnswerKeys.sort(),
+                            subQuestion.answerKeys.sort()
+                        );
                     }
-                    const a = (answer.answerKeys as number[]).sort();
-                    const b = [...question.answerKeys].sort();
-                    for (const [i, x] of a.entries()) {
-                        if (x !== b[i]) {
-                            return false;
-                        }
-                    }
-                    return true;
+                    break;
                 }
                 case QuestionType.NUMBER: {
-                    const answerField = answer.answerField as number;
-                    if (answerField === undefined) {
-                        throw new Error(`Answer missing 'answerField'`);
+                    if (subQuestion.userAnswerField !== undefined) {
+                        subQuestion.isCorrect =
+                            Math.abs(
+                                (subQuestion.userAnswerField as number) -
+                                    (subQuestion.answerField as number)
+                            ) <= subQuestion.maximumError;
                     }
-                    return (
-                        Math.abs(
-                            answerField - (question.answerField as number)
-                        ) <= question.maximumError
-                    );
+                    break;
                 }
                 case QuestionType.TEXT: {
-                    const answerField = answer.answerField as string;
-                    if (answerField === undefined) {
-                        throw new Error(`Answer missing 'answerField'`);
+                    if (subQuestion.userAnswerField !== undefined) {
+                        subQuestion.isCorrect = subQuestion.matchCase
+                            ? (subQuestion.userAnswerField as string) ===
+                              (subQuestion.answerField as string)
+                            : (
+                                  subQuestion.userAnswerField as string
+                              ).toLowerCase() ===
+                              (subQuestion.answerField as string).toLowerCase();
                     }
-                    return question.matchCase
-                        ? (question.answerField as string).trim() ===
-                              answerField.trim()
-                        : (question.answerField as string).toLowerCase() ===
-                              answerField.toLowerCase().trim();
+                    break;
                 }
                 default: {
                     throw new Error(
-                        `Unrecognized question type. Received: ${question.questionType}`
+                        `Unrecognized question type: ${subQuestion.questionType}`
                     );
                 }
             }
-        });
-        return ans;
+        }
     }
 
     /**
-     * Receives a concrete question and data for user's answer to that question
-     * and copies the according user answer to dedicated fields of the question.
-     * **Note: This method modifies the original object**
+     * Attaches the user's answers to the question object
      */
-    attachUserAnswerToQuestion(
-        concreteQuestion: ConcreteQuestion,
-        answers: any[]
-    ) {
-        console.assert(concreteQuestion.questions.length === answers.length);
-        concreteQuestion.questions.forEach((question, i) => {
-            const answer = answers[i];
-
-            switch (question.questionType) {
+    attachUserAnswerToQuestion(question: ConcreteQuestion, answers: any[]) {
+        for (const [index, subQuestion] of question.questions.entries()) {
+            const answer = answers[index];
+            switch (subQuestion.questionType) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                    const answerKey = answer.answerKey as number;
-                    if (answerKey !== undefined) {
-                        question.userAnswerKey = answerKey;
+                    if (answer.answerKey !== undefined) {
+                        subQuestion.userAnswerKey = answer.answerKey as number;
                     }
                     break;
                 }
                 case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                    const answerKeys = answer.answerKeys as number[];
-                    if (answerKeys !== undefined) {
-                        question.userAnswerKeys = answerKeys;
+                    if (answer.answerKeys !== undefined) {
+                        subQuestion.userAnswerKeys =
+                            answer.answerKeys as number[];
                     }
                     break;
                 }
                 case QuestionType.NUMBER: {
-                    const answerField = answer.answerField as number;
-                    if (answerField !== undefined) {
-                        question.userAnswerField = answerField;
+                    if (answer.answerField !== undefined) {
+                        subQuestion.userAnswerField =
+                            answer.answerField as number;
                     }
                     break;
                 }
                 case QuestionType.TEXT: {
-                    const answerField = answer.answerField as string;
-                    if (answerField !== undefined) {
-                        question.userAnswerField = answerField;
+                    if (answer.answerField !== undefined) {
+                        subQuestion.userAnswerField =
+                            answer.answerField as string;
                     }
                     break;
                 }
                 default: {
                     throw new Error(
-                        `Unrecognized question type. Received: ${question.questionType}`
+                        `Unrecognized question type: ${subQuestion.questionType}`
                     );
                 }
             }
-        });
+        }
     }
 
     async questionTemplatesExist(

@@ -25,15 +25,13 @@ export type ConcreteQuestion = {
         matchCase?: boolean;
         maximumError?: number;
         explanation: string;
-        isCorrect: boolean;
-        point: number;
 
         // fields for logging user answer
         userAnswerKey?: number;
         userAnswerKeys?: number[];
         userAnswerField?: string | number;
+        isCorrect: boolean;
     }[];
-    triesLeft: number;
 };
 
 export type QuestionTemplateDocument = Document & {

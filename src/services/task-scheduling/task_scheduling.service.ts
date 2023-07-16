@@ -7,6 +7,7 @@ import { inject, injectable } from "inversify";
 import { ServiceType } from "../../types";
 import { QuizService } from "../quiz.service";
 import { SocketService } from "../server-events/socket.service";
+import { QuestionTemplateService } from "../question_template.service";
 
 @injectable()
 export class TaskSchedulingService {
@@ -14,7 +15,9 @@ export class TaskSchedulingService {
 
     constructor(
         @inject(ServiceType.Quiz) private quizService: QuizService,
-        @inject(ServiceType.Socket) private socketService: SocketService
+        @inject(ServiceType.Socket) private socketService: SocketService,
+        @inject(ServiceType.QuestionTemplate)
+        private questionTemplateService: QuestionTemplateService
     ) {
         this.initialize();
     }
@@ -81,7 +84,8 @@ export class TaskSchedulingService {
                 quizId,
                 this.quizService,
                 this.socketService,
-                this
+                this,
+                this.questionTemplateService
             ).execute();
         } catch (error) {
             logger.error(error.message);
