@@ -69,21 +69,22 @@ export class QuestionTemplateService {
         for (const question of questionTemplate.questions) {
             switch (question.questionType) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
+                    let options = question.options.map((opt) => ({
+                        description: Mustache.render(opt.description, symbols),
+                        key: opt.key,
+                    }));
+
+                    if (question.shuffleOptions) {
+                        options = _.shuffle(options);
+                    }
+
                     result.questions.push({
                         questionType: question.questionType,
                         description: Mustache.render(
                             question.description,
                             symbols
                         ),
-                        options: _.shuffle(
-                            question.options.map((opt) => ({
-                                description: Mustache.render(
-                                    opt.description,
-                                    symbols
-                                ),
-                                key: opt.key,
-                            }))
-                        ),
+                        options: options,
                         answerKey: question.answerKey,
                         explanation: Mustache.render(
                             question.explanation,
@@ -94,21 +95,21 @@ export class QuestionTemplateService {
                     break;
                 }
                 case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
+                    let options = question.options.map((opt) => ({
+                        description: Mustache.render(opt.description, symbols),
+                        key: opt.key,
+                    }));
+                    if (question.shuffleOptions) {
+                        options = _.shuffle(options);
+                    }
+
                     result.questions.push({
                         questionType: question.questionType,
                         description: Mustache.render(
                             question.description,
                             symbols
                         ),
-                        options: _.shuffle(
-                            question.options.map((opt) => ({
-                                description: Mustache.render(
-                                    opt.description,
-                                    symbols
-                                ),
-                                key: opt.key,
-                            }))
-                        ),
+                        options: options,
                         answerKeys: question.answerKeys,
                         explanation: Mustache.render(
                             question.explanation,

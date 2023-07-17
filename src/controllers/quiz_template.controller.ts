@@ -64,13 +64,15 @@ export class QuizTemplateController extends Controller {
                 "name",
                 "description",
                 "subject",
+                "chapter",
                 "visibleTo",
                 "duration",
                 "potentialQuestions",
                 "sampleSize",
             ]);
-            const [subject, levels, questions, sampleSize] = [
+            const [subject, chapter, levels, questions, sampleSize] = [
                 req.body.subject as Types.ObjectId,
+                req.body.chapter as number,
                 (req.body.visibleTo as string[]).map(
                     (x) => new Types.ObjectId(x)
                 ),
@@ -79,6 +81,9 @@ export class QuizTemplateController extends Controller {
                 ),
                 req.body.sampleSize as number,
             ];
+            if (chapter === undefined || chapter < 0) {
+                throw new Error(`Chapter is invalid`);
+            }
             if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
@@ -156,8 +161,9 @@ export class QuizTemplateController extends Controller {
                 "potentialQuestions",
                 "sampleSize",
             ]);
-            const [subject, levels, questions, sampleSize] = [
+            const [subject, chapter, levels, questions, sampleSize] = [
                 req.body.subject as Types.ObjectId,
+                req.body.chapter as number,
                 (req.body.visibleTo as string[]).map(
                     (x) => new Types.ObjectId(x)
                 ),
@@ -166,6 +172,9 @@ export class QuizTemplateController extends Controller {
                 ),
                 req.body.sampleSize as number,
             ];
+            if (chapter === undefined || chapter < 0) {
+                throw new Error(`Chapter is invalid`);
+            }
             if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }

@@ -4,6 +4,7 @@ export type QuizTemplateDocument = Document & {
     name: string;
     description: string;
     subject: Types.ObjectId;
+    chapter: number;
     visibleTo: Types.ObjectId[];
 
     duration: number;
@@ -19,6 +20,7 @@ const quizTemplateSchema = new Schema<QuizTemplateDocument>({
     name: { type: String, required: true, default: "" },
     description: { type: String, required: false, default: "" },
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
+    chapter: Number,
     visibleTo: [{ type: Schema.Types.ObjectId, required: true }],
 
     duration: { type: Number, required: true },

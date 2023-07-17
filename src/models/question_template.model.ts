@@ -43,10 +43,6 @@ export type QuestionTemplateDocument = Document & {
      */
     description?: string;
 
-    /**
-     * Whether the parser should be invoked when converting question
-     * template into a concrete expression
-     */
     code: string;
     subject: Types.ObjectId;
     chapter: number;
@@ -62,6 +58,7 @@ export type QuestionTemplateDocument = Document & {
             key: number;
             description: string;
         }[];
+        shuffleOptions?: boolean;
         answerKey?: number;
         answerKeys?: number[];
 
@@ -97,6 +94,7 @@ const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
                     description: { type: String, required: true },
                 },
             ],
+            shuffleOptions: { type: Boolean, required: false, default: false },
             answerKey: { type: Number, required: false },
             answerKeys: { type: Array<number>, required: false },
 

@@ -124,6 +124,7 @@ export class QuestionTemplateController extends Controller {
                     "questionType",
                     "description",
                     "options",
+                    "shuffleOptions",
                     "answerKey",
                     "answerKeys",
                     "answerField",
@@ -138,18 +139,18 @@ export class QuestionTemplateController extends Controller {
                 const type = req.body.questions[i].questionType as QuestionType;
                 switch (type) {
                     case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                        const [options, answerKey] = [
+                        const [options, shuffleOptions, answerKey] = [
                             req.body.questions[i].options as string[],
+                            req.body.questions[i].shuffleOptions as boolean,
                             req.body.questions[i].answerKey as number,
                         ];
-                        if (!options) {
+                        if (
+                            !options ||
+                            shuffleOptions === undefined ||
+                            answerKey === undefined
+                        ) {
                             throw new Error(
-                                `Missing options for multiple choice, single answer question`
-                            );
-                        }
-                        if (answerKey === undefined) {
-                            throw new Error(
-                                `Missing answer key for multiple choice, multiple answers question`
+                                `Missing options, shuffleOptions, or answerKey for multiple choice, single answer question`
                             );
                         }
                         if (answerKey < 0 || answerKey >= options.length) {
@@ -164,18 +165,18 @@ export class QuestionTemplateController extends Controller {
                         break;
                     }
                     case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                        const [options, answerKeys] = [
+                        const [options, shuffleOptions, answerKeys] = [
                             req.body.questions[i].options as string[],
+                            req.body.questions[i].shuffleOptions as boolean,
                             req.body.questions[i].answerKeys as number[],
                         ];
-                        if (!options) {
+                        if (
+                            !options ||
+                            shuffleOptions === undefined ||
+                            answerKeys === undefined
+                        ) {
                             throw new Error(
-                                `Missing options for multiple choice, multiple answers question`
-                            );
-                        }
-                        if (!answerKeys) {
-                            throw new Error(
-                                `Missing answerKeys for multiple choice, multiple answers question`
+                                `Missing options, shuffleOptions, or answerKeys for multiple choice, multiple answers question`
                             );
                         }
                         answerKeys.forEach((key, keyIndex) => {
@@ -313,6 +314,7 @@ export class QuestionTemplateController extends Controller {
                     "questionType",
                     "description",
                     "options",
+                    "shuffleOptions",
                     "answerKey",
                     "answerKeys",
                     "answerField",
@@ -330,18 +332,18 @@ export class QuestionTemplateController extends Controller {
                 const type = req.body.questions[i].questionType as QuestionType;
                 switch (type) {
                     case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                        const [options, answerKey] = [
+                        const [options, shuffleOptions, answerKey] = [
                             req.body.questions[i].options as string[],
+                            req.body.questions[i].shuffleOptions as boolean,
                             req.body.questions[i].answerKey as number,
                         ];
-                        if (!options) {
+                        if (
+                            !options ||
+                            shuffleOptions === undefined ||
+                            answerKey === undefined
+                        ) {
                             throw new Error(
-                                `Missing options for multiple choice, single answer question`
-                            );
-                        }
-                        if (answerKey === undefined) {
-                            throw new Error(
-                                `Missing answer key for multiple choice, multiple answers question`
+                                `Missing options, shuffleOptions or answerKey for multiple choice, single answer question`
                             );
                         }
                         if (answerKey < 0 || answerKey >= options.length) {
@@ -356,18 +358,18 @@ export class QuestionTemplateController extends Controller {
                         break;
                     }
                     case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                        const [options, answerKeys] = [
+                        const [options, shuffleOptions, answerKeys] = [
                             req.body.questions[i].options as string[],
+                            req.body.questions[i].shuffleOptions as boolean,
                             req.body.questions[i].answerKeys as number[],
                         ];
-                        if (!options) {
+                        if (
+                            !options ||
+                            shuffleOptions === undefined ||
+                            answerKeys === undefined
+                        ) {
                             throw new Error(
-                                `Missing options for multiple choice, multiple answers question`
-                            );
-                        }
-                        if (!answerKeys) {
-                            throw new Error(
-                                `Missing answerKeys for multiple choice, multiple answers question`
+                                `Missing options, shuffleOptions or answerKeys for multiple choice, multiple answers question`
                             );
                         }
                         answerKeys.forEach((key, keyIndex) => {
