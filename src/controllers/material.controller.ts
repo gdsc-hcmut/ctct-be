@@ -69,7 +69,6 @@ export class MaterialController extends Controller {
                 name,
                 subject: subjectString,
                 chapter: chapterNumber,
-                subtitle = "",
                 description = "",
             } = req.body;
 
@@ -130,7 +129,6 @@ export class MaterialController extends Controller {
 
             const doc = await this.materialService.create(
                 name,
-                subtitle,
                 description,
                 subject,
                 chapter,
@@ -338,7 +336,6 @@ export class MaterialController extends Controller {
 
             const info = _.pick(req.body, [
                 "name",
-                "subtitle",
                 "description",
                 "subject",
                 "chapter",

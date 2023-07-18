@@ -13,10 +13,11 @@ import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import _ from "lodash";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
+import { PreviousExamType, Semester } from "../models/previous-exam.model";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -65,12 +66,17 @@ export class PreviousExamController extends Controller {
     async create(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
-            const {
-                name,
-                subject: subjectString,
-                subtitle = "",
-                description = "",
-            } = req.body;
+            const { name, subject: subjectString, description = "" } = req.body;
+
+            const semester = req.body.semester as Semester;
+            if (!semester || !Object.values(Semester).includes(semester)) {
+                throw new Error(`Invalid semester`);
+            }
+
+            const type = req.body.type as PreviousExamType;
+            if (!type || !Object.values(PreviousExamType).includes(type)) {
+                throw new Error(`Invalid type`);
+            }
 
             if (
                 !(await this.accessLevelService.accessLevelsCanPerformAction(
@@ -117,9 +123,10 @@ export class PreviousExamController extends Controller {
 
             const doc = await this.previousExamService.create(
                 name,
-                subtitle,
                 description,
                 subject,
+                semester,
+                type,
                 userId,
                 req.files as Express.Multer.File[],
                 new AgressiveFileCompression(),
@@ -334,9 +341,10 @@ export class PreviousExamController extends Controller {
 
             const info = _.pick(req.body, [
                 "name",
-                "subtitle",
                 "description",
                 "subject",
+                "semester",
+                "type",
                 "visibleTo",
             ]);
 
@@ -359,6 +367,18 @@ export class PreviousExamController extends Controller {
                 const subject = new Types.ObjectId(info.subject);
                 if (!this.subjectService.subjectExists(subject)) {
                     throw new Error(`Subject doesn't exist`);
+                }
+            }
+            if (info.semester) {
+                info.semester = info.semester as Semester;
+                if (!Object.values(Semester).includes(info.semester)) {
+                    throw new Error(`Invalid semester`);
+                }
+            }
+            if (info.type) {
+                info.type = info.type as PreviousExamType;
+                if (!Object.values(PreviousExamType).includes(info.type)) {
+                    throw new Error(`Invalid type`);
                 }
             }
 

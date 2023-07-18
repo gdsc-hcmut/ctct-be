@@ -11,6 +11,8 @@ import mongoose, {
 } from "mongoose";
 import PreviousExamModel, {
     PreviousExamDocument,
+    PreviousExamType,
+    Semester,
 } from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
@@ -25,20 +27,12 @@ export class PreviousExamService {
         logger.info("[PreviousExam] Initializing...");
     }
 
-    /**
-     * Create a new previous exam return the newly created document
-     * @param name Name of this document
-     * @param subject ID of the subject of this document, assuming that the subject exists
-     * @param userId ID of the user that is creating this document
-     * @param files The files to be uploaded, assumed to have already been validated
-     * @param compressionStrategy How the uploaded files should be compressed
-     * @returns The document of the newly created previous exam
-     */
     async create(
         name: string,
-        subtitle: string,
         description: string,
         subject: Types.ObjectId,
+        semester: Semester,
+        type: PreviousExamType,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy,
@@ -61,16 +55,15 @@ export class PreviousExamService {
                     [
                         {
                             name: name,
-                            subject: subject,
-
-                            subtitle: subtitle,
                             description: description,
+                            subject: subject,
+                            semester: semester,
+                            type: type,
 
                             visibleTo: visibleTo,
                             resource: uploadedAttachments[0]._id,
                             createdBy: userId,
                             createdAt: currentTime,
-                            lastUpdatedAt: currentTime,
                         },
                     ],
                     { session: session }

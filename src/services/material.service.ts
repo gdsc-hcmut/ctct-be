@@ -25,7 +25,6 @@ export class MaterialService {
 
     async create(
         name: string,
-        subtitle: string,
         description: string,
         subject: Types.ObjectId,
         chapter: number,
@@ -54,14 +53,12 @@ export class MaterialService {
                             subject: subject,
                             chapter: chapter,
 
-                            subtitle: subtitle,
                             description: description,
 
                             visibleTo: visibleTo,
                             resource: compressedFiles[0]._id,
                             createdBy: userId,
                             createdAt: currentTime,
-                            lastUpdatedAt: currentTime,
                         },
                     ],
                     { session: session }

@@ -38,7 +38,6 @@ export class MapperService {
             "fromTemplate.visibleTo",
             "fromTemplate.subject.createdBy",
             "fromTemplate.subject.createdAt",
-            "fromTemplate.subject.lastUpdatedAt",
             "fromTemplate.duration",
             "fromTemplate.sampleSize",
             "fromTemplate.createdBy",

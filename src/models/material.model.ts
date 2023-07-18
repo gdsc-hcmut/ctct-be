@@ -7,7 +7,6 @@ export type MaterialDocument = Document & {
 
     visibleTo: Types.ObjectId[];
 
-    subtitle: string;
     description: string;
     resource: Types.ObjectId;
     createdBy: Types.ObjectId;
@@ -23,7 +22,6 @@ const materialSchema = new Schema<MaterialDocument>({
 
     visibleTo: [{ type: Schema.Types.ObjectId, ref: "access_levels" }],
 
-    subtitle: String,
     description: String,
     resource: { type: Schema.Types.ObjectId, ref: "attachments" },
     createdBy: {
