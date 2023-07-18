@@ -78,75 +78,18 @@ export class MaterialService {
         }
     }
 
-    async markAsDeleted(id: Types.ObjectId) {
+    async markAsDeleted(
+        id: Types.ObjectId,
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
         return await MaterialModel.findOneAndUpdate(
             { _id: id },
             { deletedAt: Date.now() },
-            { new: true }
+            { ...options, new: true }
         );
     }
 
-    async findOneAndUpdate(
-        query: FilterQuery<MaterialDocument>,
-        upd: UpdateQuery<MaterialDocument>,
-        opt: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.findOneAndUpdate(query, upd, opt);
-    }
-
-    async findById(
-        id: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.findById(id, projection, options);
-    }
-
-    async findOne(
-        query: FilterQuery<MaterialDocument>,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.findOne(query, projection, options);
-    }
-
-    async findByIdPopulated(
-        id: Types.ObjectId,
-        query: string | string[],
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.findById(id, projection, options).populate(
-            query
-        );
-    }
-
-    async find(
-        query: FilterQuery<MaterialDocument>,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.find(query, projection, options);
-    }
-
-    async findPopulated(
-        f: FilterQuery<MaterialDocument>,
-        p: string | string[],
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.find(f, projection, options).populate(p);
-    }
-
-    async updateMany(
-        query: FilterQuery<MaterialDocument>,
-        update: UpdateQuery<MaterialDocument>,
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.updateMany(query, update, options);
-    }
-
-    async materialWithSubjectAndChapterExists(
+    async materialWithSubjectChapterExists(
         subject: Types.ObjectId,
         chapter: number,
         projection: ProjectionType<MaterialDocument> = {},
@@ -165,15 +108,79 @@ export class MaterialService {
         );
     }
 
-    async findBySubject(
-        subject: Types.ObjectId,
+    async removeAccessLevelFromAllMaterials(
+        accessLevelId: Types.ObjectId,
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.updateMany(
+            {},
+            {
+                $pull: {
+                    visibleTo: accessLevelId,
+                },
+            },
+            options
+        );
+    }
+
+    async getMaterialById(
+        id: Types.ObjectId,
+        projection: ProjectionType<MaterialDocument> = {},
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.findOne(
+            { _id: id, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async getMaterialBySubject(
+        subjectId: Types.ObjectId,
         projection: ProjectionType<MaterialDocument> = {},
         options: QueryOptions<MaterialDocument> = {}
     ) {
         return await MaterialModel.find(
-            { subject: subject, deletedAt: { $exists: false } },
+            { subject: subjectId, deletedAt: { $exists: false } },
             projection,
             options
+        );
+    }
+
+    async getAllMaterial(
+        projection: ProjectionType<MaterialDocument> = {},
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.find(
+            { deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async editOneMaterial(
+        id: Types.ObjectId,
+        update: UpdateQuery<MaterialDocument> = {},
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.findOneAndUpdate(
+            { _id: id, deletedAt: { $exists: false } },
+            update,
+            { ...options, new: true }
+        );
+    }
+
+    async materialWithSubjectExists(
+        subjectId: Types.ObjectId,
+        projection: ProjectionType<MaterialDocument> = {},
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return (
+            (await MaterialModel.findOne(
+                { subject: subjectId, deletedAt: { $exists: false } },
+                projection,
+                options
+            )) != null
         );
     }
 }

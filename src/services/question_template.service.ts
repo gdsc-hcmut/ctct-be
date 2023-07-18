@@ -286,42 +286,51 @@ export class QuestionTemplateService {
         return result.every((x) => x);
     }
 
-    async findOne(
-        query: FilterQuery<QuestionTemplateDocument>,
-        projection: ProjectionType<QuestionTemplateDocument> = {},
+    async markAsDeleted(
+        id: Types.ObjectId,
         options: QueryOptions<QuestionTemplateDocument> = {}
     ) {
-        return QuestionTemplateModel.findOne(query, projection, options);
-    }
-
-    async deleteOne(
-        query: FilterQuery<QuestionTemplateDocument>,
-        options: QueryOptions<QuestionTemplateDocument> = {}
-    ) {
-        return await QuestionTemplateModel.deleteOne(query, options);
-    }
-
-    async markAsDeleted(id: Types.ObjectId) {
         return await QuestionTemplateModel.findOneAndUpdate(
             { _id: id },
             { deletedAt: Date.now() },
-            { new: true }
+            { ...options, new: true }
         );
     }
 
-    async find(
-        query: FilterQuery<QuestionTemplateDocument>,
+    async getAllQuestionTemplates(
         projection: ProjectionType<QuestionTemplateDocument> = {},
         options: QueryOptions<QuestionTemplateDocument> = {}
     ) {
-        return await QuestionTemplateModel.find(query, projection, options);
+        return await QuestionTemplateModel.find(
+            { deletedAt: { $exists: false } },
+            projection,
+            options
+        );
     }
 
-    async findById(
+    async getQuestionTemplateById(
         id: Types.ObjectId,
         projection: ProjectionType<QuestionTemplateDocument> = {},
         options: QueryOptions<QuestionTemplateDocument> = {}
     ) {
-        return await QuestionTemplateModel.findById(id, projection, options);
+        return await QuestionTemplateModel.findOne(
+            { _id: id, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async questionTemplateWithSubjectExists(
+        subjectId: Types.ObjectId,
+        projection: ProjectionType<QuestionTemplateDocument> = {},
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
+        return (
+            (await QuestionTemplateModel.findOne(
+                { subject: subjectId, deletedAt: { $exists: false } },
+                projection,
+                options
+            )) != null
+        );
     }
 }

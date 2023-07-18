@@ -1,4 +1,4 @@
-import { inject, injectable } from "inversify";
+import { id, inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
@@ -11,7 +11,7 @@ import {
     QuestionTemplateService,
     QuizTemplateService,
 } from "../services/index";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import _ from "lodash";
 import { Permission } from "../models/access_level.model";
 import { logger } from "../lib/logger";
@@ -80,11 +80,7 @@ export class SubjectController extends Controller {
 
     async getAllSubjects(req: Request, res: Response) {
         try {
-            const ans = await this.subjectService.find({
-                deletedAt: {
-                    $exists: false,
-                },
-            });
+            const ans = await this.subjectService.getAllSubjects();
             res.composer.success(ans);
         } catch (error) {
             logger.error(error.message);
@@ -110,22 +106,17 @@ export class SubjectController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.subjectService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.subjectService.getSubjectById(docId);
+
             if (!doc) {
                 throw new Error(`Subject doesn't exist or has been deleted`);
             }
 
             const info = _.pick(req.body, ["name", "description"]);
 
-            const result = await this.subjectService.findOneAndUpdate(
-                { _id: docId },
-                {
-                    ...info,
-                    lastUpdatedAt: Date.now(),
-                },
+            const result = await this.subjectService.editOneSubject(
+                docId,
+                info,
                 {
                     new: true,
                 }
@@ -155,10 +146,8 @@ export class SubjectController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const sub = await this.subjectService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const sub = await this.subjectService.getSubjectById(docId);
+
             if (!sub) {
                 throw new Error(`Subject doesn't exist or has been deleted`);
             }
@@ -170,38 +159,12 @@ export class SubjectController extends Controller {
                 questionTemplateWithThisSubject,
                 quizTemplateWithThisSubject,
             ] = await Promise.all([
-                (async () => {
-                    return (
-                        (await this.materialService.findOne({
-                            subject: docId,
-                            deletedAt: { $exists: false },
-                        })) != null
-                    );
-                })(),
-                (async () => {
-                    return (
-                        (await this.previousExamService.findOne({
-                            subject: docId,
-                            deletedAt: { $exists: false },
-                        })) != null
-                    );
-                })(),
-                (async () => {
-                    return (
-                        (await this.questionTemplateService.findOne({
-                            subject: docId,
-                            deletedAt: { $exists: false },
-                        })) != null
-                    );
-                })(),
-                (async () => {
-                    return (
-                        (await this.quizTemplateService.findOne({
-                            subject: docId,
-                            deletedAt: { $exists: false },
-                        })) != null
-                    );
-                })(),
+                this.materialService.materialWithSubjectExists(docId),
+                this.previousExamService.previousExamWithSubjectExists(docId),
+                this.questionTemplateService.questionTemplateWithSubjectExists(
+                    docId
+                ),
+                this.quizTemplateService.quizTemplateWithSubjectExists(docId),
             ]);
             if (materialWithThisSubject) {
                 throw new Error(

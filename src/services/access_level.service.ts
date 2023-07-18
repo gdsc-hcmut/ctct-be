@@ -160,7 +160,7 @@ export class AccessLevelService {
      * return true if either the user is an admin or the two lists overlap,
      * and false otherwise.
      */
-    public accessLevelsOverlapWithAllowedList(
+    public checkAllowedListOverlaps(
         accessLevels: Types.ObjectId[],
         permitted: Types.ObjectId[],
         isManager = false
@@ -174,7 +174,7 @@ export class AccessLevelService {
         return accessLevels.some((l) => permitted.some((p) => p.equals(l)));
     }
 
-    public async accessLevelsExist(
+    public async checkAccessLevelsExist(
         levels: Types.ObjectId[],
         options: QueryOptions<AccessLevelDocument> = {}
     ) {
@@ -191,7 +191,7 @@ export class AccessLevelService {
         return result.every((x) => x);
     }
 
-    public async verifyAssignAccessLevel(
+    public async checkCanAssignAccessLevels(
         levels: Types.ObjectId[],
         options: QueryOptions<AccessLevelDocument> = {}
     ) {
@@ -219,43 +219,59 @@ export class AccessLevelService {
         });
     }
 
-    public async find(
-        query: FilterQuery<AccessLevelDocument>,
-        projection: ProjectionType<AccessLevelDocument> = {},
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
-        return await AccessLevelModel.find(query, projection, options);
-    }
-
-    public async findOneAndUpdate(
-        query: FilterQuery<AccessLevelDocument>,
-        update: UpdateQuery<AccessLevelDocument>,
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
-        return await AccessLevelModel.findOneAndUpdate(query, update, options);
-    }
-
-    public async findOne(
-        query: FilterQuery<AccessLevelDocument>,
-        projection: ProjectionType<AccessLevelDocument> = {},
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
-        return await AccessLevelModel.findOne(query, projection, options);
-    }
-
-    public async findById(
-        id: Types.ObjectId,
-        projection: ProjectionType<AccessLevelDocument> = {},
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
-        return await AccessLevelModel.findById(id, projection, options);
-    }
-
     public async invalidateCache(accessLevelId: Types.ObjectId) {
-        await this.cacheService.del(`access_level ${accessLevelId.toString()}`);
+        return await this.cacheService.del(
+            `access_level ${accessLevelId.toString()}`
+        );
     }
 
     getStudentAccessLevelId() {
         return this.STUDENT_ID;
+    }
+
+    async getAllAccessLevels(
+        projection: ProjectionType<AccessLevelDocument> = {},
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
+        return await AccessLevelModel.find(
+            { deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async editOneAccessLevel(
+        id: Types.ObjectId,
+        update: UpdateQuery<AccessLevelDocument> = {},
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
+        return await AccessLevelModel.findOneAndUpdate(
+            { _id: id, deletedAt: { $exists: false } },
+            update,
+            { ...options, new: true }
+        );
+    }
+
+    async getAccessLevelById(
+        id: Types.ObjectId,
+        projection: ProjectionType<AccessLevelDocument> = {},
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
+        return await AccessLevelModel.findOne(
+            { _id: id, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async markAsDeleted(
+        id: Types.ObjectId,
+        options: QueryOptions<AccessLevelDocument> = {}
+    ) {
+        return await AccessLevelModel.findOneAndUpdate(
+            { _id: id },
+            { deletedAt: Date.now() },
+            { ...options, new: true }
+        );
     }
 }

@@ -85,9 +85,10 @@ export class QuestionTemplateController extends Controller {
                 throw new Error(`Missing manager permission`);
             }
             const questionId = new Types.ObjectId(req.params.questionId);
-            const question = await this.questionTemplateService.findOne({
-                _id: questionId,
-            });
+            const question =
+                await this.questionTemplateService.getQuestionTemplateById(
+                    questionId
+                );
             const result =
                 this.questionTemplateService.generateConcreteQuestion(question);
             res.composer.success(result);
@@ -466,9 +467,8 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            const result = await this.questionTemplateService.find({
-                deletedAt: { $exists: false },
-            });
+            const result =
+                await this.questionTemplateService.getAllQuestionTemplates();
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -494,29 +494,22 @@ export class QuestionTemplateController extends Controller {
             }
 
             const questionId = new Types.ObjectId(req.params.questionId);
-            const question = await this.questionTemplateService.findOne({
-                _id: questionId,
-                deletedAt: { $exists: false },
-            });
+            const question =
+                await this.questionTemplateService.getQuestionTemplateById(
+                    questionId
+                );
+
             if (!question) {
                 throw new Error(`Question template does not exist`);
             }
 
             // check if any quiz templates or exam templates that use this question
             const [quizTemplateWithThisQuestion] = await Promise.all([
-                (async () => {
-                    return (
-                        (await this.quizTemplateService.findOne({
-                            deletedAt: { $exists: false },
-                            potentialQuestions: {
-                                $elemMatch: {
-                                    questionId: questionId,
-                                },
-                            },
-                        })) != null
-                    );
-                })(),
+                this.quizTemplateService.checkQuizTemplateWithQuestion(
+                    questionId
+                ),
             ]);
+
             if (quizTemplateWithThisQuestion) {
                 throw new Error(
                     `There are quiz templates that contain this question. Please delete them first`

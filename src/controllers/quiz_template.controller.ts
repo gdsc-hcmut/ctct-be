@@ -87,7 +87,9 @@ export class QuizTemplateController extends Controller {
             if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
-            if (!(await this.accessLevelService.accessLevelsExist(levels))) {
+            if (
+                !(await this.accessLevelService.checkAccessLevelsExist(levels))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
             if (sampleSize <= 0 || sampleSize > questions.length) {
@@ -132,16 +134,17 @@ export class QuizTemplateController extends Controller {
             const quizTemplateId = new Types.ObjectId(
                 req.params.quizTemplateId
             );
-            const quizTemplate = await this.quizTemplateService.findOne({
-                _id: quizTemplateId,
-                deletedAt: { $exists: false },
-            });
+            const quizTemplate =
+                await this.quizTemplateService.getQuizTemplateById(
+                    quizTemplateId
+                );
+
             if (!quizTemplate) {
                 throw new Error(`Quiz template not found`);
             }
 
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     req.tokenMeta.accessLevels,
                     quizTemplate.visibleTo,
                     req.tokenMeta.isManager
@@ -178,7 +181,9 @@ export class QuizTemplateController extends Controller {
             if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
             }
-            if (!(await this.accessLevelService.accessLevelsExist(levels))) {
+            if (
+                !(await this.accessLevelService.checkAccessLevelsExist(levels))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
             if (sampleSize <= 0 || sampleSize > questions.length) {
@@ -192,10 +197,9 @@ export class QuizTemplateController extends Controller {
                 throw new Error(`One or more questions does not exist`);
             }
 
-            const result = await this.quizTemplateService.findOneAndUpdate(
-                { _id: quizTemplateId },
-                { ...req.body },
-                { new: true }
+            const result = await this.quizTemplateService.editOneQuizTemplate(
+                quizTemplateId,
+                req.body
             );
             res.composer.success(result);
         } catch (error) {
@@ -222,11 +226,9 @@ export class QuizTemplateController extends Controller {
             }
 
             const result = (
-                await this.quizTemplateService.find({
-                    deletedAt: { $exists: false },
-                })
+                await this.quizTemplateService.getAllQuizTemplates()
             ).filter((quizTemplate) =>
-                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     quizTemplate.visibleTo,
                     req.tokenMeta?.isManager
@@ -259,16 +261,17 @@ export class QuizTemplateController extends Controller {
             const quizTemplateId = new Types.ObjectId(
                 req.params.quizTemplateId
             );
-            const quizTemplate = await this.quizTemplateService.findOne({
-                _id: quizTemplateId,
-                deletedAt: { $exists: false },
-            });
+            const quizTemplate =
+                await this.quizTemplateService.getQuizTemplateById(
+                    quizTemplateId
+                );
+
             if (!quizTemplate) {
                 throw new Error(`Quiz template not found`);
             }
 
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     req.tokenMeta.accessLevels,
                     quizTemplate.visibleTo,
                     req.tokenMeta.isManager

@@ -44,30 +44,6 @@ export class QuizService {
         )[0];
     }
 
-    async find(
-        query: FilterQuery<QuizDocument>,
-        projection: ProjectionType<QuizDocument> = {},
-        options: QueryOptions<QuizDocument> = {}
-    ) {
-        return await QuizModel.find(query, projection, options);
-    }
-
-    async findOne(
-        query: FilterQuery<QuizDocument>,
-        projection: ProjectionType<QuizDocument> = {},
-        options: QueryOptions<QuizDocument> = {}
-    ) {
-        return await QuizModel.findOne(query, projection, options);
-    }
-
-    async findOneAndUpdate(
-        query: FilterQuery<QuizDocument>,
-        update: UpdateQuery<QuizDocument>,
-        options: QueryOptions<QuizDocument> = {}
-    ) {
-        return await QuizModel.findOneAndUpdate(query, update, options);
-    }
-
     async getAllQuizByUser(
         userId: Types.ObjectId,
         options: QueryOptions<QuizDocument> = {}
@@ -134,6 +110,23 @@ export class QuizService {
                 {},
                 options
             )) != null
+        );
+    }
+
+    async getUserOngoingQuizById(
+        quizId: Types.ObjectId,
+        userId: Types.ObjectId,
+        projection: ProjectionType<QuizDocument> = {},
+        options: QueryOptions<QuizDocument> = {}
+    ) {
+        return await QuizModel.findOne(
+            {
+                _id: quizId,
+                userId: userId,
+                status: QuizStatus.ONGOING,
+            },
+            projection,
+            options
         );
     }
 }

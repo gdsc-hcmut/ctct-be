@@ -26,7 +26,7 @@ export class MeController extends Controller {
     async getMyProfile(req: Request, res: Response) {
         try {
             const userId = req.tokenMeta.userId;
-            const user = await this.userService.findById(userId);
+            const user = await this.userService.getUserById(userId);
 
             if (!user) {
                 throw new ErrorNotFound(`Requested user is not found`);

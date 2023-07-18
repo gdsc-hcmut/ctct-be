@@ -51,11 +51,11 @@ export class EndQuizTask implements ScheduledTask<QuizDocument> {
                 );
             }
 
-            const quiz = await this.quizService.findOne({
-                _id: this.quizId,
-                userId: this.userId,
-                status: QuizStatus.ONGOING,
-            });
+            const quiz = await this.quizService.getUserOngoingQuizById(
+                this.quizId,
+                this.userId
+            );
+
             if (!quiz) {
                 throw new Error(
                     `The requested quiz was not found, or may have already finished`

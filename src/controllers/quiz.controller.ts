@@ -85,14 +85,14 @@ export class QuizController extends Controller {
                 );
             }
 
-            const quizTemplate = await this.quizTemplateService.findOne({
-                _id: quizTemplateId,
-                deletedAt: { $exists: false },
-            });
+            const quizTemplate =
+                await this.quizTemplateService.getQuizTemplateById(
+                    quizTemplateId
+                );
 
             if (
                 !quizTemplate ||
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     quizTemplate.visibleTo,
                     isManager
@@ -111,7 +111,7 @@ export class QuizController extends Controller {
                 potentialQuestions.map((questionId) =>
                     (async () => {
                         const questionTemplate =
-                            await this.questionTemplateService.findById(
+                            await this.questionTemplateService.getQuestionTemplateById(
                                 questionId
                             );
                         console.debug(questionTemplate);
@@ -202,14 +202,16 @@ export class QuizController extends Controller {
             if (!answers) {
                 throw new Error(`Missing 'answers' field`);
             }
-            const quiz = await this.quizService.findOne({
-                _id: quizId,
-                userId: userId,
-                status: QuizStatus.ONGOING,
-            });
+
+            const quiz = await this.quizService.getUserOngoingQuizById(
+                quizId,
+                userId
+            );
+
             if (!quiz) {
                 throw new Error(`Quiz doesn't exist or has ended`);
             }
+
             quiz.questions.forEach((question, index) => {
                 this.questionTemplateService.attachUserAnswerToQuestion(
                     question,
@@ -236,14 +238,16 @@ export class QuizController extends Controller {
             if (!answers) {
                 throw new Error(`Missing 'answers' field`);
             }
-            const quiz = await this.quizService.findOne({
-                _id: quizId,
-                userId: userId,
-                status: QuizStatus.ONGOING,
-            });
+
+            const quiz = await this.quizService.getUserOngoingQuizById(
+                quizId,
+                userId
+            );
+
             if (!quiz) {
                 throw new Error(`Quiz doesn't exist or has ended`);
             }
+
             quiz.questions.forEach((question, index) => {
                 this.questionTemplateService.attachUserAnswerToQuestion(
                     question,

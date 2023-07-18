@@ -107,7 +107,11 @@ export class PreviousExamController extends Controller {
             const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
                 (x) => new Types.ObjectId(x)
             );
-            if (!(await this.accessLevelService.accessLevelsExist(visibleTo))) {
+            if (
+                !(await this.accessLevelService.checkAccessLevelsExist(
+                    visibleTo
+                ))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
 
@@ -147,15 +151,16 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.previousExamService.getPreviousExamById(
+                docId
+            );
+
             if (!doc) {
                 throw new Error(`Document not found`);
             }
+
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta?.isManager
@@ -190,9 +195,9 @@ export class PreviousExamController extends Controller {
 
             const subject = new Types.ObjectId(req.params.subjectId);
             const ans = (
-                await this.previousExamService.findBySubject(subject)
+                await this.previousExamService.getPreviousExamBySubject(subject)
             ).filter((d) =>
-                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     d.visibleTo,
                     req.tokenMeta?.isManager
@@ -222,15 +227,16 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.previousExamService.getPreviousExamById(
+                docId
+            );
+
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
+
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta?.isManager
@@ -273,11 +279,9 @@ export class PreviousExamController extends Controller {
             }
 
             const ans = (
-                await this.previousExamService.find({
-                    deletedAt: { $exists: false },
-                })
+                await this.previousExamService.getAllPreviousExam()
             ).filter((d) =>
-                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     d.visibleTo,
                     req.tokenMeta?.isManager
@@ -308,15 +312,16 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.previousExamService.getPreviousExamById(
+                docId
+            );
+
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
             }
+
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta.isManager
@@ -343,7 +348,7 @@ export class PreviousExamController extends Controller {
                     (x) => new Types.ObjectId(x)
                 );
                 if (
-                    !(await this.accessLevelService.accessLevelsExist(
+                    !(await this.accessLevelService.checkAccessLevelsExist(
                         info.visibleTo
                     ))
                 ) {
@@ -357,14 +362,9 @@ export class PreviousExamController extends Controller {
                 }
             }
 
-            const result = await this.previousExamService.findOneAndUpdate(
-                { _id: docId },
-                {
-                    ...info,
-                },
-                {
-                    new: true,
-                }
+            const result = await this.previousExamService.editOnePreviousExam(
+                docId,
+                info
             );
             res.composer.success(result);
         } catch (error) {
@@ -391,15 +391,16 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.previousExamService.getPreviousExamById(
+                docId
+            );
+
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
             }
+
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta.isManager

@@ -85,77 +85,41 @@ export class PreviousExamService {
         }
     }
 
-    async markAsDeleted(id: Types.ObjectId) {
+    async markAsDeleted(
+        id: Types.ObjectId,
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
         return await PreviousExamModel.findOneAndUpdate(
             { _id: id },
             { deletedAt: Date.now() },
-            { new: true }
+            { ...options, new: true }
         );
     }
 
-    async findOneAndUpdate(
-        query: FilterQuery<PreviousExamDocument>,
-        upd: UpdateQuery<PreviousExamDocument>,
-        opt: QueryOptions<PreviousExamDocument> = {}
+    async removeAccessLevelFromAllPreviousExams(
+        accessLevelId: Types.ObjectId,
+        options: QueryOptions<PreviousExamDocument> = {}
     ) {
-        return await PreviousExamModel.findOneAndUpdate(query, upd, opt);
+        return await PreviousExamModel.updateMany(
+            {},
+            { $pull: { visibleTo: accessLevelId } },
+            options
+        );
     }
 
-    async findById(
+    async getPreviousExamById(
         id: Types.ObjectId,
         projection: ProjectionType<PreviousExamDocument> = {},
         options: QueryOptions<PreviousExamDocument> = {}
     ) {
-        return await PreviousExamModel.findById(id, projection, options);
-    }
-
-    async findOne(
-        query: FilterQuery<PreviousExamDocument>,
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.findOne(query, projection, options);
-    }
-
-    async findByIdPopulated(
-        id: Types.ObjectId,
-        query: string | string[],
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.findById(
-            id,
+        return await PreviousExamModel.findOne(
+            { _id: id, deletedAt: { $exists: false } },
             projection,
             options
-        ).populate(query);
+        );
     }
 
-    async find(
-        query: FilterQuery<PreviousExamDocument>,
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.find(query, projection, options);
-    }
-
-    async findPopulated(
-        f: FilterQuery<PreviousExamDocument>,
-        p: string | string[],
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.find(f, projection, options).populate(p);
-    }
-
-    async updateMany(
-        query: FilterQuery<PreviousExamDocument>,
-        update: UpdateQuery<PreviousExamDocument>,
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.updateMany(query, update, options);
-    }
-
-    async findBySubject(
+    async getPreviousExamBySubject(
         subject: Types.ObjectId,
         projection: ProjectionType<PreviousExamDocument> = {},
         options: QueryOptions<PreviousExamDocument> = {}
@@ -164,6 +128,42 @@ export class PreviousExamService {
             { subject: subject, deletedAt: { $exists: false } },
             projection,
             options
+        );
+    }
+
+    async getAllPreviousExam(
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.find(
+            { deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async editOnePreviousExam(
+        id: Types.ObjectId,
+        update: UpdateQuery<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return await PreviousExamModel.findOneAndUpdate({ _id: id }, update, {
+            ...options,
+            new: true,
+        });
+    }
+
+    async previousExamWithSubjectExists(
+        subjectId: Types.ObjectId,
+        projection: ProjectionType<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
+    ) {
+        return (
+            (await PreviousExamModel.findOne(
+                { subject: subjectId, deletedAt: { $exists: false } },
+                projection,
+                options
+            )) != null
         );
     }
 }

@@ -38,43 +38,57 @@ export class SubjectService {
         )[0];
     }
 
-    async findById(
+    async getAllSubjects(
+        projection: ProjectionType<SubjectDocument> = {},
+        options: QueryOptions<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.find(
+            {
+                deletedAt: { $exists: false },
+            },
+            projection,
+            options
+        );
+    }
+
+    async getSubjectById(
         id: Types.ObjectId,
         projection: ProjectionType<SubjectDocument> = {},
         options: QueryOptions<SubjectDocument> = {}
     ) {
-        return await SubjectModel.findById(id, projection, options);
+        return await SubjectModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection,
+            options
+        );
     }
 
-    async findOne(
-        query: FilterQuery<SubjectDocument>,
-        projection: ProjectionType<SubjectDocument> = {},
+    async markAsDeleted(
+        id: Types.ObjectId,
         options: QueryOptions<SubjectDocument> = {}
     ) {
-        return await SubjectModel.findOne(query, projection, options);
-    }
-
-    async findOneAndUpdate(
-        query: FilterQuery<SubjectDocument>,
-        upd: UpdateQuery<SubjectDocument>,
-        opt: QueryOptions<SubjectDocument> = {}
-    ) {
-        return await SubjectModel.findOneAndUpdate(query, upd, opt);
-    }
-
-    async find(
-        query: FilterQuery<SubjectDocument>,
-        projection: ProjectionType<SubjectDocument> = {},
-        options: QueryOptions<SubjectDocument> = {}
-    ) {
-        return await SubjectModel.find(query, projection, options);
-    }
-
-    async markAsDeleted(id: Types.ObjectId) {
         return await SubjectModel.findOneAndUpdate(
             { _id: id },
             { deletedAt: Date.now() },
-            { new: true }
+            { ...options, new: true }
+        );
+    }
+
+    async editOneSubject(
+        id: Types.ObjectId,
+        update: UpdateQuery<SubjectDocument> = {},
+        options: QueryOptions<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.findOneAndUpdate(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            update,
+            { ...options, new: true }
         );
     }
 

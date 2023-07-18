@@ -34,51 +34,100 @@ export class QuizTemplateService {
         )[0];
     }
 
-    async markAsDeleted(id: Types.ObjectId) {
+    async markAsDeleted(
+        id: Types.ObjectId,
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
         return await QuizTemplateModel.findOneAndUpdate(
             { _id: id },
             { deletedAt: Date.now() },
-            { new: true }
+            { ...options, new: true }
         );
     }
 
-    async find(
-        query: FilterQuery<QuizTemplateDocument>,
+    async removeAccessLevelFromAllQuizTemplates(
+        accessLevelId: Types.ObjectId,
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return await QuizTemplateModel.updateMany(
+            {},
+            {
+                $pull: {
+                    visibleTo: accessLevelId,
+                },
+            },
+            options
+        );
+    }
+
+    // check if there is a quiz template that maintains a reference
+    // to the given question
+    async checkQuizTemplateWithQuestion(
+        questionId: Types.ObjectId,
         projection: ProjectionType<QuizTemplateDocument> = {},
         options: QueryOptions<QuizTemplateDocument> = {}
     ) {
-        return await QuizTemplateModel.find(query, projection, options);
+        return (
+            (await QuizTemplateModel.findOne(
+                {
+                    potentialQuestions: questionId,
+                    deletedAt: { $exists: false },
+                },
+                projection,
+                options
+            )) != null
+        );
     }
 
-    async updateMany(
-        query: FilterQuery<QuizTemplateDocument>,
-        update: UpdateQuery<QuizTemplateDocument>,
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
-        return await QuizTemplateModel.updateMany(query, update, options);
-    }
-
-    async findOne(
-        query: FilterQuery<QuizTemplateDocument>,
-        projection: ProjectionType<QuizTemplateDocument> = {},
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
-        return await QuizTemplateModel.findOne(query, projection, options);
-    }
-
-    async findOneAndUpdate(
-        query: FilterQuery<QuizTemplateDocument>,
-        update: UpdateQuery<QuizTemplateDocument>,
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
-        return await QuizTemplateModel.findOneAndUpdate(query, update, options);
-    }
-
-    async findById(
+    async getQuizTemplateById(
         id: Types.ObjectId,
         projection: ProjectionType<QuizTemplateDocument> = {},
         options: QueryOptions<QuizTemplateDocument> = {}
     ) {
-        return await QuizTemplateModel.findById(id, projection, options);
+        return await QuizTemplateModel.findOne(
+            { _id: id, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async editOneQuizTemplate(
+        id: Types.ObjectId,
+        update: UpdateQuery<QuizTemplateDocument> = {},
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return await QuizTemplateModel.findOneAndUpdate(
+            { _id: id, deletedAt: { $exists: false } },
+            update,
+            { ...options, new: true }
+        );
+    }
+
+    async getAllQuizTemplates(
+        projection: ProjectionType<QuizTemplateDocument> = {},
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return await QuizTemplateModel.find(
+            { deletedAt: { $exists: false } },
+            projection,
+            options
+        );
+    }
+
+    async quizTemplateWithSubjectExists(
+        subjectId: Types.ObjectId,
+        projection: ProjectionType<QuizTemplateDocument> = {},
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return (
+            (await QuizTemplateModel.findOne(
+                {
+                    subject: subjectId,
+                    deletedAt: { $exists: false },
+                },
+                projection,
+                options
+            )) != null
+        );
     }
 }

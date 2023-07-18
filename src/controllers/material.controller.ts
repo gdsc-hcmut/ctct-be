@@ -13,7 +13,7 @@ import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { MaterialUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { toNumber } from "lodash";
 import _ from "lodash";
 import { logger } from "../lib/logger";
@@ -101,7 +101,7 @@ export class MaterialController extends Controller {
             }
 
             if (
-                await this.materialService.materialWithSubjectAndChapterExists(
+                await this.materialService.materialWithSubjectChapterExists(
                     subject,
                     chapter
                 )
@@ -120,7 +120,11 @@ export class MaterialController extends Controller {
             const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
                 (x) => new Types.ObjectId(x)
             );
-            if (!(await this.accessLevelService.accessLevelsExist(visibleTo))) {
+            if (
+                !(await this.accessLevelService.checkAccessLevelsExist(
+                    visibleTo
+                ))
+            ) {
                 throw new Error(`One or more access levels does not exist`);
             }
 
@@ -160,15 +164,14 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.materialService.getMaterialById(docId);
+
             if (!doc) {
                 throw new Error(`Document not found`);
             }
+
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta?.isManager
@@ -202,9 +205,9 @@ export class MaterialController extends Controller {
             }
             const subject = new Types.ObjectId(req.params.subjectId);
             const ans = (
-                await this.materialService.findBySubject(subject)
+                await this.materialService.getMaterialBySubject(subject)
             ).filter((d) =>
-                this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     d.visibleTo,
                     req.tokenMeta?.isManager
@@ -234,15 +237,14 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.materialService.getMaterialById(docId);
+
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
             }
+
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta?.isManager
@@ -284,16 +286,13 @@ export class MaterialController extends Controller {
                 );
             }
 
-            const ans = (
-                await this.materialService.find({
-                    deletedAt: { $exists: false },
-                })
-            ).filter((d) =>
-                this.accessLevelService.accessLevelsOverlapWithAllowedList(
-                    userAccessLevels,
-                    d.visibleTo,
-                    req.tokenMeta?.isManager
-                )
+            const ans = (await this.materialService.getAllMaterial()).filter(
+                (d) =>
+                    this.accessLevelService.checkAllowedListOverlaps(
+                        userAccessLevels,
+                        d.visibleTo,
+                        req.tokenMeta?.isManager
+                    )
             );
             res.composer.success(ans);
         } catch (error) {
@@ -319,15 +318,14 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.materialService.getMaterialById(docId);
+
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
             }
+
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta.isManager
@@ -361,7 +359,7 @@ export class MaterialController extends Controller {
                     (x) => new Types.ObjectId(x)
                 );
                 if (
-                    !(await this.accessLevelService.accessLevelsExist(
+                    !(await this.accessLevelService.checkAccessLevelsExist(
                         info.visibleTo
                     ))
                 ) {
@@ -376,7 +374,7 @@ export class MaterialController extends Controller {
                 const newSubject = info.subject ?? doc.subject;
                 const newChapter = info.chapter ?? doc.chapter;
                 if (
-                    await this.materialService.materialWithSubjectAndChapterExists(
+                    await this.materialService.materialWithSubjectChapterExists(
                         newSubject,
                         newChapter
                     )
@@ -387,14 +385,9 @@ export class MaterialController extends Controller {
                 }
             }
 
-            const result = await this.materialService.findOneAndUpdate(
-                { _id: docId },
-                {
-                    ...info,
-                },
-                {
-                    new: true,
-                }
+            const result = await this.materialService.editOneMaterial(
+                docId,
+                info
             );
             res.composer.success(result);
         } catch (error) {
@@ -421,16 +414,14 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.findOne({
-                _id: docId,
-                deletedAt: { $exists: false },
-            });
+            const doc = await this.materialService.getMaterialById(docId);
+
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
             }
 
             if (
-                !this.accessLevelService.accessLevelsOverlapWithAllowedList(
+                !this.accessLevelService.checkAllowedListOverlaps(
                     userAccessLevels,
                     doc.visibleTo,
                     req.tokenMeta.isManager

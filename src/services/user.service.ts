@@ -43,20 +43,12 @@ export class UserService {
         return opUpdateResult.modifiedCount;
     }
 
-    async findById(
+    async getUserById(
         id: Types.ObjectId,
         projection: ProjectionType<UserDocument> = {},
         options: QueryOptions<UserDocument> = {}
     ) {
-        return await User.findById(id, projection, options);
-    }
-
-    async find(
-        query: FilterQuery<UserDocument>,
-        projection: ProjectionType<UserDocument> = {},
-        options: QueryOptions<UserDocument> = {}
-    ) {
-        return await User.find(query, projection, options);
+        return await User.findOne({ _id: id }, projection, options);
     }
 
     async findOne(
@@ -67,19 +59,34 @@ export class UserService {
         return await User.findOne(query, projection, options);
     }
 
-    async updateMany(
-        query: FilterQuery<UserDocument>,
-        update: UpdateQuery<UserDocument>,
+    async setUserAccessLevel(
+        userId: Types.ObjectId,
+        accessLevelIds: Types.ObjectId[],
         options: QueryOptions<UserDocument> = {}
     ) {
-        return await User.updateMany(query, update, options);
+        return await User.findOneAndUpdate(
+            { _id: userId },
+            {
+                $set: {
+                    accessLevels: accessLevelIds,
+                },
+            },
+            { ...options, new: true }
+        );
     }
 
-    async findOneAndUpdate(
-        query: FilterQuery<UserDocument>,
-        update: UpdateQuery<UserDocument>,
+    async removeAccessLevelFromAllUsers(
+        accessLevelId: Types.ObjectId,
         options: QueryOptions<UserDocument> = {}
     ) {
-        return await User.findOneAndUpdate(query, update, options);
+        return await User.updateMany(
+            {},
+            {
+                $pull: {
+                    accessLevels: accessLevelId,
+                },
+            },
+            options
+        );
     }
 }
