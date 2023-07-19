@@ -99,6 +99,13 @@ export class QuizTemplateController extends Controller {
             ) {
                 throw new Error(`One or more access levels does not exist`);
             }
+            // check that all questions are unique
+            const duplicateQuestions = questions.some((x, i) =>
+                questions.some((y, j) => x.equals(y) && i !== j)
+            );
+            if (duplicateQuestions) {
+                throw new Error(`One or more questions are duplicated`);
+            }
             if (sampleSize <= 0 || sampleSize > questions.length) {
                 throw new Error(`Sample size is invalid`);
             }
