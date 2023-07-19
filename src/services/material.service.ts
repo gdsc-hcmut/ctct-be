@@ -27,7 +27,7 @@ export class MaterialService {
         name: string,
         description: string,
         subject: Types.ObjectId,
-        chapter: number,
+        chapter: Types.ObjectId,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy,
@@ -88,7 +88,7 @@ export class MaterialService {
 
     async materialWithSubjectChapterExists(
         subject: Types.ObjectId,
-        chapter: number,
+        chapter: Types.ObjectId,
         projection: ProjectionType<MaterialDocument> = {},
         options: QueryOptions<MaterialDocument> = {}
     ) {
@@ -175,6 +175,20 @@ export class MaterialService {
         return (
             (await MaterialModel.findOne(
                 { subject: subjectId, deletedAt: { $exists: false } },
+                projection,
+                options
+            )) != null
+        );
+    }
+
+    async materialWithChapterExists(
+        chapterId: Types.ObjectId,
+        projection: ProjectionType<MaterialDocument> = {},
+        options: QueryOptions<MaterialDocument> = {}
+    ) {
+        return (
+            (await MaterialModel.findOne(
+                { chapter: chapterId, deletedAt: { $exists: false } },
                 projection,
                 options
             )) != null

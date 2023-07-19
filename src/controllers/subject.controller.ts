@@ -10,6 +10,7 @@ import {
     AccessLevelService,
     QuestionTemplateService,
     QuizTemplateService,
+    ChapterService,
 } from "../services/index";
 import { Types } from "mongoose";
 import _ from "lodash";
@@ -32,7 +33,8 @@ export class SubjectController extends Controller {
         @inject(ServiceType.QuestionTemplate)
         private questionTemplateService: QuestionTemplateService,
         @inject(ServiceType.QuizTemplate)
-        private quizTemplateService: QuizTemplateService
+        private quizTemplateService: QuizTemplateService,
+        @inject(ServiceType.Chapter) private chapterService: ChapterService
     ) {
         super();
 
@@ -158,6 +160,7 @@ export class SubjectController extends Controller {
                 previousExamWithThisSubject,
                 questionTemplateWithThisSubject,
                 quizTemplateWithThisSubject,
+                chapterWithThisSubject,
             ] = await Promise.all([
                 this.materialService.materialWithSubjectExists(docId),
                 this.previousExamService.previousExamWithSubjectExists(docId),
@@ -165,6 +168,7 @@ export class SubjectController extends Controller {
                     docId
                 ),
                 this.quizTemplateService.quizTemplateWithSubjectExists(docId),
+                this.chapterService.chapterWithSubjectExists(docId),
             ]);
             if (materialWithThisSubject) {
                 throw new Error(
@@ -184,6 +188,11 @@ export class SubjectController extends Controller {
             if (quizTemplateWithThisSubject) {
                 throw new Error(
                     `There are still quiz templates that belong to this subject. Please delete them first`
+                );
+            }
+            if (chapterWithThisSubject) {
+                throw new Error(
+                    `There are still chapters that belong to this subject. Please delete them first`
                 );
             }
 

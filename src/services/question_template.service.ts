@@ -333,4 +333,18 @@ export class QuestionTemplateService {
             )) != null
         );
     }
+
+    async questionTemplateWithChapterExists(
+        chapterId: Types.ObjectId,
+        projection: ProjectionType<QuestionTemplateDocument> = {},
+        options: QueryOptions<QuestionTemplateDocument> = {}
+    ) {
+        return (
+            (await QuestionTemplateModel.findOne(
+                { chapter: chapterId, deletedAt: { $exists: false } },
+                projection,
+                options
+            )) != null
+        );
+    }
 }

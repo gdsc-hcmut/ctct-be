@@ -9,6 +9,7 @@ import { AccessLevelController } from "./access_level.controller";
 import { QuestionTemplateController } from "./question_template.controller";
 import { QuizTemplateController } from "./quiz_template.controller";
 import { QuizController } from "./quiz.controller";
+import { ChapterController } from "./chapter.controller";
 
 export {
     Controller,
@@ -22,4 +23,5 @@ export {
     QuestionTemplateController,
     QuizTemplateController,
     QuizController,
+    ChapterController,
 };

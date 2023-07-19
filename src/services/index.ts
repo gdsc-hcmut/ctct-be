@@ -12,6 +12,7 @@ import { QuizService } from "./quiz.service";
 import { MapperService } from "./mapper.service";
 import { TaskSchedulingService } from "./task-scheduling/task_scheduling.service";
 import { SocketService } from "./server-events/socket.service";
+import { ChapterService } from "./chapter.service";
 
 export {
     AuthService,
@@ -28,4 +29,5 @@ export {
     MapperService,
     TaskSchedulingService,
     SocketService,
+    ChapterService,
 };

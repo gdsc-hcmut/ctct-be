@@ -17,6 +17,7 @@ export const ServiceType = {
     FileUpload: Symbol.for("FileUpload"),
     PreviousExam: Symbol.for("PreviousExam"),
     Subject: Symbol.for("Subject"),
+    Chapter: Symbol.for("Chapter"),
     Material: Symbol.for("Material"),
     Cache: Symbol.for("Cache"),
     AccessLevel: Symbol.for("AccessLevel"),

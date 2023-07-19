@@ -45,7 +45,7 @@ export type QuestionTemplateDocument = Document & {
 
     code: string;
     subject: Types.ObjectId;
-    chapter: number;
+    chapter: Types.ObjectId;
 
     questions: {
         questionType: QuestionType;
@@ -82,7 +82,7 @@ const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
     description: { type: String },
     code: { type: String, required: false, default: "" },
     subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
-    chapter: { type: Number, required: true },
+    chapter: { type: Schema.Types.ObjectId, ref: "chapters", required: true },
 
     questions: [
         {

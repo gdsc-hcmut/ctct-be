@@ -19,6 +19,7 @@ import {
     MapperService,
     TaskSchedulingService,
     SocketService,
+    ChapterService,
 } from "./services/index";
 
 import {
@@ -32,6 +33,7 @@ import {
     QuestionTemplateController,
     QuizTemplateController,
     QuizController,
+    ChapterController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -68,6 +70,10 @@ container
 container
     .bind<SubjectService>(ServiceType.Subject)
     .to(SubjectService)
+    .inSingletonScope();
+container
+    .bind<ChapterService>(ServiceType.Chapter)
+    .to(ChapterService)
     .inSingletonScope();
 container
     .bind<MaterialService>(ServiceType.Material)
@@ -117,6 +123,7 @@ Promise.all([
             container.resolve<MeController>(MeController),
             container.resolve<PreviousExamController>(PreviousExamController),
             container.resolve<SubjectController>(SubjectController),
+            container.resolve<ChapterController>(ChapterController),
             container.resolve<MaterialController>(MaterialController),
             container.resolve<AccessLevelController>(AccessLevelController),
             container.resolve<QuestionTemplateController>(

@@ -8,6 +8,7 @@ import {
     MaterialService,
     FileUploadService,
     AccessLevelService,
+    ChapterService,
 } from "../services/index";
 import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
@@ -31,7 +32,8 @@ export class MaterialController extends Controller {
         @inject(ServiceType.FileUpload)
         private fileUploadService: FileUploadService,
         @inject(ServiceType.AccessLevel)
-        private accessLevelService: AccessLevelService
+        private accessLevelService: AccessLevelService,
+        @inject(ServiceType.Chapter) private chapterService: ChapterService
     ) {
         super();
 
@@ -68,7 +70,7 @@ export class MaterialController extends Controller {
             const {
                 name,
                 subject: subjectString,
-                chapter: chapterNumber,
+                chapter: chapterString,
                 description = "",
             } = req.body;
 
@@ -89,14 +91,24 @@ export class MaterialController extends Controller {
             if (!subjectString) {
                 throw new Error(`Missing 'subject' field`);
             }
-            if (!chapterNumber) {
+            if (!chapterString) {
                 throw new Error(`Missing 'chapter' field`);
             }
             const subject = new Types.ObjectId(subjectString);
-            const chapter = toNumber(chapterNumber);
+            const chapter = new Types.ObjectId(chapterString);
 
             if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
+            }
+            if (
+                !(await this.chapterService.chapterIsChildOfSubject(
+                    chapter,
+                    subject
+                ))
+            ) {
+                throw new Error(
+                    `Chapter doesn't exist or does not belong to this subject`
+                );
             }
 
             if (
@@ -342,12 +354,6 @@ export class MaterialController extends Controller {
                 "visibleTo",
             ]);
 
-            if (info.subject) {
-                info.subject = new Types.ObjectId(info.subject);
-                if (!(await this.subjectService.subjectExists(info.subject))) {
-                    throw new Error(`Subject doesn't exist`);
-                }
-            }
             if (info.chapter) {
                 info.chapter = toNumber(info.chapter);
             }
@@ -363,22 +369,41 @@ export class MaterialController extends Controller {
                     throw new Error(`One or more access levels don't exist`);
                 }
             }
-            // subject must be empty or valid, so we check if it collides with any other document
-            const changedSubjectOrChapter =
-                (info.subject && info.subject != doc.subject) ||
-                (info.chapter && info.chapter != doc.chapter);
-            if (changedSubjectOrChapter) {
-                const newSubject = info.subject ?? doc.subject;
-                const newChapter = info.chapter ?? doc.chapter;
+            if (info.subject) {
+                info.subject = new Types.ObjectId(info.subject);
+            }
+            if (info.chapter) {
+                info.chapter = new Types.ObjectId(info.chapter);
+            }
+            {
+                const oldSubject = doc.subject,
+                    newSubject: Types.ObjectId = info.subject ?? oldSubject;
+                const oldChapter = doc.chapter,
+                    newChapter: Types.ObjectId = info.chapter ?? oldChapter;
                 if (
-                    await this.materialService.materialWithSubjectChapterExists(
-                        newSubject,
-                        newChapter
-                    )
+                    !(await this.chapterService.chapterIsChildOfSubject(
+                        newChapter,
+                        newSubject
+                    ))
                 ) {
                     throw new Error(
-                        `A document with the same subject and chapter already exists`
+                        `The specified chapter doesn't belong to the specified subject`
                     );
+                }
+                const changedLocation =
+                    !oldSubject.equals(newSubject) ||
+                    !oldChapter.equals(newChapter);
+                if (changedLocation) {
+                    if (
+                        await this.materialService.materialWithSubjectChapterExists(
+                            newSubject,
+                            newChapter
+                        )
+                    ) {
+                        throw new Error(
+                            `A material with the same subject and chapter already exists`
+                        );
+                    }
                 }
             }
 

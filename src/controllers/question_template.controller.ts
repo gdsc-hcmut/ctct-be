@@ -5,6 +5,7 @@ import { Request, Response, ServiceType } from "../types";
 import {
     AccessLevelService,
     AuthService,
+    ChapterService,
     QuestionTemplateService,
     QuizTemplateService,
     SubjectService,
@@ -15,7 +16,7 @@ import { CharStream, CommonTokenStream } from "antlr4";
 import QuestionGrammarVisitor from "../lib/question-generation/QuestionGrammarVisitor";
 import GrammarParser from "../lib/question-generation/GrammarParser";
 import GrammarLexer from "../lib/question-generation/GrammarLexer";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { Permission } from "../models/access_level.model";
 import {
     QuestionTemplateDocument,
@@ -35,7 +36,8 @@ export class QuestionTemplateController extends Controller {
         private accessLevelService: AccessLevelService,
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.QuizTemplate)
-        private quizTemplateService: QuizTemplateService
+        private quizTemplateService: QuizTemplateService,
+        @inject(ServiceType.Chapter) private chapterService: ChapterService
     ) {
         super();
 
@@ -288,7 +290,7 @@ export class QuestionTemplateController extends Controller {
 
             const [subject, chapter, name] = [
                 new Types.ObjectId(req.body.subject),
-                req.body.chapter as number,
+                new Types.ObjectId(req.body.chapter),
                 req.body.name as string,
             ];
             if (!req.body.questions) {
@@ -303,11 +305,18 @@ export class QuestionTemplateController extends Controller {
             if (chapter === undefined) {
                 throw new Error(`Missing 'chapter' field`);
             }
-            if (chapter <= 0) {
-                throw new Error(`Chapter should be greater than 0`);
-            }
             if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
+            }
+            if (
+                !(await this.chapterService.chapterIsChildOfSubject(
+                    chapter,
+                    subject
+                ))
+            ) {
+                throw new Error(
+                    `Chapter doesn't exist or does not belong to this subject`
+                );
             }
 
             for (let i = 0; i < req.body.questions.length; i++) {

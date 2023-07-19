@@ -5,6 +5,7 @@ import { Request, Response, ServiceType } from "../types";
 import {
     AccessLevelService,
     AuthService,
+    ChapterService,
     QuestionTemplateService,
     QuizService,
     QuizTemplateService,
@@ -29,11 +30,10 @@ export class QuizTemplateController extends Controller {
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.QuestionTemplate)
         private questionTemplateService: QuestionTemplateService,
-        @inject(ServiceType.Quiz) private quizService: QuizService
+        @inject(ServiceType.Quiz) private quizService: QuizService,
+        @inject(ServiceType.Chapter) private chapterService: ChapterService
     ) {
         super();
-
-        this.router.get("/limited", authService.authenticate(false));
 
         this.router.all("*", authService.authenticate());
 
@@ -71,8 +71,8 @@ export class QuizTemplateController extends Controller {
                 "sampleSize",
             ]);
             const [subject, chapter, levels, questions, sampleSize] = [
-                req.body.subject as Types.ObjectId,
-                req.body.chapter as number,
+                new Types.ObjectId(req.body.subject),
+                new Types.ObjectId(req.body.chapter),
                 (req.body.visibleTo as string[]).map(
                     (x) => new Types.ObjectId(x)
                 ),
@@ -81,11 +81,18 @@ export class QuizTemplateController extends Controller {
                 ),
                 req.body.sampleSize as number,
             ];
-            if (chapter === undefined || chapter < 0) {
-                throw new Error(`Chapter is invalid`);
-            }
             if (!(await this.subjectService.subjectExists(subject))) {
                 throw new Error(`Subject doesn't exist`);
+            }
+            if (
+                !(await this.chapterService.chapterIsChildOfSubject(
+                    chapter,
+                    subject
+                ))
+            ) {
+                throw new Error(
+                    `Chapter does not exist or is not a child of the subject`
+                );
             }
             if (
                 !(await this.accessLevelService.checkAccessLevelsExist(levels))
@@ -158,15 +165,12 @@ export class QuizTemplateController extends Controller {
             req.body = _.pick(req.body, [
                 "name",
                 "description",
-                "subject",
                 "visibleTo",
                 "duration",
                 "potentialQuestions",
                 "sampleSize",
             ]);
-            const [subject, chapter, levels, questions, sampleSize] = [
-                req.body.subject as Types.ObjectId,
-                req.body.chapter as number,
+            const [levels, questions, sampleSize] = [
                 (req.body.visibleTo as string[]).map(
                     (x) => new Types.ObjectId(x)
                 ),
@@ -175,12 +179,6 @@ export class QuizTemplateController extends Controller {
                 ),
                 req.body.sampleSize as number,
             ];
-            if (chapter === undefined || chapter < 0) {
-                throw new Error(`Chapter is invalid`);
-            }
-            if (!(await this.subjectService.subjectExists(subject))) {
-                throw new Error(`Subject doesn't exist`);
-            }
             if (
                 !(await this.accessLevelService.checkAccessLevelsExist(levels))
             ) {

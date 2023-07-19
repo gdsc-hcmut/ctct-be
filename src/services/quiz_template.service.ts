@@ -130,4 +130,18 @@ export class QuizTemplateService {
             )) != null
         );
     }
+
+    async quizTemplateWithChapterExists(
+        chapterId: Types.ObjectId,
+        projection: ProjectionType<QuizTemplateDocument> = {},
+        options: QueryOptions<QuizTemplateDocument> = {}
+    ) {
+        return (
+            (await QuizTemplateModel.findOne(
+                { chapter: chapterId, deletedAt: { $exists: false } },
+                projection,
+                options
+            )) != null
+        );
+    }
 }
