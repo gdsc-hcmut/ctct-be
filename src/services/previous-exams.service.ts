@@ -2,10 +2,8 @@ import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
 import mongoose, {
-    FilterQuery,
     ProjectionType,
     QueryOptions,
-    SaveOptions,
     Types,
     UpdateQuery,
 } from "mongoose";
@@ -48,7 +46,7 @@ export class PreviousExamService {
                     compressionStrategy,
                     { session: session }
                 );
-            const currentTime = Date.now();
+            const now = Date.now();
 
             const result = (
                 await PreviousExamModel.create(
@@ -63,12 +61,14 @@ export class PreviousExamService {
                             visibleTo: visibleTo,
                             resource: uploadedAttachments[0]._id,
                             createdBy: userId,
-                            createdAt: currentTime,
+                            createdAt: now,
+                            lastUpdatedAt: now,
                         },
                     ],
                     { session: session }
                 )
             )[0];
+            await session.commitTransaction();
             return result;
         } catch (error) {
             await session.abortTransaction();
@@ -140,10 +140,14 @@ export class PreviousExamService {
         update: UpdateQuery<PreviousExamDocument> = {},
         options: QueryOptions<PreviousExamDocument> = {}
     ) {
-        return await PreviousExamModel.findOneAndUpdate({ _id: id }, update, {
-            ...options,
-            new: true,
-        });
+        return await PreviousExamModel.findOneAndUpdate(
+            { _id: id },
+            { ...update, lastUpdatedAt: Date.now() },
+            {
+                ...options,
+                new: true,
+            }
+        );
     }
 
     async previousExamWithSubjectExists(

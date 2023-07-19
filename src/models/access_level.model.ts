@@ -41,7 +41,8 @@ export type AccessLevelDocument = Document & {
     permissions: Permission[];
     createdAt: number;
     createdBy: Types.ObjectId;
-    deletedAt: number;
+    lastUpdatedAt?: number;
+    deletedAt?: number;
 };
 
 const accessLevelSchema = new Schema<AccessLevelDocument>({
@@ -51,6 +52,7 @@ const accessLevelSchema = new Schema<AccessLevelDocument>({
     permissions: [{ type: String, enum: Permission }],
     createdAt: Number,
     createdBy: Schema.Types.ObjectId,
+    lastUpdatedAt: Number,
     deletedAt: Number,
 });
 

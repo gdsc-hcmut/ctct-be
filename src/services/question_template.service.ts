@@ -31,13 +31,15 @@ export class QuestionTemplateService {
          * data should include metadata (as indicated by the model)
          * except createdBy and createdAt (automatically generated)
          */
+        const now = Date.now();
         return (
             await QuestionTemplateModel.create(
                 [
                     {
                         ...data,
-                        createdAt: Date.now(),
+                        createdAt: now,
                         createdBy: userId,
+                        lastUpdatedAt: now,
                     },
                 ],
                 options

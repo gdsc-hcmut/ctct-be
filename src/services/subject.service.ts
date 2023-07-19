@@ -1,7 +1,6 @@
 import { injectable } from "inversify";
 import SubjectModel, { SubjectDocument } from "../models/subject.model";
 import {
-    FilterQuery,
     ProjectionType,
     QueryOptions,
     SaveOptions,
@@ -31,6 +30,7 @@ export class SubjectService {
                         description: description,
                         createdAt: now,
                         createdBy: userId,
+                        lastUpdatedAt: now,
                     },
                 ],
                 options
@@ -87,7 +87,7 @@ export class SubjectService {
                 _id: id,
                 deletedAt: { $exists: false },
             },
-            update,
+            { ...update, lastUpdatedAt: Date.now() },
             { ...options, new: true }
         );
     }

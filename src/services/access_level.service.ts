@@ -81,6 +81,7 @@ export class AccessLevelService {
         permissions: Permission[],
         options: SaveOptions = {}
     ) {
+        const now = Date.now();
         return (
             await AccessLevelModel.create(
                 [
@@ -88,8 +89,9 @@ export class AccessLevelService {
                         name: name,
                         description: description,
                         permissions: permissions,
-                        createdAt: Date.now(),
+                        createdAt: now,
                         createdBy: userId,
+                        lastUpdatedAt: now,
                     },
                 ],
                 options
@@ -247,7 +249,7 @@ export class AccessLevelService {
     ) {
         return await AccessLevelModel.findOneAndUpdate(
             { _id: id, deletedAt: { $exists: false } },
-            update,
+            { ...update, lastupdatedAt: Date.now() },
             { ...options, new: true }
         );
     }

@@ -1,7 +1,5 @@
 import { injectable } from "inversify";
-import SubjectModel, { SubjectDocument } from "../models/subject.model";
 import {
-    FilterQuery,
     ProjectionType,
     QueryOptions,
     SaveOptions,
@@ -20,13 +18,15 @@ export class QuizTemplateService {
     }
 
     async create(userId: Types.ObjectId, data: any, options: SaveOptions = {}) {
+        const now = Date.now();
         return (
             await QuizTemplateModel.create(
                 [
                     {
                         ...data,
                         createdBy: userId,
-                        createdAt: Date.now(),
+                        createdAt: now,
+                        lastUpdatedAt: now,
                     },
                 ],
                 options
@@ -98,7 +98,7 @@ export class QuizTemplateService {
     ) {
         return await QuizTemplateModel.findOneAndUpdate(
             { _id: id, deletedAt: { $exists: false } },
-            update,
+            { ...update, lastUpdatedAt: Date.now() },
             { ...options, new: true }
         );
     }

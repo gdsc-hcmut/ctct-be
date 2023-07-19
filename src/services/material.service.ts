@@ -44,7 +44,7 @@ export class MaterialService {
                 compressionStrategy,
                 { session: session }
             );
-            const currentTime = Date.now();
+            const now = Date.now();
             const result = (
                 await MaterialModel.create(
                     [
@@ -58,7 +58,8 @@ export class MaterialService {
                             visibleTo: visibleTo,
                             resource: compressedFiles[0]._id,
                             createdBy: userId,
-                            createdAt: currentTime,
+                            createdAt: now,
+                            lastUpdatedAt: now,
                         },
                     ],
                     { session: session }
@@ -162,7 +163,7 @@ export class MaterialService {
     ) {
         return await MaterialModel.findOneAndUpdate(
             { _id: id, deletedAt: { $exists: false } },
-            update,
+            { ...update, lastupdatedAt: Date.now() },
             { ...options, new: true }
         );
     }

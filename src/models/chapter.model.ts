@@ -6,6 +6,7 @@ export type ChapterDocument = Document & {
 
     createdBy: Types.ObjectId;
     createdAt: number;
+    lastUpdatedAt?: number;
     deletedAt: number;
 };
 
@@ -15,6 +16,7 @@ const chapterSchema = new Schema<ChapterDocument>({
 
     createdBy: { type: Schema.Types.ObjectId, ref: "users", required: true },
     createdAt: Number,
+    lastUpdatedAt: Number,
     deletedAt: Number,
 });
 

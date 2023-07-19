@@ -26,6 +26,7 @@ export class ChapterService {
             subject: subject,
             createdBy: userId,
             createdAt: now,
+            lastUpdatedAt: now,
         });
     }
 
@@ -39,7 +40,7 @@ export class ChapterService {
                 _id: id,
                 deletedAt: { $exists: false },
             },
-            update,
+            { ...update, lastupdatedAt: Date.now() },
             { ...options, new: true }
         );
     }

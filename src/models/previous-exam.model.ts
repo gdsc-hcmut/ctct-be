@@ -44,6 +44,8 @@ export type PreviousExamDocument = Document & {
 
     createdBy: Types.ObjectId;
     createdAt: number;
+    lastUpdatedAt?: number;
+
     deletedAt: number;
 };
 
@@ -62,6 +64,7 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
         ref: "users",
     },
     createdAt: Number,
+    lastUpdatedAt: Number,
     deletedAt: Number,
 });
 
