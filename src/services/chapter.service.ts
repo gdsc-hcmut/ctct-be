@@ -1,12 +1,6 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import {
-    ProjectionType,
-    QueryOptions,
-    TypeExpressionOperatorReturningBoolean,
-    Types,
-    UpdateQuery,
-} from "mongoose";
+import { ProjectionType, QueryOptions, Types, UpdateQuery } from "mongoose";
 import ChapterModel, { ChapterDocument } from "../models/chapter.model";
 
 @injectable()
@@ -18,11 +12,13 @@ export class ChapterService {
     async create(
         name: string,
         subject: Types.ObjectId,
+        description: string,
         userId: Types.ObjectId
     ) {
         const now = Date.now();
         return await ChapterModel.create({
             name: name,
+            description: description,
             subject: subject,
             createdBy: userId,
             createdAt: now,

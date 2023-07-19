@@ -3,6 +3,7 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 export type ChapterDocument = Document & {
     name: string;
     subject: Types.ObjectId;
+    description: string;
 
     createdBy: Types.ObjectId;
     createdAt: number;
@@ -13,6 +14,7 @@ export type ChapterDocument = Document & {
 const chapterSchema = new Schema<ChapterDocument>({
     name: { type: String, required: true },
     subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
+    description: { type: String, required: false, default: "" },
 
     createdBy: { type: Schema.Types.ObjectId, ref: "users", required: true },
     createdAt: Number,

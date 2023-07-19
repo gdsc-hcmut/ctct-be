@@ -48,7 +48,7 @@ export class ChapterController extends Controller {
     async create(req: Request, res: Response) {
         try {
             const { accessLevels: userAccessLevels, userId } = req.tokenMeta;
-            const { name } = req.body;
+            const { name, description = "" } = req.body;
             const subject = new Types.ObjectId(req.body.subject);
 
             if (
@@ -70,6 +70,7 @@ export class ChapterController extends Controller {
             const result = await this.chapterService.create(
                 name,
                 subject,
+                description,
                 userId
             );
             res.composer.success(result);
@@ -97,7 +98,7 @@ export class ChapterController extends Controller {
                 );
             }
 
-            const info = _.pick(req.body, ["name"]);
+            const info = _.pick(req.body, ["name", "description"]);
             const result = await this.chapterService.editOneChapter(
                 chapterId,
                 info
