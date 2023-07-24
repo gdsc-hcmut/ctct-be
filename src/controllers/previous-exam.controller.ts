@@ -22,7 +22,7 @@ import { PreviousExamType, Semester } from "../models/previous-exam.model";
 @injectable()
 export class PreviousExamController extends Controller {
     public readonly router = Router();
-    public readonly path = "/previous-exams";
+    public readonly path = "/previous-exam";
 
     constructor(
         @inject(ServiceType.Auth) private authService: AuthService,

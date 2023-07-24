@@ -13,8 +13,8 @@ export class MapperService {
 
     maskAnswerFromConcreteQuestion(question: ConcreteQuestion) {
         return {
-            ..._.omit(question, "questions"),
-            questions: _.map(question.questions, (subQuestion) =>
+            ..._.omit(question, "subQuestions"),
+            subQuestions: _.map(question.subQuestions, (subQuestion) =>
                 _.omit(subQuestion, [
                     "answerKey",
                     "answerKeys",
@@ -46,7 +46,7 @@ export class MapperService {
         switch (status) {
             case QuizStatus.ONGOING: {
                 return {
-                    ..._.omit(data, ["questions"]),
+                    ..._.omit(data, ["subQuestions"]),
                     questions: _.map(data.questions, (question) =>
                         this.maskAnswerFromConcreteQuestion(question)
                     ),

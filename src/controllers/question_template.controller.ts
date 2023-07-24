@@ -114,14 +114,18 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            req.body = _.pick(req.body, ["code", "questions", "description"]);
-            if (!req.body.questions) {
+            req.body = _.pick(req.body, [
+                "code",
+                "subQuestions",
+                "description",
+            ]);
+            if (!req.body.subQuestions) {
                 throw new Error(`Missing 'question' field`);
             }
             req.body.code = req.body.code ?? "";
-            for (let i = 0; i < req.body.questions.length; i++) {
-                req.body.questions[i] = _.pick(req.body.questions[i], [
-                    "questionType",
+            for (let i = 0; i < req.body.subQuestions.length; i++) {
+                req.body.subQuestions[i] = _.pick(req.body.subQuestions[i], [
+                    "type",
                     "description",
                     "options",
                     "shuffleOptions",
@@ -132,17 +136,17 @@ export class QuestionTemplateController extends Controller {
                     "maximumError",
                     "explanation",
                 ]);
-                req.body.questions[i].description =
-                    req.body.questions[i].description ?? "";
-                req.body.questions[i].explanation =
-                    req.body.questions[i].explanation ?? "";
-                const type = req.body.questions[i].questionType as QuestionType;
+                req.body.subQuestions[i].description =
+                    req.body.subQuestions[i].description ?? "";
+                req.body.subQuestions[i].explanation =
+                    req.body.subQuestions[i].explanation ?? "";
+                const type = req.body.subQuestions[i].type as QuestionType;
                 switch (type) {
                     case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                         const [options, shuffleOptions, answerKey] = [
-                            req.body.questions[i].options as string[],
-                            req.body.questions[i].shuffleOptions as boolean,
-                            req.body.questions[i].answerKey as number,
+                            req.body.subQuestions[i].options as string[],
+                            req.body.subQuestions[i].shuffleOptions as boolean,
+                            req.body.subQuestions[i].answerKey as number,
                         ];
                         if (
                             !options ||
@@ -157,7 +161,7 @@ export class QuestionTemplateController extends Controller {
                             throw new Error(`Answer key out of bounds`);
                         }
                         options.forEach((option, index) => {
-                            req.body.questions[i].options[index] = {
+                            req.body.subQuestions[i].options[index] = {
                                 key: index,
                                 description: option,
                             };
@@ -166,9 +170,9 @@ export class QuestionTemplateController extends Controller {
                     }
                     case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
                         const [options, shuffleOptions, answerKeys] = [
-                            req.body.questions[i].options as string[],
-                            req.body.questions[i].shuffleOptions as boolean,
-                            req.body.questions[i].answerKeys as number[],
+                            req.body.subQuestions[i].options as string[],
+                            req.body.subQuestions[i].shuffleOptions as boolean,
+                            req.body.subQuestions[i].answerKeys as number[],
                         ];
                         if (
                             !options ||
@@ -198,7 +202,7 @@ export class QuestionTemplateController extends Controller {
                             }
                         });
                         options.forEach((option, index) => {
-                            req.body.questions[i].options[index] = {
+                            req.body.subQuestions[i].options[index] = {
                                 key: index,
                                 description: option,
                             };
@@ -207,37 +211,41 @@ export class QuestionTemplateController extends Controller {
                     }
                     case QuestionType.TEXT: {
                         if (
-                            req.body.questions[i].answerField === undefined ||
-                            typeof req.body.questions[i].answerField !==
+                            req.body.subQuestions[i].answerField ===
+                                undefined ||
+                            typeof req.body.subQuestions[i].answerField !==
                                 "string"
                         ) {
                             throw new Error(
                                 `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
-                        if (req.body.questions[i].matchCase === undefined) {
+                        if (req.body.subQuestions[i].matchCase === undefined) {
                             throw new Error(`Question missing 'matchCase'`);
                         }
                         break;
                     }
                     case QuestionType.NUMBER: {
                         if (
-                            req.body.questions[i].answerField === undefined ||
-                            typeof req.body.questions[i].answerField !==
+                            req.body.subQuestions[i].answerField ===
+                                undefined ||
+                            typeof req.body.subQuestions[i].answerField !==
                                 "string"
                         ) {
                             throw new Error(
                                 `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
-                        if (req.body.questions[i].maximumError === undefined) {
+                        if (
+                            req.body.subQuestions[i].maximumError === undefined
+                        ) {
                             throw new Error(`Question missing 'maximumError'`);
                         }
                         break;
                     }
                     default: {
                         throw new Error(
-                            `questionType should be one of [${Object.values(
+                            `type should be one of [${Object.values(
                                 QuestionType
                             )}], received '${type}'`
                         );
@@ -274,7 +282,7 @@ export class QuestionTemplateController extends Controller {
             req.body = _.pick(req.body, [
                 "name",
                 "description",
-                "questions",
+                "subQuestions",
                 "code",
                 "subject",
                 "chapter",
@@ -286,7 +294,7 @@ export class QuestionTemplateController extends Controller {
                 new Types.ObjectId(req.body.chapter),
                 req.body.name as string,
             ];
-            if (!req.body.questions) {
+            if (!req.body.subQuestions) {
                 throw new Error(`Missing 'questions' field`);
             }
             if (!subject) {
@@ -312,9 +320,9 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            for (let i = 0; i < req.body.questions.length; i++) {
-                req.body.questions[i] = _.pick(req.body.questions[i], [
-                    "questionType",
+            for (let i = 0; i < req.body.subQuestions.length; i++) {
+                req.body.subQuestions[i] = _.pick(req.body.subQuestions[i], [
+                    "type",
                     "description",
                     "options",
                     "shuffleOptions",
@@ -325,20 +333,20 @@ export class QuestionTemplateController extends Controller {
                     "maximumError",
                     "explanation",
                 ]);
-                if (!req.body.questions[i].description) {
+                if (!req.body.subQuestions[i].description) {
                     throw new Error(
                         `Missing description for question ${i + 1}`
                     );
                 }
-                req.body.questions[i].explanation =
-                    req.body.questions[i].explanation ?? "";
-                const type = req.body.questions[i].questionType as QuestionType;
+                req.body.subQuestions[i].explanation =
+                    req.body.subQuestions[i].explanation ?? "";
+                const type = req.body.subQuestions[i].type as QuestionType;
                 switch (type) {
                     case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                         const [options, shuffleOptions, answerKey] = [
-                            req.body.questions[i].options as string[],
-                            req.body.questions[i].shuffleOptions as boolean,
-                            req.body.questions[i].answerKey as number,
+                            req.body.subQuestions[i].options as string[],
+                            req.body.subQuestions[i].shuffleOptions as boolean,
+                            req.body.subQuestions[i].answerKey as number,
                         ];
                         if (
                             !options ||
@@ -353,7 +361,7 @@ export class QuestionTemplateController extends Controller {
                             throw new Error(`Answer key out of bounds`);
                         }
                         options.forEach((option, index) => {
-                            req.body.questions[i].options[index] = {
+                            req.body.subQuestions[i].options[index] = {
                                 key: index,
                                 description: option,
                             };
@@ -362,9 +370,9 @@ export class QuestionTemplateController extends Controller {
                     }
                     case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
                         const [options, shuffleOptions, answerKeys] = [
-                            req.body.questions[i].options as string[],
-                            req.body.questions[i].shuffleOptions as boolean,
-                            req.body.questions[i].answerKeys as number[],
+                            req.body.subQuestions[i].options as string[],
+                            req.body.subQuestions[i].shuffleOptions as boolean,
+                            req.body.subQuestions[i].answerKeys as number[],
                         ];
                         if (
                             !options ||
@@ -394,7 +402,7 @@ export class QuestionTemplateController extends Controller {
                             }
                         });
                         options.forEach((option, index) => {
-                            req.body.questions[i].options[index] = {
+                            req.body.subQuestions[i].options[index] = {
                                 key: index,
                                 description: option,
                             };
@@ -403,37 +411,41 @@ export class QuestionTemplateController extends Controller {
                     }
                     case QuestionType.TEXT: {
                         if (
-                            req.body.questions[i].answerField === undefined ||
-                            typeof req.body.questions[i].answerField !==
+                            req.body.subQuestions[i].answerField ===
+                                undefined ||
+                            typeof req.body.subQuestions[i].answerField !==
                                 "string"
                         ) {
                             throw new Error(
                                 `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
-                        if (req.body.questions[i].matchCase === undefined) {
+                        if (req.body.subQuestions[i].matchCase === undefined) {
                             throw new Error(`Question missing 'matchCase'`);
                         }
                         break;
                     }
                     case QuestionType.NUMBER: {
                         if (
-                            req.body.questions[i].answerField === undefined ||
-                            typeof req.body.questions[i].answerField !==
+                            req.body.subQuestions[i].answerField ===
+                                undefined ||
+                            typeof req.body.subQuestions[i].answerField !==
                                 "string"
                         ) {
                             throw new Error(
                                 `Question missing 'answerField' or 'answerField' is not a string`
                             );
                         }
-                        if (req.body.questions[i].maximumError === undefined) {
+                        if (
+                            req.body.subQuestions[i].maximumError === undefined
+                        ) {
                             throw new Error(`Question missing 'maximumError'`);
                         }
                         break;
                     }
                     default: {
                         throw new Error(
-                            `questionType should be one of [${Object.values(
+                            `type should be one of [${Object.values(
                                 QuestionType
                             )}], received '${type}'`
                         );

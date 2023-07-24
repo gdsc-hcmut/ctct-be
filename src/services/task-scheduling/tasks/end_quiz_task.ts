@@ -70,7 +70,7 @@ export class EndQuizTask implements ScheduledTask<QuizDocument> {
             let cur = 0,
                 tot = 0;
             quiz.questions.forEach((question) => {
-                question.questions.forEach((subQuestion) => {
+                question.subQuestions.forEach((subQuestion) => {
                     tot++;
                     if (subQuestion.isCorrect) {
                         cur++;

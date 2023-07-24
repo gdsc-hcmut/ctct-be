@@ -1,12 +1,6 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import {
-    FilterQuery,
-    ProjectionType,
-    QueryOptions,
-    SaveOptions,
-    Types,
-} from "mongoose";
+import { QueryOptions, Types } from "mongoose";
 import QuestionTemplateModel, {
     ConcreteQuestion,
     QuestionTemplateDocument,
@@ -18,7 +12,6 @@ import GrammarParser from "../lib/question-generation/GrammarParser";
 import QuestionGrammarVisitor from "../lib/question-generation/QuestionGrammarVisitor";
 import Mustache from "mustache";
 import _ from "lodash";
-import { QuizDocument } from "../models/quiz.model";
 
 @injectable()
 export class QuestionTemplateService {
@@ -46,7 +39,7 @@ export class QuestionTemplateService {
 
     generateConcreteQuestion(questionTemplate: QuestionTemplateDocument) {
         const result: ConcreteQuestion = {
-            questions: [],
+            subQuestions: [],
         };
 
         const charStream = new CharStream(questionTemplate.code);
@@ -65,8 +58,8 @@ export class QuestionTemplateService {
             );
         }
 
-        for (const question of questionTemplate.questions) {
-            switch (question.questionType) {
+        for (const question of questionTemplate.subQuestions) {
+            switch (question.type) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                     let options = question.options.map((opt) => ({
                         description: Mustache.render(opt.description, symbols),
@@ -77,8 +70,8 @@ export class QuestionTemplateService {
                         options = _.shuffle(options);
                     }
 
-                    result.questions.push({
-                        questionType: question.questionType,
+                    result.subQuestions.push({
+                        type: question.type,
                         description: Mustache.render(
                             question.description,
                             symbols
@@ -102,8 +95,8 @@ export class QuestionTemplateService {
                         options = _.shuffle(options);
                     }
 
-                    result.questions.push({
-                        questionType: question.questionType,
+                    result.subQuestions.push({
+                        type: question.type,
                         description: Mustache.render(
                             question.description,
                             symbols
@@ -119,8 +112,8 @@ export class QuestionTemplateService {
                     break;
                 }
                 case QuestionType.NUMBER: {
-                    result.questions.push({
-                        questionType: question.questionType,
+                    result.subQuestions.push({
+                        type: question.type,
                         description: Mustache.render(
                             question.description,
                             symbols
@@ -138,8 +131,8 @@ export class QuestionTemplateService {
                     break;
                 }
                 case QuestionType.TEXT: {
-                    result.questions.push({
-                        questionType: question.questionType,
+                    result.subQuestions.push({
+                        type: question.type,
                         description: Mustache.render(
                             question.description,
                             symbols
@@ -159,7 +152,7 @@ export class QuestionTemplateService {
                 }
                 default: {
                     throw new Error(
-                        `Unrecognized question option: ${question.questionType}`
+                        `Unrecognized question option: ${question.type}`
                     );
                 }
             }
@@ -173,8 +166,8 @@ export class QuestionTemplateService {
      * the question object accordingly
      */
     processQuestionAnswer(question: ConcreteQuestion) {
-        for (const subQuestion of question.questions) {
-            switch (subQuestion.questionType) {
+        for (const subQuestion of question.subQuestions) {
+            switch (subQuestion.type) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                     if (subQuestion.userAnswerKey !== undefined) {
                         subQuestion.isCorrect =
@@ -215,7 +208,7 @@ export class QuestionTemplateService {
                 }
                 default: {
                     throw new Error(
-                        `Unrecognized question type: ${subQuestion.questionType}`
+                        `Unrecognized question type: ${subQuestion.type}`
                     );
                 }
             }
@@ -226,9 +219,9 @@ export class QuestionTemplateService {
      * Attaches the user's answers to the question object
      */
     attachUserAnswerToQuestion(question: ConcreteQuestion, answers: any[]) {
-        for (const [index, subQuestion] of question.questions.entries()) {
+        for (const [index, subQuestion] of question.subQuestions.entries()) {
             const answer = answers[index];
-            switch (subQuestion.questionType) {
+            switch (subQuestion.type) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
                     if (answer.answerKey !== undefined) {
                         subQuestion.userAnswerKey = answer.answerKey as number;
@@ -258,7 +251,7 @@ export class QuestionTemplateService {
                 }
                 default: {
                     throw new Error(
-                        `Unrecognized question type: ${subQuestion.questionType}`
+                        `Unrecognized question type: ${subQuestion.type}`
                     );
                 }
             }

@@ -12,8 +12,8 @@ export enum QuestionType {
  */
 export type ConcreteQuestion = {
     description?: string;
-    questions: {
-        questionType: QuestionType;
+    subQuestions: {
+        type: QuestionType;
         description: string;
         options?: {
             key: number;
@@ -36,19 +36,14 @@ export type ConcreteQuestion = {
 
 export type QuestionTemplateDocument = Document & {
     name: string;
-    /**
-     * Description of the question, written in Markdown
-     * This is used as a unified description for all subquestions, since
-     * a question may have multiple subquestions
-     */
     description?: string;
 
     code: string;
     subject: Types.ObjectId;
     chapter: Types.ObjectId;
 
-    questions: {
-        questionType: QuestionType;
+    subQuestions: {
+        type: QuestionType;
         description: string;
         /**
          * Options to choose from (multiple choice questions)
@@ -85,9 +80,9 @@ const questionTemplateSchema = new Schema<QuestionTemplateDocument>({
     subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
     chapter: { type: Schema.Types.ObjectId, ref: "chapters", required: true },
 
-    questions: [
+    subQuestions: [
         {
-            questionType: { type: String, enum: QuestionType, required: true },
+            type: { type: String, enum: QuestionType, required: true },
             description: { type: String, required: true },
             options: [
                 {
