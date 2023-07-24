@@ -103,14 +103,11 @@ export class QuestionTemplateController extends Controller {
 
     async previewQuestion(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.CREATE_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager
-                ))
+                !(await canPerform(Permission.ADMIN_CREATE_QUESTION_TEMPLATE))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
@@ -262,21 +259,17 @@ export class QuestionTemplateController extends Controller {
 
     async create(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.CREATE_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager
-                ))
+                !(await canPerform(Permission.ADMIN_CREATE_QUESTION_TEMPLATE))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
-
-            const userId = req.tokenMeta.userId;
+            const { userId } = req.tokenMeta;
 
             req.body = _.pick(req.body, [
                 "name",
@@ -462,15 +455,10 @@ export class QuestionTemplateController extends Controller {
 
     async getAll(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_VIEW_QUESTION_TEMPLATE))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -488,14 +476,11 @@ export class QuestionTemplateController extends Controller {
 
     async delete(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.DELETE_QUESTION_TEMPLATE,
-                    req.tokenMeta.isManager
-                ))
+                !(await canPerform(Permission.ADMIN_DELETE_QUESTION_TEMPLATE))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`

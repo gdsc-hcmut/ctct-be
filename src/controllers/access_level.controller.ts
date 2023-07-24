@@ -94,7 +94,6 @@ export class AccessLevelController extends Controller {
             const accessLevelId = new Types.ObjectId(req.params.accessLevelId);
             const level = await this.accessLevelService.getAccessLevelById(
                 accessLevelId,
-                {},
                 { session: session }
             );
 
@@ -105,28 +104,15 @@ export class AccessLevelController extends Controller {
             }
 
             const result = await this.accessLevelService.markAsDeleted(
-                accessLevelId,
-                { session: session }
+                accessLevelId
             );
-            await Promise.all([
-                this.userService.removeAccessLevelFromAllUsers(accessLevelId, {
+            await this.userService.removeAccessLevelFromAllUsers(
+                accessLevelId,
+                {
                     session: session,
-                }),
-                this.materialService.removeAccessLevelFromAllMaterials(
-                    accessLevelId,
-                    { session: session }
-                ),
-                this.previousExamService.removeAccessLevelFromAllPreviousExams(
-                    accessLevelId,
-                    { session: session }
-                ),
-                this.quizTemplateService.removeAccessLevelFromAllQuizTemplates(
-                    accessLevelId,
-                    { session: session }
-                ),
-            ]);
-
-            await this.accessLevelService.invalidateCache(accessLevelId);
+                }
+            ),
+                await this.accessLevelService.invalidateCache(accessLevelId);
 
             res.composer.success(result);
             await session.commitTransaction();

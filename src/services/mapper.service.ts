@@ -35,7 +35,6 @@ export class MapperService {
         // remove most metadata about the quiz template, only leaving the name
         const data = _.omit(quiz.toObject(), [
             "fromTemplate.potentialQuestions",
-            "fromTemplate.visibleTo",
             "fromTemplate.subject.createdBy",
             "fromTemplate.subject.createdAt",
             "fromTemplate.duration",

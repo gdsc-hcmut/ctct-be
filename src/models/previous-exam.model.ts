@@ -37,8 +37,6 @@ export type PreviousExamDocument = Document & {
     semester: Semester;
     type: PreviousExamType;
 
-    visibleTo: Types.ObjectId[];
-
     description: string;
     resource: Types.ObjectId;
 
@@ -54,8 +52,6 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
     semester: { type: String, enum: Semester },
     type: { type: String, enum: PreviousExamType },
-
-    visibleTo: [{ type: Schema.Types.ObjectId, ref: "access_levels" }],
 
     description: String,
     resource: { type: Schema.Types.ObjectId, ref: "attachments" },

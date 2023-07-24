@@ -33,8 +33,7 @@ export class PreviousExamService {
         type: PreviousExamType,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
-        compressionStrategy: FileCompressionStrategy,
-        visibleTo: Types.ObjectId[]
+        compressionStrategy: FileCompressionStrategy
     ) {
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -58,7 +57,6 @@ export class PreviousExamService {
                             semester: semester,
                             type: type,
 
-                            visibleTo: visibleTo,
                             resource: uploadedAttachments[0]._id,
                             createdBy: userId,
                             createdAt: now,
@@ -89,50 +87,22 @@ export class PreviousExamService {
         );
     }
 
-    async removeAccessLevelFromAllPreviousExams(
-        accessLevelId: Types.ObjectId,
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.updateMany(
-            {},
-            { $pull: { visibleTo: accessLevelId } },
-            options
-        );
+    async getPreviousExamById(id: Types.ObjectId) {
+        return await PreviousExamModel.findOne({
+            _id: id,
+            deletedAt: { $exists: false },
+        });
     }
 
-    async getPreviousExamById(
-        id: Types.ObjectId,
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.findOne(
-            { _id: id, deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getPreviousExamBySubject(subject: Types.ObjectId) {
+        return await PreviousExamModel.find({
+            subject: subject,
+            deletedAt: { $exists: false },
+        });
     }
 
-    async getPreviousExamBySubject(
-        subject: Types.ObjectId,
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.find(
-            { subject: subject, deletedAt: { $exists: false } },
-            projection,
-            options
-        );
-    }
-
-    async getAllPreviousExam(
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
-        return await PreviousExamModel.find(
-            { deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getAllPreviousExam() {
+        return await PreviousExamModel.find({ deletedAt: { $exists: false } });
     }
 
     async editOnePreviousExam(
@@ -150,17 +120,12 @@ export class PreviousExamService {
         );
     }
 
-    async previousExamWithSubjectExists(
-        subjectId: Types.ObjectId,
-        projection: ProjectionType<PreviousExamDocument> = {},
-        options: QueryOptions<PreviousExamDocument> = {}
-    ) {
+    async previousExamWithSubjectExists(subjectId: Types.ObjectId) {
         return (
-            (await PreviousExamModel.findOne(
-                { subject: subjectId, deletedAt: { $exists: false } },
-                projection,
-                options
-            )) != null
+            (await PreviousExamModel.findOne({
+                subject: subjectId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 }

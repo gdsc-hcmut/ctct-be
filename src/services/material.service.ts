@@ -30,8 +30,7 @@ export class MaterialService {
         chapter: Types.ObjectId,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
-        compressionStrategy: FileCompressionStrategy,
-        visibleTo: Types.ObjectId[]
+        compressionStrategy: FileCompressionStrategy
     ) {
         // transaction here because the material and attachment
         // document has to consistent with each other
@@ -55,7 +54,6 @@ export class MaterialService {
 
                             description: description,
 
-                            visibleTo: visibleTo,
                             resource: compressedFiles[0]._id,
                             createdBy: userId,
                             createdAt: now,
@@ -89,71 +87,33 @@ export class MaterialService {
 
     async materialWithSubjectChapterExists(
         subject: Types.ObjectId,
-        chapter: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
+        chapter: Types.ObjectId
     ) {
         return (
-            (await MaterialModel.findOne(
-                {
-                    subject: subject,
-                    chapter: chapter,
-                    deletedAt: { $exists: false },
-                },
-                projection,
-                options
-            )) != null
+            (await MaterialModel.findOne({
+                subject: subject,
+                chapter: chapter,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 
-    async removeAccessLevelFromAllMaterials(
-        accessLevelId: Types.ObjectId,
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.updateMany(
-            {},
-            {
-                $pull: {
-                    visibleTo: accessLevelId,
-                },
-            },
-            options
-        );
+    async getMaterialById(id: Types.ObjectId) {
+        return await MaterialModel.findOne({
+            _id: id,
+            deletedAt: { $exists: false },
+        });
     }
 
-    async getMaterialById(
-        id: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.findOne(
-            { _id: id, deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getMaterialBySubject(subjectId: Types.ObjectId) {
+        return await MaterialModel.find({
+            subject: subjectId,
+            deletedAt: { $exists: false },
+        });
     }
 
-    async getMaterialBySubject(
-        subjectId: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.find(
-            { subject: subjectId, deletedAt: { $exists: false } },
-            projection,
-            options
-        );
-    }
-
-    async getAllMaterial(
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.find(
-            { deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getAllMaterial() {
+        return await MaterialModel.find({ deletedAt: { $exists: false } });
     }
 
     async editOneMaterial(
@@ -168,31 +128,21 @@ export class MaterialService {
         );
     }
 
-    async materialWithSubjectExists(
-        subjectId: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
+    async materialWithSubjectExists(subjectId: Types.ObjectId) {
         return (
-            (await MaterialModel.findOne(
-                { subject: subjectId, deletedAt: { $exists: false } },
-                projection,
-                options
-            )) != null
+            (await MaterialModel.findOne({
+                subject: subjectId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 
-    async materialWithChapterExists(
-        chapterId: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
-    ) {
+    async materialWithChapterExists(chapterId: Types.ObjectId) {
         return (
-            (await MaterialModel.findOne(
-                { chapter: chapterId, deletedAt: { $exists: false } },
-                projection,
-                options
-            )) != null
+            (await MaterialModel.findOne({
+                chapter: chapterId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 }

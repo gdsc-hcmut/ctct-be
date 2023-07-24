@@ -15,55 +15,32 @@ export class SubjectService {
         logger.info("[Subject] Initializing...");
     }
 
-    async create(
-        name: string,
-        userId: Types.ObjectId,
-        description: string,
-        options: SaveOptions = {}
-    ) {
+    async create(name: string, userId: Types.ObjectId, description: string) {
         const now = Date.now();
         return (
-            await SubjectModel.create(
-                [
-                    {
-                        name: name,
-                        description: description,
-                        createdAt: now,
-                        createdBy: userId,
-                        lastUpdatedAt: now,
-                    },
-                ],
-                options
-            )
+            await SubjectModel.create([
+                {
+                    name: name,
+                    description: description,
+                    createdAt: now,
+                    createdBy: userId,
+                    lastUpdatedAt: now,
+                },
+            ])
         )[0];
     }
 
-    async getAllSubjects(
-        projection: ProjectionType<SubjectDocument> = {},
-        options: QueryOptions<SubjectDocument> = {}
-    ) {
-        return await SubjectModel.find(
-            {
-                deletedAt: { $exists: false },
-            },
-            projection,
-            options
-        );
+    async getAllSubjects() {
+        return await SubjectModel.find({
+            deletedAt: { $exists: false },
+        });
     }
 
-    async getSubjectById(
-        id: Types.ObjectId,
-        projection: ProjectionType<SubjectDocument> = {},
-        options: QueryOptions<SubjectDocument> = {}
-    ) {
-        return await SubjectModel.findOne(
-            {
-                _id: id,
-                deletedAt: { $exists: false },
-            },
-            projection,
-            options
-        );
+    async getSubjectById(id: Types.ObjectId) {
+        return await SubjectModel.findOne({
+            _id: id,
+            deletedAt: { $exists: false },
+        });
     }
 
     async markAsDeleted(

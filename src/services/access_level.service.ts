@@ -14,10 +14,11 @@ import mongoose, {
     Types,
     UpdateQuery,
 } from "mongoose";
+import { TokenDocument } from "../models/token.model";
 
 @injectable()
 export class AccessLevelService {
-    ACCESS_LEVEL_CACHE_TIME: number = 60 * 30; // 30 minutes
+    ACCESS_LEVEL_CACHE_TIME: number = 60 * 15; // 15 minutes
     private VISITOR_ID: Types.ObjectId;
     private STUDENT_ID: Types.ObjectId;
 
@@ -78,33 +79,28 @@ export class AccessLevelService {
         userId: Types.ObjectId,
         name: string,
         description: string,
-        permissions: Permission[],
-        options: SaveOptions = {}
+        permissions: Permission[]
     ) {
         const now = Date.now();
         return (
-            await AccessLevelModel.create(
-                [
-                    {
-                        name: name,
-                        description: description,
-                        permissions: permissions,
-                        createdAt: now,
-                        createdBy: userId,
-                        lastUpdatedAt: now,
-                    },
-                ],
-                options
-            )
+            await AccessLevelModel.create([
+                {
+                    name: name,
+                    description: description,
+                    permissions: permissions,
+                    createdAt: now,
+                    createdBy: userId,
+                    lastUpdatedAt: now,
+                },
+            ])
         )[0];
     }
 
     private async accessLevelCanPerformAction(
         accessLevel: Types.ObjectId,
         action: Permission,
-        isManager = false,
-        options: QueryOptions<AccessLevelDocument> = {}
-    ): Promise<boolean> {
+        isManager = false
+    ) {
         if (isManager) {
             return true;
         }
@@ -112,11 +108,10 @@ export class AccessLevelService {
             await this.cacheService.getWithPopulate(
                 `access_level ${accessLevel.toString()}`,
                 async () => {
-                    const d = await AccessLevelModel.findOne(
-                        { _id: accessLevel, deletedAt: { $exists: false } },
-                        {},
-                        options
-                    );
+                    const d = await AccessLevelModel.findOne({
+                        _id: accessLevel,
+                        deletedAt: { $exists: false },
+                    });
                     if (!d) {
                         return "[]";
                     }
@@ -130,11 +125,10 @@ export class AccessLevelService {
         return permissions.includes(action);
     }
 
-    public async accessLevelsCanPerformAction(
+    private async accessLevelsCanPerformAction(
         accessLevels: Types.ObjectId[],
         action: Permission,
-        isManager = false,
-        options: QueryOptions<AccessLevelDocument> = {}
+        isManager = false
     ): Promise<boolean> {
         if (isManager) {
             return true;
@@ -149,65 +143,47 @@ export class AccessLevelService {
                     await this.accessLevelCanPerformAction(
                         l,
                         action,
-                        isManager,
-                        options
+                        isManager
                     ))()
             )
         );
         return a.some((x) => x === true);
     }
 
-    /**
-     * Given a user's access level, and a list of permitted access levels for an action,
-     * return true if either the user is an admin or the two lists overlap,
-     * and false otherwise.
-     */
-    public checkAllowedListOverlaps(
-        accessLevels: Types.ObjectId[],
-        permitted: Types.ObjectId[],
-        isManager = false
-    ) {
-        if (isManager) {
-            return true;
-        }
-        if (!accessLevels) {
-            accessLevels = [this.VISITOR_ID];
-        }
-        return accessLevels.some((l) => permitted.some((p) => p.equals(l)));
+    permissionChecker(token: TokenDocument) {
+        return async (action: Permission) => {
+            return await this.accessLevelsCanPerformAction(
+                token?.accessLevels,
+                action,
+                token?.isManager
+            );
+        };
     }
 
-    public async checkAccessLevelsExist(
-        levels: Types.ObjectId[],
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
+    public async checkAccessLevelsExist(levels: Types.ObjectId[]) {
         const result = await Promise.all(
             levels.map((level) =>
                 (async () =>
-                    (await AccessLevelModel.findOne(
-                        { _id: level, deletedAt: { $exists: false } },
-                        {},
-                        options
-                    )) != null)()
+                    (await AccessLevelModel.findOne({
+                        _id: level,
+                        deletedAt: { $exists: false },
+                    })) != null)()
             )
         );
         return result.every((x) => x);
     }
 
-    public async checkCanAssignAccessLevels(
-        levels: Types.ObjectId[],
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
+    public async checkCanAssignAccessLevels(levels: Types.ObjectId[]) {
         // check that all given id's exist and they can be assigned
         // a role can be assigned if it's either not predefined, or
         // 'student'
         const result = await Promise.all(
             levels.map((l) =>
                 (async () =>
-                    await AccessLevelModel.findOne(
-                        { _id: l, deletedAt: { $exists: false } },
-                        {},
-                        options
-                    ))()
+                    await AccessLevelModel.findOne({
+                        _id: l,
+                        deletedAt: { $exists: false },
+                    }))()
             )
         );
         return result.every((x) => {
@@ -231,15 +207,8 @@ export class AccessLevelService {
         return this.STUDENT_ID;
     }
 
-    async getAllAccessLevels(
-        projection: ProjectionType<AccessLevelDocument> = {},
-        options: QueryOptions<AccessLevelDocument> = {}
-    ) {
-        return await AccessLevelModel.find(
-            { deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getAllAccessLevels() {
+        return await AccessLevelModel.find({ deletedAt: { $exists: false } });
     }
 
     async editOneAccessLevel(
@@ -256,12 +225,11 @@ export class AccessLevelService {
 
     async getAccessLevelById(
         id: Types.ObjectId,
-        projection: ProjectionType<AccessLevelDocument> = {},
         options: QueryOptions<AccessLevelDocument> = {}
     ) {
         return await AccessLevelModel.findOne(
             { _id: id, deletedAt: { $exists: false } },
-            projection,
+            {},
             options
         );
     }

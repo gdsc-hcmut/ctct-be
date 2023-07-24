@@ -78,13 +78,10 @@ export class PreviousExamController extends Controller {
                 throw new Error(`Invalid type`);
             }
 
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    req.tokenMeta.accessLevels,
-                    Permission.UPLOAD_PREVIOUS_EXAM,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_UPLOAD_PREVIOUS_EXAM))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -107,20 +104,6 @@ export class PreviousExamController extends Controller {
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
-            if (!req.body.visibleTo) {
-                throw new Error(`Missing 'visibleTo' field`);
-            }
-            const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
-                (x) => new Types.ObjectId(x)
-            );
-            if (
-                !(await this.accessLevelService.checkAccessLevelsExist(
-                    visibleTo
-                ))
-            ) {
-                throw new Error(`One or more access levels does not exist`);
-            }
-
             const doc = await this.previousExamService.create(
                 name,
                 description,
@@ -129,8 +112,7 @@ export class PreviousExamController extends Controller {
                 type,
                 userId,
                 req.files as Express.Multer.File[],
-                new AgressiveFileCompression(),
-                visibleTo
+                new AgressiveFileCompression()
             );
 
             res.composer.success(doc);
@@ -143,14 +125,12 @@ export class PreviousExamController extends Controller {
 
     async getById(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
-
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_PREVIOUS_EXAM)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_PREVIOUS_EXAM))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
@@ -165,18 +145,6 @@ export class PreviousExamController extends Controller {
             if (!doc) {
                 throw new Error(`Document not found`);
             }
-
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta?.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
-            }
             res.composer.success(doc);
         } catch (error) {
             logger.error(error.message);
@@ -187,13 +155,12 @@ export class PreviousExamController extends Controller {
 
     async getBySubject(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_PREVIOUS_EXAM)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_PREVIOUS_EXAM))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
@@ -201,14 +168,8 @@ export class PreviousExamController extends Controller {
             }
 
             const subject = new Types.ObjectId(req.params.subjectId);
-            const ans = (
-                await this.previousExamService.getPreviousExamBySubject(subject)
-            ).filter((d) =>
-                this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    d.visibleTo,
-                    req.tokenMeta?.isManager
-                )
+            const ans = await this.previousExamService.getPreviousExamBySubject(
+                subject
             );
             res.composer.success(ans);
         } catch (error) {
@@ -220,13 +181,12 @@ export class PreviousExamController extends Controller {
 
     async download(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_PREVIOUS_EXAM)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_PREVIOUS_EXAM))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
@@ -240,18 +200,6 @@ export class PreviousExamController extends Controller {
 
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
-            }
-
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta?.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
             }
 
             const file = await this.fileUploadService.downloadFile(
@@ -272,28 +220,19 @@ export class PreviousExamController extends Controller {
 
     async getAvailable(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_PREVIOUS_EXAM,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_PREVIOUS_EXAM)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_PREVIOUS_EXAM))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
 
-            const ans = (
-                await this.previousExamService.getAllPreviousExam()
-            ).filter((d) =>
-                this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    d.visibleTo,
-                    req.tokenMeta?.isManager
-                )
-            );
+            const ans = await this.previousExamService.getAllPreviousExam();
             res.composer.success(ans);
         } catch (error) {
             logger.error(error.message);
@@ -304,21 +243,16 @@ export class PreviousExamController extends Controller {
 
     async edit(req: Request, res: Response) {
         try {
-            const docId = new Types.ObjectId(req.params.docId);
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.EDIT_PREVIOUS_EXAM,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_EDIT_PREVIOUS_EXAM))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
 
+            const docId = new Types.ObjectId(req.params.docId);
             const doc = await this.previousExamService.getPreviousExamById(
                 docId
             );
@@ -327,41 +261,16 @@ export class PreviousExamController extends Controller {
                 throw new Error(`The required document doesn't exist`);
             }
 
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
-            }
-
             const info = _.pick(req.body, [
                 "name",
                 "description",
                 "subject",
                 "semester",
                 "type",
-                "visibleTo",
             ]);
 
             if (info.subject) {
                 info.subject = new Types.ObjectId(info.subject);
-            }
-            if (info.visibleTo) {
-                info.visibleTo = (info.visibleTo as string[]).map(
-                    (x) => new Types.ObjectId(x)
-                );
-                if (
-                    !(await this.accessLevelService.checkAccessLevelsExist(
-                        info.visibleTo
-                    ))
-                ) {
-                    throw new Error(`One or more access levels don't exist`);
-                }
             }
             if (info.subject) {
                 const subject = new Types.ObjectId(info.subject);
@@ -396,15 +305,10 @@ export class PreviousExamController extends Controller {
 
     async delete(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.DELETE_PREVIOUS_EXAM,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_DELETE_PREVIOUS_EXAM))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -417,18 +321,6 @@ export class PreviousExamController extends Controller {
 
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
-            }
-
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
             }
 
             const result = await this.previousExamService.markAsDeleted(docId);

@@ -23,32 +23,25 @@ export class QuizService {
         duration: number,
         startTime: number,
         fromTemplate: Types.ObjectId,
-        questions: ConcreteQuestion[],
-        options: SaveOptions = {}
+        questions: ConcreteQuestion[]
     ) {
         return (
-            await QuizModel.create(
-                [
-                    {
-                        userId: userId,
-                        status: status,
-                        createdAt: Date.now(),
-                        duration: duration,
-                        startTime: startTime,
-                        fromTemplate: fromTemplate,
-                        questions: questions,
-                    },
-                ],
-                options
-            )
+            await QuizModel.create([
+                {
+                    userId: userId,
+                    status: status,
+                    createdAt: Date.now(),
+                    duration: duration,
+                    startTime: startTime,
+                    fromTemplate: fromTemplate,
+                    questions: questions,
+                },
+            ])
         )[0];
     }
 
-    async getAllQuizByUser(
-        userId: Types.ObjectId,
-        options: QueryOptions<QuizDocument> = {}
-    ) {
-        return await QuizModel.find({ userId: userId }, {}, options).populate({
+    async getAllQuizOfUserExpanded(userId: Types.ObjectId) {
+        return await QuizModel.find({ userId: userId }).populate({
             path: "fromTemplate",
             populate: {
                 path: "subject",
@@ -57,19 +50,14 @@ export class QuizService {
         });
     }
 
-    async getUserQuizById(
+    async getOneQuizOfUserExpanded(
         userId: Types.ObjectId,
-        quizId: Types.ObjectId,
-        options: QueryOptions<QuizDocument> = {}
+        quizId: Types.ObjectId
     ) {
-        return await QuizModel.findOne(
-            {
-                _id: quizId,
-                userId: userId,
-            },
-            {},
-            options
-        ).populate({
+        return await QuizModel.findOne({
+            _id: quizId,
+            userId: userId,
+        }).populate({
             path: "fromTemplate",
             populate: {
                 path: "subject",
@@ -78,55 +66,31 @@ export class QuizService {
         });
     }
 
-    /**
-     * Returns whether a user has any unfinished quiz (registered or ongoing) of a specific template
-     * If template is not specified, then this function returns whether the user has any
-     * unfinished quiz at all
-     */
+    async getQuizById(id: Types.ObjectId) {
+        return await QuizModel.findById(id);
+    }
+
     async userHasUnfinishedQuiz(
         userId: Types.ObjectId,
-        quizTemplateId: Types.ObjectId = null,
-        options: QueryOptions<QuizDocument> = {}
+        quizTemplateId: Types.ObjectId
     ) {
-        if (!quizTemplateId) {
-            return (
-                (await QuizModel.findOne(
-                    {
-                        userId: userId,
-                        status: QuizStatus.ONGOING,
-                    },
-                    {},
-                    options
-                )) != null
-            );
-        }
         return (
-            (await QuizModel.findOne(
-                {
-                    userId: userId,
-                    fromTemplate: quizTemplateId,
-                    status: QuizStatus.ONGOING,
-                },
-                {},
-                options
-            )) != null
+            (await QuizModel.findOne({
+                userId: userId,
+                fromTemplate: quizTemplateId,
+                status: QuizStatus.ONGOING,
+            })) != null
         );
     }
 
     async getUserOngoingQuizById(
         quizId: Types.ObjectId,
-        userId: Types.ObjectId,
-        projection: ProjectionType<QuizDocument> = {},
-        options: QueryOptions<QuizDocument> = {}
+        userId: Types.ObjectId
     ) {
-        return await QuizModel.findOne(
-            {
-                _id: quizId,
-                userId: userId,
-                status: QuizStatus.ONGOING,
-            },
-            projection,
-            options
-        );
+        return await QuizModel.findOne({
+            _id: quizId,
+            userId: userId,
+            status: QuizStatus.ONGOING,
+        });
     }
 }

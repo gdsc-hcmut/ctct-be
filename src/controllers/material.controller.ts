@@ -67,6 +67,9 @@ export class MaterialController extends Controller {
     async create(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             const {
                 name,
                 subject: subjectString,
@@ -74,13 +77,7 @@ export class MaterialController extends Controller {
                 description = "",
             } = req.body;
 
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    req.tokenMeta.accessLevels,
-                    Permission.UPLOAD_MATERIAL,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            if (!(await canPerform(Permission.ADMIN_UPLOAD_MATERIAL))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -125,20 +122,6 @@ export class MaterialController extends Controller {
             );
             fileValidator.validate(req.files as Express.Multer.File[]);
 
-            if (!req.body.visibleTo) {
-                throw new Error(`Missing 'visibleTo' field`);
-            }
-            const visibleTo = (JSON.parse(req.body.visibleTo) as string[]).map(
-                (x) => new Types.ObjectId(x)
-            );
-            if (
-                !(await this.accessLevelService.checkAccessLevelsExist(
-                    visibleTo
-                ))
-            ) {
-                throw new Error(`One or more access levels does not exist`);
-            }
-
             const doc = await this.materialService.create(
                 name,
                 description,
@@ -146,8 +129,7 @@ export class MaterialController extends Controller {
                 chapter,
                 userId,
                 req.files as Express.Multer.File[],
-                new AgressiveFileCompression(),
-                visibleTo
+                new AgressiveFileCompression()
             );
 
             res.composer.success(doc);
@@ -160,13 +142,12 @@ export class MaterialController extends Controller {
 
     async getById(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_MATERIAL)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_MATERIAL))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
@@ -180,17 +161,6 @@ export class MaterialController extends Controller {
                 throw new Error(`Document not found`);
             }
 
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta?.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
-            }
             res.composer.success(doc);
         } catch (error) {
             logger.error(error.message);
@@ -201,27 +171,20 @@ export class MaterialController extends Controller {
 
     async getBySubject(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_MATERIAL)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_MATERIAL))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
             const subject = new Types.ObjectId(req.params.subjectId);
-            const ans = (
-                await this.materialService.getMaterialBySubject(subject)
-            ).filter((d) =>
-                this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    d.visibleTo,
-                    req.tokenMeta?.isManager
-                )
+            const ans = await this.materialService.getMaterialBySubject(
+                subject
             );
             res.composer.success(ans);
         } catch (error) {
@@ -233,13 +196,12 @@ export class MaterialController extends Controller {
 
     async download(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_MATERIAL)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_MATERIAL))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
@@ -251,18 +213,6 @@ export class MaterialController extends Controller {
 
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
-            }
-
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta?.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
             }
 
             const file = await this.fileUploadService.downloadFile(
@@ -283,27 +233,19 @@ export class MaterialController extends Controller {
 
     async getAvailable(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta?.accessLevels;
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
             if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.VIEW_MATERIAL,
-                    req.tokenMeta?.isManager
-                ))
+                !(await canPerform(Permission.VIEW_MATERIAL)) &&
+                !(await canPerform(Permission.ADMIN_VIEW_MATERIAL))
             ) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
 
-            const ans = (await this.materialService.getAllMaterial()).filter(
-                (d) =>
-                    this.accessLevelService.checkAllowedListOverlaps(
-                        userAccessLevels,
-                        d.visibleTo,
-                        req.tokenMeta?.isManager
-                    )
-            );
+            const ans = await this.materialService.getAllMaterial();
             res.composer.success(ans);
         } catch (error) {
             logger.error(error.message);
@@ -314,14 +256,10 @@ export class MaterialController extends Controller {
 
     async edit(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.EDIT_MATERIAL,
-                    req.tokenMeta?.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_EDIT_MATERIAL))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -334,40 +272,15 @@ export class MaterialController extends Controller {
                 throw new Error(`The required document doesn't exist`);
             }
 
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
-            }
-
             const info = _.pick(req.body, [
                 "name",
                 "description",
                 "subject",
                 "chapter",
-                "visibleTo",
             ]);
 
             if (info.chapter) {
                 info.chapter = toNumber(info.chapter);
-            }
-            if (info.visibleTo) {
-                info.visibleTo = (info.visibleTo as string[]).map(
-                    (x) => new Types.ObjectId(x)
-                );
-                if (
-                    !(await this.accessLevelService.checkAccessLevelsExist(
-                        info.visibleTo
-                    ))
-                ) {
-                    throw new Error(`One or more access levels don't exist`);
-                }
             }
             if (info.subject) {
                 info.subject = new Types.ObjectId(info.subject);
@@ -421,15 +334,10 @@ export class MaterialController extends Controller {
 
     async delete(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.DELETE_MATERIAL,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_DELETE_MATERIAL))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -440,18 +348,6 @@ export class MaterialController extends Controller {
 
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);
-            }
-
-            if (
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    doc.visibleTo,
-                    req.tokenMeta.isManager
-                )
-            ) {
-                throw new Error(
-                    `This document has been configured to be hidden from you`
-                );
             }
 
             const result = await this.materialService.markAsDeleted(docId);

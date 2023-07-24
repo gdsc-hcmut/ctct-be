@@ -48,20 +48,17 @@ export class SubjectController extends Controller {
 
     async create(req: Request, res: Response) {
         try {
-            const { userId } = req.tokenMeta;
-            const { name, description = "" } = req.body;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    req.tokenMeta.accessLevels,
-                    Permission.CREATE_SUBJECT,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_CREATE_SUBJECT))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
+
+            const { userId } = req.tokenMeta;
+            const { name, description = "" } = req.body;
 
             if (!name) {
                 throw new Error(`Missing 'name' field`);
@@ -93,15 +90,10 @@ export class SubjectController extends Controller {
 
     async editSubject(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.EDIT_SUBJECT,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_EDIT_SUBJECT))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -133,15 +125,10 @@ export class SubjectController extends Controller {
 
     async delete(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.DELETE_SUBJECT,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.ADMIN_DELETE_SUBJECT))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );

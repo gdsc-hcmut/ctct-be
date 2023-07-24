@@ -12,7 +12,7 @@ import {
     SocketService,
     TaskSchedulingService,
 } from "../services/index";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { QuizStatus } from "../models/quiz.model";
 import _ from "lodash";
@@ -53,22 +53,15 @@ export class QuizController extends Controller {
 
     async take(req: Request, res: Response) {
         try {
-            const {
-                userId,
-                accessLevels: userAccessLevels,
-                isManager,
-            } = req.tokenMeta;
+            const { userId } = req.tokenMeta;
             const quizTemplateId = new Types.ObjectId(
                 req.params.quizTemplateId
             );
 
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.TAKE_QUIZ,
-                    isManager
-                ))
-            ) {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            if (!(await canPerform(Permission.TAKE_QUIZ))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -90,14 +83,7 @@ export class QuizController extends Controller {
                     quizTemplateId
                 );
 
-            if (
-                !quizTemplate ||
-                !this.accessLevelService.checkAllowedListOverlaps(
-                    userAccessLevels,
-                    quizTemplate.visibleTo,
-                    isManager
-                )
-            ) {
+            if (!quizTemplate) {
                 throw new Error(
                     `This quiz does not exist or has been configured to be hidden from you`
                 );
@@ -161,7 +147,9 @@ export class QuizController extends Controller {
     async getMy(req: Request, res: Response) {
         try {
             const userId = req.tokenMeta.userId;
-            const quizzes = await this.quizService.getAllQuizByUser(userId);
+            const quizzes = await this.quizService.getAllQuizOfUserExpanded(
+                userId
+            );
             const result = (quizzes as any[]).map((quiz) =>
                 this.mapperService.adjustQuizDocumentAccordingToStatus(quiz)
             );
@@ -177,7 +165,10 @@ export class QuizController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizId = new Types.ObjectId(req.params.quizId);
-            const quiz = await this.quizService.getUserQuizById(userId, quizId);
+            const quiz = await this.quizService.getOneQuizOfUserExpanded(
+                userId,
+                quizId
+            );
             if (!quiz) {
                 throw new Error(`Quiz doesn't exist`);
             }

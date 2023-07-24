@@ -47,17 +47,14 @@ export class ChapterController extends Controller {
 
     async create(req: Request, res: Response) {
         try {
-            const { accessLevels: userAccessLevels, userId } = req.tokenMeta;
+            const { userId } = req.tokenMeta;
             const { name, description = "" } = req.body;
             const subject = new Types.ObjectId(req.body.subject);
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
 
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.CREATE_CHAPTER,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            if (!(await canPerform(Permission.ADMIN_CREATE_CHAPTER))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -83,16 +80,12 @@ export class ChapterController extends Controller {
 
     async edit(req: Request, res: Response) {
         try {
-            const { accessLevels: userAccessLevels, userId } = req.tokenMeta;
             const chapterId = new Types.ObjectId(req.params.chapterId);
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
 
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.EDIT_CHAPTER,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            if (!(await canPerform(Permission.ADMIN_EDIT_CHAPTER))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -116,16 +109,12 @@ export class ChapterController extends Controller {
 
     async delete(req: Request, res: Response) {
         try {
-            const { accessLevels: userAccessLevels } = req.tokenMeta;
             const chapterId = new Types.ObjectId(req.params.chapterId);
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
 
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.DELETE_CHAPTER,
-                    req.tokenMeta.isManager
-                ))
-            ) {
+            if (!(await canPerform(Permission.ADMIN_DELETE_CHAPTER))) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );

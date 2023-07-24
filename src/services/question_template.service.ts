@@ -26,24 +26,21 @@ export class QuestionTemplateService {
         logger.info("[QuestionTemplate] Initializing...");
     }
 
-    async create(userId: Types.ObjectId, data: any, options: SaveOptions = {}) {
+    async create(userId: Types.ObjectId, data: any) {
         /**
          * data should include metadata (as indicated by the model)
          * except createdBy and createdAt (automatically generated)
          */
         const now = Date.now();
         return (
-            await QuestionTemplateModel.create(
-                [
-                    {
-                        ...data,
-                        createdAt: now,
-                        createdBy: userId,
-                        lastUpdatedAt: now,
-                    },
-                ],
-                options
-            )
+            await QuestionTemplateModel.create([
+                {
+                    ...data,
+                    createdAt: now,
+                    createdBy: userId,
+                    lastUpdatedAt: now,
+                },
+            ])
         )[0];
     }
 
@@ -268,19 +265,15 @@ export class QuestionTemplateService {
         }
     }
 
-    async questionTemplatesExist(
-        questions: Types.ObjectId[],
-        options: QueryOptions<QuestionTemplateDocument> = {}
-    ) {
+    async questionTemplatesExist(questions: Types.ObjectId[]) {
         const result = await Promise.all(
             questions.map((question) =>
                 (async () => {
                     return (
-                        (await QuestionTemplateModel.findOne(
-                            { _id: question, deletedAt: { $exists: false } },
-                            {},
-                            options
-                        )) != null
+                        (await QuestionTemplateModel.findOne({
+                            _id: question,
+                            deletedAt: { $exists: false },
+                        })) != null
                     );
                 })()
             )
@@ -299,54 +292,34 @@ export class QuestionTemplateService {
         );
     }
 
-    async getAllQuestionTemplates(
-        projection: ProjectionType<QuestionTemplateDocument> = {},
-        options: QueryOptions<QuestionTemplateDocument> = {}
-    ) {
-        return await QuestionTemplateModel.find(
-            { deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getAllQuestionTemplates() {
+        return await QuestionTemplateModel.find({
+            deletedAt: { $exists: false },
+        });
     }
 
-    async getQuestionTemplateById(
-        id: Types.ObjectId,
-        projection: ProjectionType<QuestionTemplateDocument> = {},
-        options: QueryOptions<QuestionTemplateDocument> = {}
-    ) {
-        return await QuestionTemplateModel.findOne(
-            { _id: id, deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getQuestionTemplateById(id: Types.ObjectId) {
+        return await QuestionTemplateModel.findOne({
+            _id: id,
+            deletedAt: { $exists: false },
+        });
     }
 
-    async questionTemplateWithSubjectExists(
-        subjectId: Types.ObjectId,
-        projection: ProjectionType<QuestionTemplateDocument> = {},
-        options: QueryOptions<QuestionTemplateDocument> = {}
-    ) {
+    async questionTemplateWithSubjectExists(subjectId: Types.ObjectId) {
         return (
-            (await QuestionTemplateModel.findOne(
-                { subject: subjectId, deletedAt: { $exists: false } },
-                projection,
-                options
-            )) != null
+            (await QuestionTemplateModel.findOne({
+                subject: subjectId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 
-    async questionTemplateWithChapterExists(
-        chapterId: Types.ObjectId,
-        projection: ProjectionType<QuestionTemplateDocument> = {},
-        options: QueryOptions<QuestionTemplateDocument> = {}
-    ) {
+    async questionTemplateWithChapterExists(chapterId: Types.ObjectId) {
         return (
-            (await QuestionTemplateModel.findOne(
-                { chapter: chapterId, deletedAt: { $exists: false } },
-                projection,
-                options
-            )) != null
+            (await QuestionTemplateModel.findOne({
+                chapter: chapterId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 }

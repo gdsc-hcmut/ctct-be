@@ -17,20 +17,17 @@ export class QuizTemplateService {
         logger.info("[QuizTemplate] Initializing...");
     }
 
-    async create(userId: Types.ObjectId, data: any, options: SaveOptions = {}) {
+    async create(userId: Types.ObjectId, data: any) {
         const now = Date.now();
         return (
-            await QuizTemplateModel.create(
-                [
-                    {
-                        ...data,
-                        createdBy: userId,
-                        createdAt: now,
-                        lastUpdatedAt: now,
-                    },
-                ],
-                options
-            )
+            await QuizTemplateModel.create([
+                {
+                    ...data,
+                    createdBy: userId,
+                    createdAt: now,
+                    lastUpdatedAt: now,
+                },
+            ])
         )[0];
     }
 
@@ -45,50 +42,22 @@ export class QuizTemplateService {
         );
     }
 
-    async removeAccessLevelFromAllQuizTemplates(
-        accessLevelId: Types.ObjectId,
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
-        return await QuizTemplateModel.updateMany(
-            {},
-            {
-                $pull: {
-                    visibleTo: accessLevelId,
-                },
-            },
-            options
-        );
-    }
-
     // check if there is a quiz template that maintains a reference
     // to the given question
-    async checkQuizTemplateWithQuestion(
-        questionId: Types.ObjectId,
-        projection: ProjectionType<QuizTemplateDocument> = {},
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
+    async checkQuizTemplateWithQuestion(questionId: Types.ObjectId) {
         return (
-            (await QuizTemplateModel.findOne(
-                {
-                    potentialQuestions: questionId,
-                    deletedAt: { $exists: false },
-                },
-                projection,
-                options
-            )) != null
+            (await QuizTemplateModel.findOne({
+                potentialQuestions: questionId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 
-    async getQuizTemplateById(
-        id: Types.ObjectId,
-        projection: ProjectionType<QuizTemplateDocument> = {},
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
-        return await QuizTemplateModel.findOne(
-            { _id: id, deletedAt: { $exists: false } },
-            projection,
-            options
-        );
+    async getQuizTemplateById(id: Types.ObjectId) {
+        return await QuizTemplateModel.findOne({
+            _id: id,
+            deletedAt: { $exists: false },
+        });
     }
 
     async editOneQuizTemplate(
@@ -103,45 +72,25 @@ export class QuizTemplateService {
         );
     }
 
-    async getAllQuizTemplates(
-        projection: ProjectionType<QuizTemplateDocument> = {},
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
-        return await QuizTemplateModel.find(
-            { deletedAt: { $exists: false } },
-            projection,
-            options
+    async getAllQuizTemplates() {
+        return await QuizTemplateModel.find({ deletedAt: { $exists: false } });
+    }
+
+    async quizTemplateWithSubjectExists(subjectId: Types.ObjectId) {
+        return (
+            (await QuizTemplateModel.findOne({
+                subject: subjectId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 
-    async quizTemplateWithSubjectExists(
-        subjectId: Types.ObjectId,
-        projection: ProjectionType<QuizTemplateDocument> = {},
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
+    async quizTemplateWithChapterExists(chapterId: Types.ObjectId) {
         return (
-            (await QuizTemplateModel.findOne(
-                {
-                    subject: subjectId,
-                    deletedAt: { $exists: false },
-                },
-                projection,
-                options
-            )) != null
-        );
-    }
-
-    async quizTemplateWithChapterExists(
-        chapterId: Types.ObjectId,
-        projection: ProjectionType<QuizTemplateDocument> = {},
-        options: QueryOptions<QuizTemplateDocument> = {}
-    ) {
-        return (
-            (await QuizTemplateModel.findOne(
-                { chapter: chapterId, deletedAt: { $exists: false } },
-                projection,
-                options
-            )) != null
+            (await QuizTemplateModel.findOne({
+                chapter: chapterId,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 }

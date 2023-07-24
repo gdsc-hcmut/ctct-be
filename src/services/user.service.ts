@@ -10,6 +10,7 @@ import mongoose, {
 } from "mongoose";
 import DeviceToken, { DeviceTokenDocument } from "../models/device-token.model";
 import { logger } from "../lib/logger";
+import { userInfo } from "os";
 
 @injectable()
 export class UserService {
@@ -43,20 +44,16 @@ export class UserService {
         return opUpdateResult.modifiedCount;
     }
 
-    async getUserById(
-        id: Types.ObjectId,
-        projection: ProjectionType<UserDocument> = {},
-        options: QueryOptions<UserDocument> = {}
-    ) {
-        return await User.findOne({ _id: id }, projection, options);
+    async getUserById(id: Types.ObjectId) {
+        return await User.findOne({ _id: id });
     }
 
-    async findOne(
-        query: FilterQuery<UserDocument>,
-        projection: ProjectionType<UserDocument> = {},
-        options: QueryOptions<UserDocument> = {}
-    ) {
-        return await User.findOne(query, projection, options);
+    async getUserByIdExpanded(id: Types.ObjectId) {
+        return await User.findById(id).populate("accessLevels");
+    }
+
+    async findOne(query: FilterQuery<UserDocument>) {
+        return await User.findOne(query);
     }
 
     async setUserAccessLevel(

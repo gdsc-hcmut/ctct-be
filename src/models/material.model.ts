@@ -5,8 +5,6 @@ export type MaterialDocument = Document & {
     subject: Types.ObjectId;
     chapter: Types.ObjectId;
 
-    visibleTo: Types.ObjectId[];
-
     description: string;
     resource: Types.ObjectId;
     createdBy: Types.ObjectId;
@@ -20,8 +18,6 @@ const materialSchema = new Schema<MaterialDocument>({
     name: { type: String, required: true },
     subject: { type: Schema.Types.ObjectId, required: true, ref: "subjects" },
     chapter: { type: Schema.Types.ObjectId, required: true, ref: "chapters" },
-
-    visibleTo: [{ type: Schema.Types.ObjectId, ref: "access_levels" }],
 
     description: String,
     resource: {

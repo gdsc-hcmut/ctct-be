@@ -56,67 +56,38 @@ export class ChapterService {
         );
     }
 
-    async chapterWithSubjectExists(
-        subject: Types.ObjectId,
-        projection: ProjectionType<ChapterDocument> = {},
-        options: QueryOptions<ChapterDocument> = {}
-    ) {
+    async chapterWithSubjectExists(subject: Types.ObjectId) {
         return (
-            (await ChapterModel.findOne(
-                {
-                    subject: subject,
-                    deletedAt: { $exists: false },
-                },
-                projection,
-                options
-            )) != null
+            (await ChapterModel.findOne({
+                subject: subject,
+                deletedAt: { $exists: false },
+            })) != null
         );
     }
 
     async chapterIsChildOfSubject(
         chapterId: Types.ObjectId,
-        subjectId: Types.ObjectId,
-        projection: ProjectionType<ChapterDocument> = {},
-        options: QueryOptions<ChapterDocument> = {}
+        subjectId: Types.ObjectId
     ) {
         return (
-            (await ChapterModel.findOne(
-                {
-                    _id: chapterId,
-                    subject: subjectId,
-                    deletedAt: { $exists: false },
-                },
-                projection,
-                options
-            )) != null
-        );
-    }
-
-    async getAllChapters(
-        projection: ProjectionType<ChapterDocument> = {},
-        options: QueryOptions<ChapterDocument> = {}
-    ) {
-        return await ChapterModel.find(
-            {
-                deletedAt: { $exists: false },
-            },
-            projection,
-            options
-        );
-    }
-
-    async getChaptersOfSubject(
-        subjectId: Types.ObjectId,
-        projection: ProjectionType<ChapterDocument> = {},
-        options: QueryOptions<ChapterDocument> = {}
-    ) {
-        return await ChapterModel.find(
-            {
+            (await ChapterModel.findOne({
+                _id: chapterId,
                 subject: subjectId,
                 deletedAt: { $exists: false },
-            },
-            projection,
-            options
+            })) != null
         );
+    }
+
+    async getAllChapters() {
+        return await ChapterModel.find({
+            deletedAt: { $exists: false },
+        });
+    }
+
+    async getChaptersOfSubject(subjectId: Types.ObjectId) {
+        return await ChapterModel.find({
+            subject: subjectId,
+            deletedAt: { $exists: false },
+        });
     }
 }
