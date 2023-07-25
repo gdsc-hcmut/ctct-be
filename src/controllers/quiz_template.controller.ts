@@ -10,10 +10,12 @@ import {
     QuizTemplateService,
     SubjectService,
 } from "../services/index";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
 import _ from "lodash";
+import { QuizTemplateDocument } from "../models/quiz_template.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class QuizTemplateController extends Controller {
@@ -38,7 +40,7 @@ export class QuizTemplateController extends Controller {
         this.router.post("/", this.create.bind(this));
         this.router.patch("/:quizTemplateId", this.edit.bind(this));
         this.router.delete("/:quizTemplateId", this.delete.bind(this));
-        this.router.get("/", this.getAllQuizTemplates.bind(this));
+        this.router.get("/", this.getAll.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -172,7 +174,7 @@ export class QuizTemplateController extends Controller {
         }
     }
 
-    async getAllQuizTemplates(req: Request, res: Response) {
+    async getAll(req: Request, res: Response) {
         try {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
@@ -186,8 +188,39 @@ export class QuizTemplateController extends Controller {
                 );
             }
 
-            const result = await this.quizTemplateService.getAllQuizTemplates();
-            res.composer.success(result);
+            const query: FilterQuery<QuizTemplateDocument> = {};
+
+            if (req.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+            if (req.query.subject) {
+                query.subject = new Types.ObjectId(req.query.subject as string);
+            }
+            if (req.query.chapter) {
+                query.chapter = new Types.ObjectId(req.query.chapter as string);
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] =
+                await this.quizTemplateService.getPaginated(
+                    query,
+                    ["subject", "chapter"],
+                    pageSize,
+                    pageNumber
+                );
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result,
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);

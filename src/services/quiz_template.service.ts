@@ -1,15 +1,10 @@
 import { injectable } from "inversify";
-import {
-    ProjectionType,
-    QueryOptions,
-    SaveOptions,
-    Types,
-    UpdateQuery,
-} from "mongoose";
+import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { logger } from "../lib/logger";
 import QuizTemplateModel, {
     QuizTemplateDocument,
 } from "../models/quiz_template.model";
+import _ from "lodash";
 
 @injectable()
 export class QuizTemplateService {
@@ -72,10 +67,6 @@ export class QuizTemplateService {
         );
     }
 
-    async getAllQuizTemplates() {
-        return await QuizTemplateModel.find({ deletedAt: { $exists: false } });
-    }
-
     async quizTemplateWithSubjectExists(subjectId: Types.ObjectId) {
         return (
             (await QuizTemplateModel.findOne({
@@ -92,5 +83,22 @@ export class QuizTemplateService {
                 deletedAt: { $exists: false },
             })) != null
         );
+    }
+
+    async getPaginated(
+        query: FilterQuery<QuizTemplateDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await QuizTemplateModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 }

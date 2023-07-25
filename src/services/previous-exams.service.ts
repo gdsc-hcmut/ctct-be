@@ -2,6 +2,7 @@ import { injectable } from "inversify";
 import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
 import mongoose, {
+    FilterQuery,
     ProjectionType,
     QueryOptions,
     Types,
@@ -15,6 +16,7 @@ import PreviousExamModel, {
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
 import { logger } from "../lib/logger";
+import _ from "lodash";
 
 @injectable()
 export class PreviousExamService {
@@ -87,25 +89,38 @@ export class PreviousExamService {
         );
     }
 
-    async getPreviousExamById(id: Types.ObjectId) {
+    async getById(id: Types.ObjectId) {
         return await PreviousExamModel.findOne({
             _id: id,
             deletedAt: { $exists: false },
         });
     }
 
-    async getPreviousExamBySubject(subject: Types.ObjectId) {
-        return await PreviousExamModel.find({
-            subject: subject,
+    async getByIdPopulated(id: Types.ObjectId, paths: string[]) {
+        return await PreviousExamModel.findOne({
+            _id: id,
             deletedAt: { $exists: false },
-        });
+        }).populate(paths);
     }
 
-    async getAllPreviousExam() {
-        return await PreviousExamModel.find({ deletedAt: { $exists: false } });
+    async getPaginated(
+        query: FilterQuery<PreviousExamDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await PreviousExamModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 
-    async editOnePreviousExam(
+    async editOne(
         id: Types.ObjectId,
         update: UpdateQuery<PreviousExamDocument> = {},
         options: QueryOptions<PreviousExamDocument> = {}

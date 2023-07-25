@@ -16,12 +16,13 @@ import { CharStream, CommonTokenStream } from "antlr4";
 import QuestionGrammarVisitor from "../lib/question-generation/QuestionGrammarVisitor";
 import GrammarParser from "../lib/question-generation/GrammarParser";
 import GrammarLexer from "../lib/question-generation/GrammarLexer";
-import { Types } from "mongoose";
+import { FilterQuery, QueryOptions, Types } from "mongoose";
 import { Permission } from "../models/access_level.model";
 import {
     QuestionTemplateDocument,
     QuestionType,
 } from "../models/question_template.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class QuestionTemplateController extends Controller {
@@ -87,10 +88,9 @@ export class QuestionTemplateController extends Controller {
                 throw new Error(`Missing manager permission`);
             }
             const questionId = new Types.ObjectId(req.params.questionId);
-            const question =
-                await this.questionTemplateService.getQuestionTemplateById(
-                    questionId
-                );
+            const question = await this.questionTemplateService.getById(
+                questionId
+            );
             const result =
                 this.questionTemplateService.generateConcreteQuestion(question);
             res.composer.success(result);
@@ -476,9 +476,39 @@ export class QuestionTemplateController extends Controller {
                 );
             }
 
-            const result =
-                await this.questionTemplateService.getAllQuestionTemplates();
-            res.composer.success(result);
+            const query: FilterQuery<QuestionTemplateDocument> = {};
+
+            if (req.query.subject) {
+                query.subject = new Types.ObjectId(req.query.subject as string);
+            }
+            if (req.query.chapter) {
+                query.chapter = new Types.ObjectId(req.query.chapter as string);
+            }
+            if (req.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] =
+                await this.questionTemplateService.getPaginated(
+                    query,
+                    ["subject", "chapter"],
+                    pageSize,
+                    pageNumber
+                );
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result,
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -500,10 +530,9 @@ export class QuestionTemplateController extends Controller {
             }
 
             const questionId = new Types.ObjectId(req.params.questionId);
-            const question =
-                await this.questionTemplateService.getQuestionTemplateById(
-                    questionId
-                );
+            const question = await this.questionTemplateService.getById(
+                questionId
+            );
 
             if (!question) {
                 throw new Error(`Question template does not exist`);

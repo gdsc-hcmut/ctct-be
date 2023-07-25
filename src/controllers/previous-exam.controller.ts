@@ -13,11 +13,16 @@ import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { PreviousExamUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import _ from "lodash";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
-import { PreviousExamType, Semester } from "../models/previous-exam.model";
+import {
+    PreviousExamDocument,
+    PreviousExamType,
+    Semester,
+} from "../models/previous-exam.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -50,11 +55,6 @@ export class PreviousExamController extends Controller {
             "/",
             authService.authenticate(false),
             this.getAvailable.bind(this)
-        );
-        this.router.get(
-            "/subject/:subjectId",
-            authService.authenticate(false),
-            this.getBySubject.bind(this)
         );
 
         this.router.all("*", authService.authenticate());
@@ -138,40 +138,14 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.getPreviousExamById(
-                docId
-            );
+            const doc = await this.previousExamService.getByIdPopulated(docId, [
+                "subject",
+            ]);
 
             if (!doc) {
                 throw new Error(`Document not found`);
             }
             res.composer.success(doc);
-        } catch (error) {
-            logger.error(error.message);
-            console.log(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
-    async getBySubject(req: Request, res: Response) {
-        try {
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
-            if (
-                !(await canPerform(Permission.VIEW_PREVIOUS_EXAM)) &&
-                !(await canPerform(Permission.ADMIN_VIEW_PREVIOUS_EXAM))
-            ) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const subject = new Types.ObjectId(req.params.subjectId);
-            const ans = await this.previousExamService.getPreviousExamBySubject(
-                subject
-            );
-            res.composer.success(ans);
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -194,9 +168,7 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.getPreviousExamById(
-                docId
-            );
+            const doc = await this.previousExamService.getById(docId);
 
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
@@ -232,8 +204,42 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            const ans = await this.previousExamService.getAllPreviousExam();
-            res.composer.success(ans);
+            const query: FilterQuery<PreviousExamDocument> = {};
+
+            if (req.query.subject) {
+                query.subject = new Types.ObjectId(req.query.subject as string);
+            }
+            if (req.query.semester) {
+                query.semester = req.query.semester as Semester;
+            }
+            if (req.query.type) {
+                query.type = req.query.type as PreviousExamType;
+            }
+            if (req.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] =
+                await this.previousExamService.getPaginated(
+                    query,
+                    ["subject"],
+                    pageSize,
+                    pageNumber
+                );
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result,
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -253,9 +259,7 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.getPreviousExamById(
-                docId
-            );
+            const doc = await this.previousExamService.getById(docId);
 
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
@@ -291,10 +295,7 @@ export class PreviousExamController extends Controller {
                 }
             }
 
-            const result = await this.previousExamService.editOnePreviousExam(
-                docId,
-                info
-            );
+            const result = await this.previousExamService.editOne(docId, info);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -315,9 +316,7 @@ export class PreviousExamController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.previousExamService.getPreviousExamById(
-                docId
-            );
+            const doc = await this.previousExamService.getById(docId);
 
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);

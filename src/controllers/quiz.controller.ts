@@ -12,13 +12,14 @@ import {
     SocketService,
     TaskSchedulingService,
 } from "../services/index";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
-import { QuizStatus } from "../models/quiz.model";
+import { QuizDocument, QuizStatus } from "../models/quiz.model";
 import _ from "lodash";
 import { Permission } from "../models/access_level.model";
 import { EndQuizTask } from "../services/task-scheduling/tasks/end_quiz_task";
 import { ScheduledTaskType } from "../services/task-scheduling/schedule_task_type";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class QuizController extends Controller {
@@ -97,7 +98,7 @@ export class QuizController extends Controller {
                 potentialQuestions.map((questionId) =>
                     (async () => {
                         const questionTemplate =
-                            await this.questionTemplateService.getQuestionTemplateById(
+                            await this.questionTemplateService.getById(
                                 questionId
                             );
                         console.debug(questionTemplate);
@@ -147,13 +148,52 @@ export class QuizController extends Controller {
     async getMy(req: Request, res: Response) {
         try {
             const userId = req.tokenMeta.userId;
-            const quizzes = await this.quizService.getAllQuizOfUserExpanded(
-                userId
+
+            const query: FilterQuery<QuizDocument> = {
+                userId: userId,
+            };
+            if (req.query.name) {
+                query.fromTemplate.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+            if (req.query.subject) {
+                query.fromTemplate.subject = new Types.ObjectId(
+                    req.query.subject as string
+                );
+            }
+            if (req.query.chapter) {
+                query.fromTemplate.chapter = new Types.ObjectId(
+                    req.query.chapter as string
+                );
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] = await this.quizService.getPaginated(
+                query,
+                [
+                    "fromTemplate",
+                    "fromTemplate.subject",
+                    "fromTemplate.chapter",
+                ],
+                pageSize,
+                pageNumber
             );
-            const result = (quizzes as any[]).map((quiz) =>
+            const adjustedResult = (result as any[]).map((quiz) =>
                 this.mapperService.adjustQuizDocumentAccordingToStatus(quiz)
             );
-            res.composer.success(result);
+
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result: adjustedResult,
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);

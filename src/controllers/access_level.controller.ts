@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { inject, injectable } from "inversify";
 import { Controller } from "./controller";
-import mongoose, { Types } from "mongoose";
+import mongoose, { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Request, Response, ServiceType } from "../types";
-import { Permission } from "../models/access_level.model";
+import { AccessLevelDocument, Permission } from "../models/access_level.model";
 import {
     AccessLevelService,
     AuthService,
@@ -14,6 +14,7 @@ import {
     QuizTemplateService,
 } from "../services/index";
 import _ from "lodash";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class AccessLevelController extends Controller {
@@ -34,20 +35,44 @@ export class AccessLevelController extends Controller {
         super();
 
         this.router.all("*", authService.authenticate());
-        this.router.get("/", this.getAllAccessLevels.bind(this));
+        this.router.get("/", this.getAll.bind(this));
         this.router.post("/", this.create.bind(this));
         this.router.delete("/:accessLevelId", this.delete.bind(this));
-        this.router.patch("/:accessLevelId", this.editAccessLevel.bind(this));
+        this.router.patch("/:accessLevelId", this.edit.bind(this));
         this.router.patch(
             "/edituser/:userId",
             this.setUserAccessLevel.bind(this)
         );
     }
 
-    async getAllAccessLevels(req: Request, res: Response) {
+    async getAll(req: Request, res: Response) {
         try {
-            const result = await this.accessLevelService.getAllAccessLevels();
-            res.composer.success(result);
+            const query: FilterQuery<AccessLevelDocument> = {};
+            if (req.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] =
+                await this.accessLevelService.getPaginated(
+                    query,
+                    [],
+                    pageSize,
+                    pageNumber
+                );
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result,
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -126,7 +151,7 @@ export class AccessLevelController extends Controller {
         }
     }
 
-    async editAccessLevel(req: Request, res: Response) {
+    async edit(req: Request, res: Response) {
         try {
             if (!req.tokenMeta.isManager) {
                 throw new Error(`Missing administrative permissions`);

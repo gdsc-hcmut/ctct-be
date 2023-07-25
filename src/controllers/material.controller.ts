@@ -14,11 +14,13 @@ import { fileUploader } from "../lib/upload-storage";
 import { AgressiveFileCompression } from "../lib/file-compression/strategies";
 import { UploadValidator } from "../lib/upload-validator/upload-validator";
 import { MaterialUploadValidation } from "../lib/upload-validator/upload-validator-strategies";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { toNumber } from "lodash";
 import _ from "lodash";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
+import { MaterialDocument } from "../models/material.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class MaterialController extends Controller {
@@ -51,11 +53,6 @@ export class MaterialController extends Controller {
             "/",
             authService.authenticate(false),
             this.getAvailable.bind(this)
-        );
-        this.router.get(
-            "/subject/:subjectId",
-            authService.authenticate(false),
-            this.getBySubject.bind(this)
         );
 
         this.router.all("*", authService.authenticate());
@@ -155,38 +152,16 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.getMaterialById(docId);
+            const doc = await this.materialService.getByIdPopulated(docId, [
+                "subject",
+                "chapter",
+            ]);
 
             if (!doc) {
                 throw new Error(`Document not found`);
             }
 
             res.composer.success(doc);
-        } catch (error) {
-            logger.error(error.message);
-            console.log(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
-    async getBySubject(req: Request, res: Response) {
-        try {
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
-            if (
-                !(await canPerform(Permission.VIEW_MATERIAL)) &&
-                !(await canPerform(Permission.ADMIN_VIEW_MATERIAL))
-            ) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-            const subject = new Types.ObjectId(req.params.subjectId);
-            const ans = await this.materialService.getMaterialBySubject(
-                subject
-            );
-            res.composer.success(ans);
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -209,7 +184,7 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.getMaterialById(docId);
+            const doc = await this.materialService.getById(docId);
 
             if (!doc) {
                 throw new Error(`Document doesn't exist`);
@@ -245,8 +220,37 @@ export class MaterialController extends Controller {
                 );
             }
 
-            const ans = await this.materialService.getAllMaterial();
-            res.composer.success(ans);
+            const query: FilterQuery<MaterialDocument> = {};
+            if (req.query.subject) {
+                query.subject = new Types.ObjectId(req.query.subject as string);
+            }
+            if (req.query.chapter) {
+                query.chapter = new Types.ObjectId(req.query.chapter as string);
+            }
+            if (req.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] = await this.materialService.getPaginated(
+                query,
+                ["subject", "chapter"],
+                pageSize,
+                pageNumber
+            );
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result,
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -266,7 +270,7 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.getMaterialById(docId);
+            const doc = await this.materialService.getById(docId);
 
             if (!doc) {
                 throw new Error(`The required document doesn't exist`);
@@ -344,7 +348,7 @@ export class MaterialController extends Controller {
             }
 
             const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.materialService.getMaterialById(docId);
+            const doc = await this.materialService.getById(docId);
 
             if (!doc) {
                 throw new Error(`Requested document doesn't exist`);

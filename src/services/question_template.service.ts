@@ -1,6 +1,6 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { QueryOptions, Types } from "mongoose";
+import { FilterQuery, QueryOptions, Types } from "mongoose";
 import QuestionTemplateModel, {
     ConcreteQuestion,
     QuestionTemplateDocument,
@@ -285,17 +285,35 @@ export class QuestionTemplateService {
         );
     }
 
-    async getAllQuestionTemplates() {
-        return await QuestionTemplateModel.find({
+    async getPaginated(
+        query: FilterQuery<QuestionTemplateDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await QuestionTemplateModel.find({
+            ...query,
             deletedAt: { $exists: false },
-        });
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 
-    async getQuestionTemplateById(id: Types.ObjectId) {
+    async getById(id: Types.ObjectId) {
         return await QuestionTemplateModel.findOne({
             _id: id,
             deletedAt: { $exists: false },
         });
+    }
+
+    async getByIdPopulated(id: Types.ObjectId, paths: string[]) {
+        return await QuestionTemplateModel.findOne({
+            _id: id,
+            deletedAt: { $exists: false },
+        }).populate(paths);
     }
 
     async questionTemplateWithSubjectExists(subjectId: Types.ObjectId) {

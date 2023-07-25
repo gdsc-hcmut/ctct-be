@@ -13,9 +13,11 @@ import {
 } from "../services";
 import { ChapterService } from "../services/index";
 import { logger } from "../lib/logger";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { Permission } from "../models/access_level.model";
 import _ from "lodash";
+import { ChapterDocument } from "../models/chapter.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class ChapterController extends Controller {
@@ -161,8 +163,35 @@ export class ChapterController extends Controller {
 
     async getAll(req: Request, res: Response) {
         try {
-            const result = await this.chapterService.getAllChapters();
-            res.composer.success(result);
+            const query: FilterQuery<ChapterDocument> = {};
+            if (req.query.subject) {
+                query.subject = new Types.ObjectId(req.query.subject as string);
+            }
+            if (req.query.name) {
+                req.query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] = await this.chapterService.getPaginated(
+                query,
+                ["subject"],
+                pageSize,
+                pageNumber
+            );
+
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result,
+            });
         } catch (error) {
             logger.error(error.message);
             console.error(error);

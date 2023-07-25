@@ -12,10 +12,12 @@ import {
     QuizTemplateService,
     ChapterService,
 } from "../services/index";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import _ from "lodash";
 import { Permission } from "../models/access_level.model";
 import { logger } from "../lib/logger";
+import { SubjectDocument } from "../models/subject.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class SubjectController extends Controller {
@@ -38,11 +40,11 @@ export class SubjectController extends Controller {
     ) {
         super();
 
-        this.router.get("/", this.getAllSubjects.bind(this));
+        this.router.get("/", this.getAll.bind(this));
 
         this.router.all("*", authService.authenticate());
         this.router.post("/", this.create.bind(this));
-        this.router.patch("/:docId", this.editSubject.bind(this));
+        this.router.patch("/:docId", this.edit.bind(this));
         this.router.delete("/:docId", this.delete.bind(this));
     }
 
@@ -77,10 +79,34 @@ export class SubjectController extends Controller {
         }
     }
 
-    async getAllSubjects(req: Request, res: Response) {
+    async getAll(req: Request, res: Response) {
         try {
-            const ans = await this.subjectService.getAllSubjects();
-            res.composer.success(ans);
+            const query: FilterQuery<SubjectDocument> = {};
+            if (req.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [pageCount, result] =
+                await this.questionTemplateService.getPaginated(
+                    query,
+                    [],
+                    pageSize,
+                    pageNumber
+                );
+            res.composer.success({
+                pageCount,
+                pageSize,
+                result,
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -88,7 +114,7 @@ export class SubjectController extends Controller {
         }
     }
 
-    async editSubject(req: Request, res: Response) {
+    async edit(req: Request, res: Response) {
         try {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta

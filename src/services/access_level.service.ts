@@ -6,15 +6,9 @@ import AccessLevelModel, {
 } from "../models/access_level.model";
 import { ServiceType } from "../types";
 import { CacheService } from "./index";
-import mongoose, {
-    FilterQuery,
-    ProjectionType,
-    QueryOptions,
-    SaveOptions,
-    Types,
-    UpdateQuery,
-} from "mongoose";
+import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { TokenDocument } from "../models/token.model";
+import _ from "lodash";
 
 @injectable()
 export class AccessLevelService {
@@ -207,10 +201,6 @@ export class AccessLevelService {
         return this.STUDENT_ID;
     }
 
-    async getAllAccessLevels() {
-        return await AccessLevelModel.find({ deletedAt: { $exists: false } });
-    }
-
     async editOneAccessLevel(
         id: Types.ObjectId,
         update: UpdateQuery<AccessLevelDocument> = {},
@@ -243,5 +233,22 @@ export class AccessLevelService {
             { deletedAt: Date.now() },
             { ...options, new: true }
         );
+    }
+
+    async getPaginated(
+        query: FilterQuery<AccessLevelDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await AccessLevelModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 }

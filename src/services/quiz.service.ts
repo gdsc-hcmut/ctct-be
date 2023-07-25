@@ -1,15 +1,9 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import {
-    FilterQuery,
-    ProjectionType,
-    QueryOptions,
-    SaveOptions,
-    Types,
-    UpdateQuery,
-} from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import QuizModel, { QuizDocument, QuizStatus } from "../models/quiz.model";
 import { ConcreteQuestion } from "../models/question_template.model";
+import _ from "lodash";
 
 @injectable()
 export class QuizService {
@@ -38,16 +32,6 @@ export class QuizService {
                 },
             ])
         )[0];
-    }
-
-    async getAllQuizOfUserExpanded(userId: Types.ObjectId) {
-        return await QuizModel.find({ userId: userId }).populate({
-            path: "fromTemplate",
-            populate: {
-                path: "subject",
-                model: "subjects",
-            },
-        });
     }
 
     async getOneQuizOfUserExpanded(
@@ -92,5 +76,21 @@ export class QuizService {
             userId: userId,
             status: QuizStatus.ONGOING,
         });
+    }
+
+    async getPaginated(
+        query: FilterQuery<QuizDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await QuizModel.find({
+            ...query,
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 }

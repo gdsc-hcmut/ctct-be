@@ -13,6 +13,7 @@ import MaterialModel, { MaterialDocument } from "../models/material.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
 import { logger } from "../lib/logger";
+import _ from "lodash";
 
 @injectable()
 export class MaterialService {
@@ -98,22 +99,35 @@ export class MaterialService {
         );
     }
 
-    async getMaterialById(id: Types.ObjectId) {
+    async getById(id: Types.ObjectId) {
         return await MaterialModel.findOne({
             _id: id,
             deletedAt: { $exists: false },
         });
     }
 
-    async getMaterialBySubject(subjectId: Types.ObjectId) {
-        return await MaterialModel.find({
-            subject: subjectId,
+    async getByIdPopulated(id: Types.ObjectId, paths: string[]) {
+        return await MaterialModel.findOne({
+            _id: id,
             deletedAt: { $exists: false },
-        });
+        }).populate(paths);
     }
 
-    async getAllMaterial() {
-        return await MaterialModel.find({ deletedAt: { $exists: false } });
+    async getPaginated(
+        query: FilterQuery<MaterialDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await MaterialModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 
     async editOneMaterial(

@@ -1,7 +1,14 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { ProjectionType, QueryOptions, Types, UpdateQuery } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import ChapterModel, { ChapterDocument } from "../models/chapter.model";
+import _ from "lodash";
 
 @injectable()
 export class ChapterService {
@@ -78,16 +85,20 @@ export class ChapterService {
         );
     }
 
-    async getAllChapters() {
-        return await ChapterModel.find({
+    async getPaginated(
+        query: FilterQuery<ChapterDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await ChapterModel.find({
+            ...query,
             deletedAt: { $exists: false },
-        });
-    }
-
-    async getChaptersOfSubject(subjectId: Types.ObjectId) {
-        return await ChapterModel.find({
-            subject: subjectId,
-            deletedAt: { $exists: false },
-        });
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 }

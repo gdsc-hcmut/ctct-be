@@ -1,13 +1,8 @@
 import { injectable } from "inversify";
 import SubjectModel, { SubjectDocument } from "../models/subject.model";
-import {
-    ProjectionType,
-    QueryOptions,
-    SaveOptions,
-    Types,
-    UpdateQuery,
-} from "mongoose";
+import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { logger } from "../lib/logger";
+import _ from "lodash";
 
 @injectable()
 export class SubjectService {
@@ -28,12 +23,6 @@ export class SubjectService {
                 },
             ])
         )[0];
-    }
-
-    async getAllSubjects() {
-        return await SubjectModel.find({
-            deletedAt: { $exists: false },
-        });
     }
 
     async getSubjectById(id: Types.ObjectId) {
@@ -76,5 +65,22 @@ export class SubjectService {
                 deletedAt: { $exists: false },
             })) != null
         );
+    }
+
+    async getPaginated(
+        query: FilterQuery<SubjectDocument>,
+        paths: string[],
+        pageSize: number,
+        pageNumber: number
+    ) {
+        const ans = await SubjectModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+        const pageCount = Math.ceil(ans.length / pageSize);
+        return [
+            pageCount,
+            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
+        ];
     }
 }
