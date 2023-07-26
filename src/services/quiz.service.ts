@@ -84,13 +84,18 @@ export class QuizService {
         pageSize: number,
         pageNumber: number
     ) {
-        const ans = await QuizModel.find({
-            ...query,
-        }).populate(paths);
-        const pageCount = Math.ceil(ans.length / pageSize);
-        return [
-            pageCount,
-            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
-        ];
+        return await Promise.all([
+            QuizModel.count({
+                ...query,
+                deletedAt: { $exists: false },
+            }),
+            QuizModel.find({
+                ...query,
+                deletedAt: { $exists: false },
+            })
+                .skip(pageSize * (pageNumber - 1))
+                .limit(pageSize)
+                .populate(paths),
+        ]);
     }
 }

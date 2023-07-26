@@ -175,7 +175,7 @@ export class QuizController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [pageCount, result] = await this.quizService.getPaginated(
+            const [total, result] = await this.quizService.getPaginated(
                 query,
                 [
                     "fromTemplate",
@@ -190,7 +190,8 @@ export class QuizController extends Controller {
             );
 
             res.composer.success({
-                pageCount,
+                total,
+                pageCount: Math.ceil(total / pageSize),
                 pageSize,
                 result: adjustedResult,
             });

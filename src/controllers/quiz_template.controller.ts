@@ -209,15 +209,15 @@ export class QuizTemplateController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [pageCount, result] =
-                await this.quizTemplateService.getPaginated(
-                    query,
-                    ["subject", "chapter"],
-                    pageSize,
-                    pageNumber
-                );
+            const [total, result] = await this.quizTemplateService.getPaginated(
+                query,
+                ["subject", "chapter"],
+                pageSize,
+                pageNumber
+            );
             res.composer.success({
-                pageCount,
+                total,
+                pageCount: Math.ceil(total / pageSize),
                 pageSize,
                 result,
             });

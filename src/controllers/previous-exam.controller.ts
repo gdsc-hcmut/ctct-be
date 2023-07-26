@@ -228,15 +228,15 @@ export class PreviousExamController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [pageCount, result] =
-                await this.previousExamService.getPaginated(
-                    query,
-                    ["subject"],
-                    pageSize,
-                    pageNumber
-                );
+            const [total, result] = await this.previousExamService.getPaginated(
+                query,
+                ["subject"],
+                pageSize,
+                pageNumber
+            );
             res.composer.success({
-                pageCount,
+                total,
+                pageCount: Math.ceil(total / pageSize),
                 pageSize,
                 result,
             });

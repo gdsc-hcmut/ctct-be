@@ -497,7 +497,7 @@ export class QuestionTemplateController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [pageCount, result] =
+            const [total, result] =
                 await this.questionTemplateService.getPaginated(
                     query,
                     ["subject", "chapter"],
@@ -505,7 +505,8 @@ export class QuestionTemplateController extends Controller {
                     pageNumber
                 );
             res.composer.success({
-                pageCount,
+                total,
+                pageCount: Math.ceil(total / pageSize),
                 pageSize,
                 result,
             });

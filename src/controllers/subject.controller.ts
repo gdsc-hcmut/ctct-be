@@ -95,14 +95,15 @@ export class SubjectController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [pageCount, result] = await this.subjectService.getPaginated(
+            const [total, result] = await this.subjectService.getPaginated(
                 query,
                 [],
                 pageSize,
                 pageNumber
             );
             res.composer.success({
-                pageCount,
+                total,
+                pageCount: Math.ceil(total / pageSize),
                 pageSize,
                 result,
             });

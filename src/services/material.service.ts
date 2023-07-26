@@ -119,15 +119,19 @@ export class MaterialService {
         pageSize: number,
         pageNumber: number
     ) {
-        const ans = await MaterialModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(paths);
-        const pageCount = Math.ceil(ans.length / pageSize);
-        return [
-            pageCount,
-            _.take(_.drop(ans, pageSize * (pageNumber - 1)), pageSize),
-        ];
+        return await Promise.all([
+            MaterialModel.count({
+                ...query,
+                deletedAt: { $exists: false },
+            }),
+            MaterialModel.find({
+                ...query,
+                deletedAt: { $exists: false },
+            })
+                .skip(pageSize * (pageNumber - 1))
+                .limit(pageSize)
+                .populate(paths),
+        ]);
     }
 
     async editOneMaterial(

@@ -180,7 +180,7 @@ export class ChapterController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [pageCount, result] = await this.chapterService.getPaginated(
+            const [total, result] = await this.chapterService.getPaginated(
                 query,
                 ["subject"],
                 pageSize,
@@ -188,7 +188,8 @@ export class ChapterController extends Controller {
             );
 
             res.composer.success({
-                pageCount,
+                total,
+                pageCount: Math.ceil(total / pageSize),
                 pageSize,
                 result,
             });
