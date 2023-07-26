@@ -228,18 +228,30 @@ export class PreviousExamController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [total, result] = await this.previousExamService.getPaginated(
-                query,
-                ["subject"],
-                pageSize,
-                pageNumber
-            );
-            res.composer.success({
-                total,
-                pageCount: Math.ceil(total / pageSize),
-                pageSize,
-                result,
-            });
+            if (req.query.pagination === "false") {
+                const result = await this.previousExamService.getPopulated(
+                    query,
+                    ["subject"]
+                );
+                res.composer.success({
+                    total: result.length,
+                    result,
+                });
+            } else {
+                const [total, result] =
+                    await this.previousExamService.getPaginated(
+                        query,
+                        ["subject"],
+                        pageSize,
+                        pageNumber
+                    );
+                res.composer.success({
+                    total,
+                    pageCount: Math.ceil(total / pageSize),
+                    pageSize,
+                    result,
+                });
+            }
         } catch (error) {
             logger.error(error.message);
             console.log(error);

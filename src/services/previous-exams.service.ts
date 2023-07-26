@@ -124,6 +124,16 @@ export class PreviousExamService {
         ]);
     }
 
+    async getPopulated(
+        query: FilterQuery<PreviousExamDocument>,
+        paths: string[]
+    ) {
+        return await PreviousExamModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+    }
+
     async editOne(
         id: Types.ObjectId,
         update: UpdateQuery<PreviousExamDocument> = {},

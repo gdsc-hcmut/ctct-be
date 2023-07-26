@@ -105,4 +105,14 @@ export class QuizTemplateService {
                 .populate(paths),
         ]);
     }
+
+    async getPopulated(
+        query: FilterQuery<QuizTemplateDocument>,
+        paths: string[]
+    ) {
+        return await QuizTemplateModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+    }
 }

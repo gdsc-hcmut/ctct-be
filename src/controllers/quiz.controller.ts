@@ -175,26 +175,38 @@ export class QuizController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [total, result] = await this.quizService.getPaginated(
-                query,
-                [
+            if (req.query.pagination === "false") {
+                const result = await this.quizService.getPopulated(query, [
                     "fromTemplate",
                     "fromTemplate.subject",
                     "fromTemplate.chapter",
-                ],
-                pageSize,
-                pageNumber
-            );
-            const adjustedResult = (result as any[]).map((quiz) =>
-                this.mapperService.adjustQuizDocumentAccordingToStatus(quiz)
-            );
+                ]);
+                res.composer.success({
+                    total: result.length,
+                    result,
+                });
+            } else {
+                const [total, result] = await this.quizService.getPaginated(
+                    query,
+                    [
+                        "fromTemplate",
+                        "fromTemplate.subject",
+                        "fromTemplate.chapter",
+                    ],
+                    pageSize,
+                    pageNumber
+                );
+                const adjustedResult = (result as any[]).map((quiz) =>
+                    this.mapperService.adjustQuizDocumentAccordingToStatus(quiz)
+                );
 
-            res.composer.success({
-                total,
-                pageCount: Math.ceil(total / pageSize),
-                pageSize,
-                result: adjustedResult,
-            });
+                res.composer.success({
+                    total,
+                    pageCount: Math.ceil(total / pageSize),
+                    pageSize,
+                    result: adjustedResult,
+                });
+            }
         } catch (error) {
             logger.error(error.message);
             console.log(error);

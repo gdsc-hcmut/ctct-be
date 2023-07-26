@@ -255,4 +255,14 @@ export class AccessLevelService {
                 .populate(paths),
         ]);
     }
+
+    async getPopulated(
+        query: FilterQuery<AccessLevelDocument>,
+        paths: string[]
+    ) {
+        return await AccessLevelModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+    }
 }

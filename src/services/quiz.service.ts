@@ -87,15 +87,19 @@ export class QuizService {
         return await Promise.all([
             QuizModel.count({
                 ...query,
-                deletedAt: { $exists: false },
             }),
             QuizModel.find({
                 ...query,
-                deletedAt: { $exists: false },
             })
                 .skip(pageSize * (pageNumber - 1))
                 .limit(pageSize)
                 .populate(paths),
         ]);
+    }
+
+    async getPopulated(query: FilterQuery<QuizDocument>, paths: string[]) {
+        return await QuizModel.find({
+            ...query,
+        }).populate(paths);
     }
 }

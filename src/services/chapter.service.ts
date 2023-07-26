@@ -105,4 +105,11 @@ export class ChapterService {
                 .populate(paths),
         ]);
     }
+
+    async getPopulated(query: FilterQuery<ChapterDocument>, paths: string[]) {
+        return await ChapterModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+    }
 }

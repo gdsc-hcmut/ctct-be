@@ -180,19 +180,29 @@ export class ChapterController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const [total, result] = await this.chapterService.getPaginated(
-                query,
-                ["subject"],
-                pageSize,
-                pageNumber
-            );
+            if (req.query.pagination === "false") {
+                const result = await this.chapterService.getPopulated(query, [
+                    "subject",
+                ]);
+                res.composer.success({
+                    total: result.length,
+                    result,
+                });
+            } else {
+                const [total, result] = await this.chapterService.getPaginated(
+                    query,
+                    ["subject"],
+                    pageSize,
+                    pageNumber
+                );
 
-            res.composer.success({
-                total,
-                pageCount: Math.ceil(total / pageSize),
-                pageSize,
-                result,
-            });
+                res.composer.success({
+                    total,
+                    pageCount: Math.ceil(total / pageSize),
+                    pageSize,
+                    result,
+                });
+            }
         } catch (error) {
             logger.error(error.message);
             console.error(error);

@@ -306,6 +306,16 @@ export class QuestionTemplateService {
         ]);
     }
 
+    async getPopulated(
+        query: FilterQuery<QuestionTemplateDocument>,
+        paths: string[]
+    ) {
+        return await QuestionTemplateModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+    }
+
     async getById(id: Types.ObjectId) {
         return await QuestionTemplateModel.findOne({
             _id: id,

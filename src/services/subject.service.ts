@@ -87,4 +87,11 @@ export class SubjectService {
                 .populate(paths),
         ]);
     }
+
+    async getPopulated(query: FilterQuery<SubjectDocument>, paths: string[]) {
+        return await SubjectModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+    }
 }

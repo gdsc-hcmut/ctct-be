@@ -134,6 +134,13 @@ export class MaterialService {
         ]);
     }
 
+    async getPopulated(query: FilterQuery<MaterialDocument>, paths: string[]) {
+        return await MaterialModel.find({
+            ...query,
+            deletedAt: { $exists: false },
+        }).populate(paths);
+    }
+
     async editOneMaterial(
         id: Types.ObjectId,
         update: UpdateQuery<MaterialDocument> = {},
