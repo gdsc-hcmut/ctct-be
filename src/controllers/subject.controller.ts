@@ -1,4 +1,4 @@
-import { id, inject, injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
@@ -113,7 +113,7 @@ export class SubjectController extends Controller {
                 );
                 res.composer.success({
                     total,
-                    pageCount: Math.ceil(total / pageSize),
+                    pageCount: Math.max(Math.ceil(total / pageSize), 1),
                     pageSize,
                     result,
                 });

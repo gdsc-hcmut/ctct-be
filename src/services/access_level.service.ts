@@ -8,7 +8,6 @@ import { ServiceType } from "../types";
 import { CacheService } from "./index";
 import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { TokenDocument } from "../models/token.model";
-import _ from "lodash";
 
 @injectable()
 export class AccessLevelService {
@@ -250,7 +249,7 @@ export class AccessLevelService {
                 ...query,
                 deletedAt: { $exists: false },
             })
-                .skip(pageSize * (pageNumber - 1))
+                .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
         ]);

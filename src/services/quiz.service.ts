@@ -91,7 +91,7 @@ export class QuizService {
             QuizModel.find({
                 ...query,
             })
-                .skip(pageSize * (pageNumber - 1))
+                .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
         ]);

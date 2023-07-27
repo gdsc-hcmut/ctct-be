@@ -100,7 +100,7 @@ export class QuizTemplateService {
                 ...query,
                 deletedAt: { $exists: false },
             })
-                .skip(pageSize * (pageNumber - 1))
+                .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
         ]);
