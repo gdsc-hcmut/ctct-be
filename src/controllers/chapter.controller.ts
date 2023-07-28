@@ -168,7 +168,7 @@ export class ChapterController extends Controller {
                 query.subject = new Types.ObjectId(req.query.subject as string);
             }
             if (req.query.name) {
-                req.query.name = {
+                query.name = {
                     $regex: decodeURIComponent(req.query.name as string),
                 };
             }
