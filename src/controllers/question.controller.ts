@@ -20,6 +20,7 @@ import { Permission } from "../models/access_level.model";
 import { QuestionDocument, QuestionType } from "../models/question.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import { inject, injectable } from "inversify";
+import { CreateQuestionDto, PreviewQuestionDto } from "../lib/dto/index";
 
 @injectable()
 export class QuestionController extends Controller {
@@ -108,34 +109,26 @@ export class QuestionController extends Controller {
                 );
             }
 
-            const info = _.pick(req.body, [
-                "code",
-                "type",
-                "description",
-                "options",
-                "shuffleOptions",
-                "answerKey",
-                "answerKeys",
-                "answerField",
-                "matchCase",
-                "maximumError",
-                "explanation",
-            ]);
-            info.code = info.code || "";
-            info.description = info.description || "";
-            info.explanation = info.explanation || "";
-            const type = info.type;
-            switch (type) {
+            const info: PreviewQuestionDto = {
+                name: req.body.name || "",
+                code: req.body.code || "",
+                type: req.body.type,
+                description: req.body.description || "",
+                options: req.body.options,
+                shuffleOptions: req.body.shuffleOptions,
+                answerKeys: req.body.answerKeys,
+                answerField: req.body.answerField,
+                matchCase: req.body.matchCase,
+                maximumError: req.body.maximumError,
+                explanation: req.body.explanation || "",
+            };
+
+            switch (info.type) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                    const [options, shuffleOptions, answerKeys] = [
-                        info.options as string[],
-                        info.shuffleOptions as boolean,
-                        info.answerKeys as number[],
-                    ];
                     if (
-                        !options ||
-                        shuffleOptions === undefined ||
-                        answerKeys === undefined
+                        !info.options ||
+                        info.shuffleOptions === undefined ||
+                        info.answerKeys === undefined
                     ) {
                         throw new Error(
                             `Missing options, shuffleOptions, or answerKeys for multiple choice, single answer question`
@@ -143,58 +136,41 @@ export class QuestionController extends Controller {
                     }
                     if (
                         !(
-                            answerKeys.length === 1 &&
-                            answerKeys[0] >= 0 &&
-                            answerKeys[0] < options.length
+                            info.answerKeys.length === 1 &&
+                            info.answerKeys[0] >= 0 &&
+                            info.answerKeys[0] < info.options.length
                         )
                     ) {
                         throw new Error(
                             `answerKeys must be of length 1 and within bounds`
                         );
                     }
-                    options.forEach((option, index) => {
-                        info.options[index] = {
-                            key: index,
-                            description: option,
-                        };
-                    });
                     break;
                 }
                 case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                    const [options, shuffleOptions, answerKeys] = [
-                        info.options as string[],
-                        info.shuffleOptions as boolean,
-                        info.answerKeys as number[],
-                    ];
                     if (
-                        !options ||
-                        shuffleOptions === undefined ||
-                        answerKeys === undefined
+                        !info.options ||
+                        info.shuffleOptions === undefined ||
+                        info.answerKeys === undefined
                     ) {
                         throw new Error(
                             `Missing options, shuffleOptions, or answerKeys for multiple choice, multiple answers question`
                         );
                     }
-                    answerKeys.forEach((key, keyIndex) => {
-                        if (key < 0 || key >= options.length) {
+                    info.answerKeys.forEach((key, keyIndex) => {
+                        if (key < 0 || key >= info.options.length) {
                             throw new Error(
                                 `Answer key ${key} is out of bounds`
                             );
                         }
                         if (
-                            answerKeys.some(
+                            info.answerKeys.some(
                                 (otherKey, otherIndex) =>
                                     otherKey === key && otherIndex !== keyIndex
                             )
                         ) {
                             throw new Error(`Answer keys contain duplicates`);
                         }
-                    });
-                    options.forEach((option, index) => {
-                        info.options[index] = {
-                            key: index,
-                            description: option,
-                        };
                     });
                     break;
                 }
@@ -222,13 +198,11 @@ export class QuestionController extends Controller {
                     throw new Error(
                         `type should be one of [${Object.values(
                             QuestionType
-                        )}], received '${type}'`
+                        )}], received '${info.type}'`
                     );
                 }
             }
-            const result = this.questionService.generateConcreteQuestion(
-                info as any
-            );
+            const result = this.questionService.previewQuestion(info);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -252,43 +226,34 @@ export class QuestionController extends Controller {
             }
             const { userId } = req.tokenMeta;
 
-            const info = _.pick(req.body, [
-                "name",
-                "code",
-                "subject",
-                "chapter",
-                "type",
-                "description",
-                "options",
-                "shuffleOptions",
-                "answerKey",
-                "answerKeys",
-                "answerField",
-                "matchCase",
-                "maximumError",
-                "explanation",
-            ]);
+            const info: CreateQuestionDto = {
+                name: req.body.name || "",
+                code: req.body.code || "",
+                subject: new Types.ObjectId(req.body.subject),
+                chapter: new Types.ObjectId(req.body.chapter),
+                type: req.body.type,
+                description: req.body.description || "",
+                options: req.body.options,
+                shuffleOptions: req.body.shuffleOptions,
+                answerKeys: req.body.answerKeys,
+                answerField: req.body.answerField,
+                matchCase: req.body.matchCase,
+                maximumError: req.body.maximumError,
+                explanation: req.body.explanation || "",
+            };
 
-            const [subject, chapter, name] = [
-                new Types.ObjectId(info.subject),
-                new Types.ObjectId(info.chapter),
-                req.body.name as string,
-            ];
-            if (!subject) {
-                throw new Error(`Missing 'subject' field`);
-            }
-            if (!name || name.trim().length === 0) {
+            if (info.name.trim().length === 0) {
                 throw new Error(`'name' is missing or is an empty string`);
-            }
-            if (chapter === undefined) {
-                throw new Error(`Missing 'chapter' field`);
             }
 
             const subjectExists = await this.subjectService.subjectExists(
-                subject
+                info.subject
             );
             const chapterIsChildOfSubject =
-                await this.chapterService.isChildOfSubject(chapter, subject);
+                await this.chapterService.isChildOfSubject(
+                    info.chapter,
+                    info.subject
+                );
             if (!subjectExists) {
                 throw new Error(`Subject doesn't exist`);
             }
@@ -298,18 +263,12 @@ export class QuestionController extends Controller {
                 );
             }
 
-            const type = info.type as QuestionType;
-            switch (type) {
+            switch (info.type) {
                 case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                    const [options, shuffleOptions, answerKeys] = [
-                        info.options as string[],
-                        info.shuffleOptions as boolean,
-                        info.answerKeys as number[],
-                    ];
                     if (
-                        !options ||
-                        shuffleOptions === undefined ||
-                        answerKeys === undefined
+                        !info.options ||
+                        info.shuffleOptions === undefined ||
+                        info.answerKeys === undefined
                     ) {
                         throw new Error(
                             `Missing options, shuffleOptions or answerKeys for multiple choice, single answer question`
@@ -317,58 +276,41 @@ export class QuestionController extends Controller {
                     }
                     if (
                         !(
-                            answerKeys.length === 1 &&
-                            answerKeys[0] >= 0 &&
-                            answerKeys[0] < options.length
+                            info.answerKeys.length === 1 &&
+                            info.answerKeys[0] >= 0 &&
+                            info.answerKeys[0] < info.options.length
                         )
                     ) {
                         throw new Error(
                             `answerKeys must be of length 1 and within bounds`
                         );
                     }
-                    options.forEach((option, index) => {
-                        info.options[index] = {
-                            key: index,
-                            description: option,
-                        };
-                    });
                     break;
                 }
                 case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                    const [options, shuffleOptions, answerKeys] = [
-                        info.options as string[],
-                        info.shuffleOptions as boolean,
-                        info.answerKeys as number[],
-                    ];
                     if (
-                        !options ||
-                        shuffleOptions === undefined ||
-                        answerKeys === undefined
+                        !info.options ||
+                        info.shuffleOptions === undefined ||
+                        info.answerKeys === undefined
                     ) {
                         throw new Error(
                             `Missing options, shuffleOptions or answerKeys for multiple choice, multiple answers question`
                         );
                     }
-                    answerKeys.forEach((key, keyIndex) => {
-                        if (key < 0 || key >= options.length) {
+                    info.answerKeys.forEach((key, keyIndex) => {
+                        if (key < 0 || key >= info.options.length) {
                             throw new Error(
                                 `Answer key ${key} is out of bounds`
                             );
                         }
                         if (
-                            answerKeys.some(
+                            info.answerKeys.some(
                                 (otherKey, otherIndex) =>
                                     otherKey === key && otherIndex !== keyIndex
                             )
                         ) {
                             throw new Error(`Answer keys contain duplicates`);
                         }
-                    });
-                    options.forEach((option, index) => {
-                        info.options[index] = {
-                            key: index,
-                            description: option,
-                        };
                     });
                     break;
                 }
@@ -398,7 +340,7 @@ export class QuestionController extends Controller {
                     throw new Error(
                         `type should be one of [${Object.values(
                             QuestionType
-                        )}], received '${type}'`
+                        )}], received '${info.type}'`
                     );
                 }
             }

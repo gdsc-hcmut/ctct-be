@@ -74,7 +74,10 @@ export class MaterialController extends Controller {
                 description = "",
             } = req.body;
 
-            if (!(await canPerform(Permission.ADMIN_UPLOAD_MATERIAL))) {
+            const canUpload = await canPerform(
+                Permission.ADMIN_UPLOAD_MATERIAL
+            );
+            if (!canUpload) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -91,7 +94,10 @@ export class MaterialController extends Controller {
             const subject = new Types.ObjectId(subjectString);
             const chapter = new Types.ObjectId(chapterString);
 
-            if (!(await this.subjectService.subjectExists(subject))) {
+            const subjectExists = await this.subjectService.subjectExists(
+                subject
+            );
+            if (!subjectExists) {
                 throw new Error(`Subject doesn't exist`);
             }
             if (
@@ -272,7 +278,8 @@ export class MaterialController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_EDIT_MATERIAL))) {
+            const canEdit = await canPerform(Permission.ADMIN_EDIT_MATERIAL);
+            if (!canEdit) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -350,7 +357,10 @@ export class MaterialController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_DELETE_MATERIAL))) {
+            const canDelete = await canPerform(
+                Permission.ADMIN_DELETE_MATERIAL
+            );
+            if (!canDelete) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );

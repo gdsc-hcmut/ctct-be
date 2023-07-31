@@ -81,7 +81,10 @@ export class PreviousExamController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_UPLOAD_PREVIOUS_EXAM))) {
+            const canUpload = await canPerform(
+                Permission.ADMIN_UPLOAD_PREVIOUS_EXAM
+            );
+            if (!canUpload) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -95,7 +98,10 @@ export class PreviousExamController extends Controller {
             }
             const subject = new Types.ObjectId(subjectString);
 
-            if (!(await this.subjectService.subjectExists(subject))) {
+            const subjectExists = await this.subjectService.subjectExists(
+                subject
+            );
+            if (!subjectExists) {
                 throw new Error(`Subject doesn't exist`);
             }
 
@@ -264,7 +270,10 @@ export class PreviousExamController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_EDIT_PREVIOUS_EXAM))) {
+            const canEdit = await canPerform(
+                Permission.ADMIN_EDIT_PREVIOUS_EXAM
+            );
+            if (!canEdit) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -321,7 +330,10 @@ export class PreviousExamController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_DELETE_PREVIOUS_EXAM))) {
+            const canDelete = await canPerform(
+                Permission.ADMIN_DELETE_PREVIOUS_EXAM
+            );
+            if (!canDelete) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );

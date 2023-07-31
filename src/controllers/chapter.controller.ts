@@ -61,7 +61,10 @@ export class ChapterController extends Controller {
                 );
             }
 
-            if (!(await this.subjectService.subjectExists(subject))) {
+            const subjectExists = await this.subjectService.subjectExists(
+                subject
+            );
+            if (!subjectExists) {
                 throw new Error(`Subject does not exist`);
             }
 
@@ -116,7 +119,8 @@ export class ChapterController extends Controller {
                 req.tokenMeta
             );
 
-            if (!(await canPerform(Permission.ADMIN_DELETE_CHAPTER))) {
+            const canDelete = await canPerform(Permission.ADMIN_DELETE_CHAPTER);
+            if (!canDelete) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );

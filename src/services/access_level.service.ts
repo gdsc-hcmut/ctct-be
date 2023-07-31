@@ -8,6 +8,7 @@ import { ServiceType } from "../types";
 import { CacheService } from "./index";
 import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { TokenDocument } from "../models/token.model";
+import _ from "lodash";
 
 @injectable()
 export class AccessLevelService {
@@ -140,7 +141,7 @@ export class AccessLevelService {
                     ))()
             )
         );
-        return a.some((x) => x === true);
+        return _.some(a);
     }
 
     permissionChecker(token: TokenDocument) {
@@ -163,7 +164,7 @@ export class AccessLevelService {
                     })) != null)()
             )
         );
-        return result.every((x) => x);
+        return _.every(result);
     }
 
     public async checkCanAssignAccessLevels(levels: Types.ObjectId[]) {
@@ -179,11 +180,14 @@ export class AccessLevelService {
                     }))()
             )
         );
-        return result.every((x) => {
-            if (x == undefined) {
+        return result.every((level) => {
+            if (level == undefined) {
                 return false;
             }
-            if (x.predefinedId !== undefined && x.predefinedId === "visitor") {
+            if (
+                level.predefinedId !== undefined &&
+                level.predefinedId === "visitor"
+            ) {
                 return false;
             }
             return true;

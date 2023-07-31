@@ -51,7 +51,10 @@ export class SubjectController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_CREATE_SUBJECT))) {
+            const canCreateSubject = await canPerform(
+                Permission.ADMIN_CREATE_SUBJECT
+            );
+            if (!canCreateSubject) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -128,7 +131,10 @@ export class SubjectController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_EDIT_SUBJECT))) {
+            const canEditSubject = await canPerform(
+                Permission.ADMIN_EDIT_SUBJECT
+            );
+            if (!canEditSubject) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -163,7 +169,10 @@ export class SubjectController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            if (!(await canPerform(Permission.ADMIN_DELETE_SUBJECT))) {
+            const canDeleteSubject = await canPerform(
+                Permission.ADMIN_DELETE_SUBJECT
+            );
+            if (!canDeleteSubject) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );

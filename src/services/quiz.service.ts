@@ -2,6 +2,7 @@ import { injectable } from "inversify";
 import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { logger } from "../lib/logger";
 import QuizModel, { QuizDocument } from "../models/quiz.model";
+import { CreateQuizDto } from "../lib/dto/index";
 
 @injectable()
 export class QuizService {
@@ -9,7 +10,7 @@ export class QuizService {
         logger.info("[Quiz] Initializing...");
     }
 
-    async create(userId: Types.ObjectId, data: any) {
+    async create(userId: Types.ObjectId, data: CreateQuizDto) {
         const now = Date.now();
         return (
             await QuizModel.create([

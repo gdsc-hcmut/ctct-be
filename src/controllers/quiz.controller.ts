@@ -16,6 +16,7 @@ import { Permission } from "../models/access_level.model";
 import _ from "lodash";
 import { QuizDocument } from "../models/quiz.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
+import { CreateQuizDto } from "../lib/dto/index";
 
 @injectable()
 export class QuizController extends Controller {
@@ -53,44 +54,56 @@ export class QuizController extends Controller {
                 );
             }
 
-            req.body = _.pick(req.body, [
-                "name",
-                "description",
-                "subject",
-                "chapter",
-                "duration",
-                "potentialQuestions",
-                "sampleSize",
-            ]);
-            const [subject, chapter, questions, sampleSize] = [
-                new Types.ObjectId(req.body.subject),
-                new Types.ObjectId(req.body.chapter),
-                (req.body.potentialQuestions as string[]).map(
-                    (questionIdString) => new Types.ObjectId(questionIdString)
-                ),
-                req.body.sampleSize as number,
-            ];
-            if (!(await this.subjectService.subjectExists(subject))) {
+            const info: CreateQuizDto = {
+                name: req.body.name || "",
+                description: req.body.description || "",
+                subject: new Types.ObjectId(req.body.subject),
+                chapter: new Types.ObjectId(req.body.chapter),
+                duration: req.body.duration,
+                potentialQuestions: (
+                    req.body.potentialQuestions as string[]
+                ).map((question) => new Types.ObjectId(question)),
+                sampleSize: req.body.sampleSize,
+            };
+
+            const subjectExists = await this.subjectService.subjectExists(
+                info.subject
+            );
+            if (!subjectExists) {
                 throw new Error(`Subject doesn't exist`);
             }
             if (
-                !(await this.chapterService.isChildOfSubject(chapter, subject))
+                !(await this.chapterService.isChildOfSubject(
+                    info.chapter,
+                    info.subject
+                ))
             ) {
                 throw new Error(
                     `Chapter does not exist or is not a child of the subject`
                 );
             }
             // check that all questions are unique
-            const duplicateQuestions = questions.some((x, i) =>
-                questions.some((y, j) => x.equals(y) && i !== j)
+            const duplicateQuestions = info.potentialQuestions.some(
+                (question, index) =>
+                    info.potentialQuestions.some(
+                        (otherQuestion, otherIndex) =>
+                            question.equals(otherQuestion) &&
+                            index !== otherIndex
+                    )
             );
             if (duplicateQuestions) {
                 throw new Error(`One or more questions are duplicated`);
             }
-            if (sampleSize <= 0 || sampleSize > questions.length) {
+            if (
+                info.sampleSize <= 0 ||
+                info.sampleSize > info.potentialQuestions.length
+            ) {
                 throw new Error(`Sample size is invalid`);
             }
-            if (!(await this.questionService.questionExists(questions))) {
+            const questionExists = await this.questionService.questionExists(
+                info.potentialQuestions
+            );
+            if (!questionExists) {
                 throw new Error(`One or more questions does not exist`);
             }
 

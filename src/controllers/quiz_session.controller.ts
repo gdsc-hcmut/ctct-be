@@ -49,7 +49,7 @@ export class QuizSessionController extends Controller {
         this.router.get("/:quizSessionId", this.getById.bind(this));
         this.router.post("/:quizId", this.create.bind(this));
         this.router.post(
-            "/:quizSessionId/answer/:index",
+            "/:quizSessionId/:index/answer",
             this.saveAnswer.bind(this)
         );
         this.router.post(
@@ -190,8 +190,10 @@ export class QuizSessionController extends Controller {
                         pageSize,
                         pageNumber
                     );
-                const adjustedResult = (result as any[]).map((quiz) =>
-                    this.mapperService.adjustQuizSessionAccordingToStatus(quiz)
+                const adjustedResult = result.map((quizSession) =>
+                    this.mapperService.adjustQuizSessionAccordingToStatus(
+                        quizSession
+                    )
                 );
 
                 res.composer.success({
@@ -212,17 +214,18 @@ export class QuizSessionController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
-            const quiz = await this.quizSessionService.getOneQuizOfUserExpanded(
-                userId,
-                quizSessionId
-            );
-            if (!quiz) {
+            const quizSession =
+                await this.quizSessionService.getOneQuizOfUserExpanded(
+                    userId,
+                    quizSessionId
+                );
+            if (!quizSession) {
                 throw new Error(`Quiz doesn't exist`);
             }
 
             const result =
                 this.mapperService.adjustQuizSessionAccordingToStatus(
-                    quiz as any
+                    quizSession
                 );
             res.composer.success(result);
         } catch (error) {
@@ -244,7 +247,7 @@ export class QuizSessionController extends Controller {
                     userId
                 );
             if (!quizSession) {
-                throw new Error(`Quiz session doesn't exist`);
+                throw new Error(`Quiz session doesn't exist or has ended`);
             }
 
             const answer = req.body as UserAnswer;

@@ -13,6 +13,8 @@ import GrammarParser from "../lib/question-generation/GrammarParser";
 import QuestionGrammarVisitor from "../lib/question-generation/QuestionGrammarVisitor";
 import Mustache from "mustache";
 import _ from "lodash";
+import { CreateQuestionDto } from "../lib/dto/create_question.dto";
+import { PreviewQuestionDto } from "../lib/dto/index";
 
 @injectable()
 export class QuestionService {
@@ -20,22 +22,44 @@ export class QuestionService {
         logger.info("[Question] Initializing...");
     }
 
-    async create(userId: Types.ObjectId, data: any) {
+    async create(userId: Types.ObjectId, data: CreateQuestionDto) {
         /**
          * data should include metadata (as indicated by the model)
          * except createdBy and createdAt (automatically generated)
          */
         const now = Date.now();
+        const options = data.options
+            ? data.options.map((opt, index) => ({
+                  key: index,
+                  description: opt,
+              }))
+            : [];
         return (
             await QuestionModel.create([
                 {
-                    ...data,
+                    ..._.omit(data, "options"),
+                    options: options,
+
                     createdAt: now,
                     createdBy: userId,
                     lastUpdatedAt: now,
                 },
             ])
         )[0];
+    }
+
+    previewQuestion(question: PreviewQuestionDto) {
+        const options = question.options
+            ? question.options.map((opt, index) => ({
+                  key: index,
+                  description: opt,
+              }))
+            : [];
+        const questionDocument = new QuestionModel({
+            ..._.omit(question, "options"),
+            options: options,
+        });
+        return this.generateConcreteQuestion(questionDocument);
     }
 
     generateConcreteQuestion(question: QuestionDocument) {
@@ -207,7 +231,7 @@ export class QuestionService {
                 })()
             )
         );
-        return result.every((x) => x);
+        return _.every(result);
     }
 
     async markAsDeleted(

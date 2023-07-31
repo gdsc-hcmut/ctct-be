@@ -23,7 +23,7 @@ export class CacheService {
         this.lock = new AsyncLock();
     }
 
-    async set(key: string, value: string, options: any = {}) {
+    async set(key: string, value: string, options: redis.SetOptions = {}) {
         this.client.set(key, value, options);
     }
 
@@ -46,7 +46,7 @@ export class CacheService {
     async getWithPopulate(
         key: string,
         f: () => Promise<string>,
-        options: any = {}
+        options: redis.SetOptions = {}
     ) {
         return await this.lock.acquire(key, async () => {
             let x = await this.client.get(key);

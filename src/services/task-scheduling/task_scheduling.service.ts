@@ -8,6 +8,7 @@ import { ServiceType } from "../../types";
 import { SocketService } from "../server-events/socket.service";
 import { QuestionService } from "../question.service";
 import { QuizSessionService } from "../quiz_session.service";
+import { Filter, Document } from "mongodb";
 
 @injectable()
 export class TaskSchedulingService {
@@ -57,11 +58,11 @@ export class TaskSchedulingService {
         return await this.agenda.now(type, data);
     }
 
-    async cancel(query: any) {
+    async cancel(query: Filter<Document>) {
         return await this.agenda.cancel(query);
     }
 
-    async disable(query: any) {
+    async disable(query: Filter<Document>) {
         return await this.agenda.disable(query);
     }
 
