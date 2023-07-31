@@ -5,19 +5,19 @@ import { EndQuizTask } from "./tasks/end_quiz_task";
 import { Types } from "mongoose";
 import { inject, injectable } from "inversify";
 import { ServiceType } from "../../types";
-import { QuizService } from "../quiz.service";
 import { SocketService } from "../server-events/socket.service";
-import { QuestionTemplateService } from "../question_template.service";
+import { QuestionService } from "../question.service";
+import { QuizSessionService } from "../quiz_session.service";
 
 @injectable()
 export class TaskSchedulingService {
     private agenda: Agenda;
 
     constructor(
-        @inject(ServiceType.Quiz) private quizService: QuizService,
+        @inject(ServiceType.QuizSession)
+        private quizSessionService: QuizSessionService,
         @inject(ServiceType.Socket) private socketService: SocketService,
-        @inject(ServiceType.QuestionTemplate)
-        private questionTemplateService: QuestionTemplateService
+        @inject(ServiceType.Question) private questionService: QuestionService
     ) {
         this.initialize();
     }
@@ -82,10 +82,10 @@ export class TaskSchedulingService {
             return await new EndQuizTask(
                 userId,
                 quizId,
-                this.quizService,
+                this.quizSessionService,
                 this.socketService,
                 this,
-                this.questionTemplateService
+                this.questionService
             ).execute();
         } catch (error) {
             logger.error(error.message);

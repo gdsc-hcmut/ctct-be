@@ -6,10 +6,10 @@ import { MeController } from "./me.controller";
 import { PreviousExamController } from "./previous-exam.controller";
 import { SubjectController } from "./subject.controller";
 import { AccessLevelController } from "./access_level.controller";
-import { QuestionTemplateController } from "./question_template.controller";
-import { QuizTemplateController } from "./quiz_template.controller";
+import { QuestionController } from "./question.controller";
 import { QuizController } from "./quiz.controller";
 import { ChapterController } from "./chapter.controller";
+import { QuizSessionController } from "./quiz_session.controller";
 
 export {
     Controller,
@@ -20,8 +20,8 @@ export {
     PreviousExamController,
     SubjectController,
     AccessLevelController,
-    QuestionTemplateController,
-    QuizTemplateController,
+    QuestionController,
     QuizController,
     ChapterController,
+    QuizSessionController,
 };

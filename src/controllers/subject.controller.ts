@@ -8,9 +8,9 @@ import {
     MaterialService,
     PreviousExamService,
     AccessLevelService,
-    QuestionTemplateService,
-    QuizTemplateService,
     ChapterService,
+    QuestionService,
+    QuizService,
 } from "../services/index";
 import { FilterQuery, Types } from "mongoose";
 import _ from "lodash";
@@ -32,10 +32,8 @@ export class SubjectController extends Controller {
         private previousExamService: PreviousExamService,
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
-        @inject(ServiceType.QuestionTemplate)
-        private questionTemplateService: QuestionTemplateService,
-        @inject(ServiceType.QuizTemplate)
-        private quizTemplateService: QuizTemplateService,
+        @inject(ServiceType.Question) private questionService: QuestionService,
+        @inject(ServiceType.Quiz) private quizService: QuizService,
         @inject(ServiceType.Chapter) private chapterService: ChapterService
     ) {
         super();
@@ -182,16 +180,14 @@ export class SubjectController extends Controller {
             const [
                 materialWithThisSubject,
                 previousExamWithThisSubject,
-                questionTemplateWithThisSubject,
-                quizTemplateWithThisSubject,
+                questionWithThisSubject,
+                quizWithThisSubject,
                 chapterWithThisSubject,
             ] = await Promise.all([
                 this.materialService.materialWithSubjectExists(docId),
                 this.previousExamService.previousExamWithSubjectExists(docId),
-                this.questionTemplateService.questionTemplateWithSubjectExists(
-                    docId
-                ),
-                this.quizTemplateService.quizTemplateWithSubjectExists(docId),
+                this.questionService.questionWithSubjectExists(docId),
+                this.quizService.quizWithSubjectExists(docId),
                 this.chapterService.chapterWithSubjectExists(docId),
             ]);
             if (materialWithThisSubject) {
@@ -204,14 +200,14 @@ export class SubjectController extends Controller {
                     `There are still previous exams that belong to this subject. Please delete them first`
                 );
             }
-            if (questionTemplateWithThisSubject) {
+            if (questionWithThisSubject) {
                 throw new Error(
-                    `There are still question templates that belong to this subject. Please delete them first`
+                    `There are still question that belong to this subject. Please delete them first`
                 );
             }
-            if (quizTemplateWithThisSubject) {
+            if (quizWithThisSubject) {
                 throw new Error(
-                    `There are still quiz templates that belong to this subject. Please delete them first`
+                    `There are still quiz that belong to this subject. Please delete them first`
                 );
             }
             if (chapterWithThisSubject) {

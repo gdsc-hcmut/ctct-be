@@ -7,8 +7,8 @@ import {
     AccessLevelService,
     AuthService,
     MaterialService,
-    QuestionTemplateService,
-    QuizTemplateService,
+    QuestionService,
+    QuizService,
     SubjectService,
 } from "../services";
 import { ChapterService } from "../services/index";
@@ -31,18 +31,16 @@ export class ChapterController extends Controller {
         private accessLevelService: AccessLevelService,
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.Material) private materialService: MaterialService,
-        @inject(ServiceType.QuestionTemplate)
-        private questionTemplateService: QuestionTemplateService,
-        @inject(ServiceType.QuizTemplate)
-        private quizTemplateService: QuizTemplateService
+        @inject(ServiceType.Question) private questionService: QuestionService,
+        @inject(ServiceType.Quiz) private quizService: QuizService
     ) {
         super();
 
         this.router.all("*", this.authService.authenticate(false));
+        this.router.get("/", this.getAll.bind(this));
 
         this.router.all("*", this.authService.authenticate());
         this.router.post("/", this.create.bind(this));
-        this.router.get("/", this.getAll.bind(this));
         this.router.patch("/:chapterId", this.edit.bind(this));
         this.router.delete("/:chapterId", this.delete.bind(this));
     }
@@ -56,7 +54,8 @@ export class ChapterController extends Controller {
                 req.tokenMeta
             );
 
-            if (!(await canPerform(Permission.ADMIN_CREATE_CHAPTER))) {
+            const canCreate = await canPerform(Permission.ADMIN_CREATE_CHAPTER);
+            if (!canCreate) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -87,7 +86,8 @@ export class ChapterController extends Controller {
                 req.tokenMeta
             );
 
-            if (!(await canPerform(Permission.ADMIN_EDIT_CHAPTER))) {
+            const canEdit = await canPerform(Permission.ADMIN_EDIT_CHAPTER);
+            if (!canEdit) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -124,16 +124,12 @@ export class ChapterController extends Controller {
 
             const [
                 materialWithThisChapter,
-                questionTemplateWithThisChapter,
-                quizTemplateWithThisChapter,
+                questionWithThisChapter,
+                quizWithThisChapter,
             ] = await Promise.all([
                 this.materialService.materialWithChapterExists(chapterId),
-                this.questionTemplateService.questionTemplateWithChapterExists(
-                    chapterId
-                ),
-                this.quizTemplateService.quizTemplateWithChapterExists(
-                    chapterId
-                ),
+                this.questionService.questionWithChapterExists(chapterId),
+                this.quizService.quizWithChapterExists(chapterId),
             ]);
 
             if (materialWithThisChapter) {
@@ -141,14 +137,14 @@ export class ChapterController extends Controller {
                     `This chapter is referenced by some materials. Please delete them first`
                 );
             }
-            if (questionTemplateWithThisChapter) {
+            if (questionWithThisChapter) {
                 throw new Error(
-                    `This chapter is referenced by some question templates. Please delete them first`
+                    `This chapter is referenced by some question. Please delete them first`
                 );
             }
-            if (quizTemplateWithThisChapter) {
+            if (quizWithThisChapter) {
                 throw new Error(
-                    `This chapter is referenced by some quiz templates. Please delete them first`
+                    `This chapter is referenced by some quiz. Please delete them first`
                 );
             }
 

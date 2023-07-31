@@ -1,9 +1,9 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { ConcreteQuestion } from "../models/question_template.model";
+import { ConcreteQuestion } from "../models/question.model";
 import _ from "lodash";
-import { QuizTemplateDocument } from "../models/quiz_template.model";
-import { QuizDocument, QuizStatus } from "../models/quiz.model";
+import { QuizDocument } from "../models/quiz.model";
+import { QuizSessionDocument, QuizStatus } from "../models/quiz_session.model";
 
 @injectable()
 export class MapperService {
@@ -13,44 +13,44 @@ export class MapperService {
 
     maskAnswerFromConcreteQuestion(question: ConcreteQuestion) {
         return {
-            ..._.omit(question, "subQuestions"),
-            subQuestions: _.map(question.subQuestions, (subQuestion) =>
-                _.omit(subQuestion, [
-                    "answerKey",
-                    "answerKeys",
-                    "answerField",
-                    "explanation",
-                    "isCorrect",
-                ])
-            ),
+            ..._.omit(question, [
+                "answerKey",
+                "answerKeys",
+                "answerField",
+                "explanation",
+                "isCorrect",
+            ]),
         };
     }
 
-    maskQuestionsFromQuizTemplate(quizTemplate: QuizTemplateDocument) {
-        return _.omit(quizTemplate.toObject(), ["potentialQuestions"]);
+    maskQuestionsFromQuiz(quiz: QuizDocument) {
+        return _.omit(quiz.toObject(), ["potentialQuestions"]);
     }
 
-    adjustQuizDocumentAccordingToStatus(quiz: QuizDocument) {
-        const status = quiz.status;
-        // remove most metadata about the quiz template, only leaving the name
-        const data = _.omit(quiz.toObject(), [
-            "fromTemplate.potentialQuestions",
-            "fromTemplate.subject.createdBy",
-            "fromTemplate.subject.createdAt",
-            "fromTemplate.duration",
-            "fromTemplate.sampleSize",
-            "fromTemplate.createdBy",
-            "fromTemplate.createdAt",
+    adjustQuizSessionAccordingToStatus(quizSession: QuizSessionDocument) {
+        const status = quizSession.status;
+
+        const data = _.omit(quizSession.toObject(), [
+            "fromQuiz.potentialQuestions",
+            "fromQuiz.subject.createdBy",
+            "fromQuiz.subject.createdAt",
+            "fromQuiz.duration",
+            "fromQuiz.sampleSize",
+            "fromQuiz.createdBy",
+            "fromQuiz.createdAt",
         ]);
 
         switch (status) {
             case QuizStatus.ONGOING: {
                 return {
-                    ..._.omit(data, ["subQuestions"]),
+                    ..._.omit(data, ["questions"]),
                     questions: _.map(data.questions, (question) =>
                         this.maskAnswerFromConcreteQuestion(question)
                     ),
-                    timeLeft: quiz.startTime + quiz.duration - Date.now(),
+                    timeLeft:
+                        quizSession.startTime +
+                        quizSession.duration -
+                        Date.now(),
                 };
             }
             case QuizStatus.ENDED: {

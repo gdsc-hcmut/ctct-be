@@ -9,9 +9,6 @@ import {
     AccessLevelService,
     AuthService,
     UserService,
-    MaterialService,
-    PreviousExamService,
-    QuizTemplateService,
 } from "../services/index";
 import _ from "lodash";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
@@ -25,12 +22,7 @@ export class AccessLevelController extends Controller {
         @inject(ServiceType.Auth) private authService: AuthService,
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
-        @inject(ServiceType.User) private userService: UserService,
-        @inject(ServiceType.Material) private materialService: MaterialService,
-        @inject(ServiceType.PreviousExam)
-        private previousExamService: PreviousExamService,
-        @inject(ServiceType.QuizTemplate)
-        private quizTemplateService: QuizTemplateService
+        @inject(ServiceType.User) private userService: UserService
     ) {
         super();
 
@@ -39,10 +31,7 @@ export class AccessLevelController extends Controller {
         this.router.post("/", this.create.bind(this));
         this.router.delete("/:accessLevelId", this.delete.bind(this));
         this.router.patch("/:accessLevelId", this.edit.bind(this));
-        this.router.patch(
-            "/edituser/:userId",
-            this.setUserAccessLevel.bind(this)
-        );
+        this.router.patch("/user/:userId", this.setUserAccessLevel.bind(this));
     }
 
     async getAll(req: Request, res: Response) {
@@ -99,9 +88,10 @@ export class AccessLevelController extends Controller {
             }
 
             const userId = req.tokenMeta.userId;
-            const { name } = req.body;
-            const { description = "" } = req.body;
-            if (!name) throw new Error(`Missing 'name' field`);
+            const { name, description = "" } = req.body;
+            if (!name) {
+                throw new Error(`Missing 'name' field`);
+            }
             const permissions: Permission[] = req.body.permissions
                 ? (req.body.permissions as Permission[])
                 : [];
@@ -112,6 +102,7 @@ export class AccessLevelController extends Controller {
                 description,
                 permissions
             );
+
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -212,7 +203,7 @@ export class AccessLevelController extends Controller {
 
             const userId = new Types.ObjectId(req.params.userId);
             const accessLevelsIds = (req.body.accessLevelsIds as string[]).map(
-                (x) => new Types.ObjectId(x)
+                (accessLevelId) => new Types.ObjectId(accessLevelId)
             );
             const verify =
                 await this.accessLevelService.checkCanAssignAccessLevels(

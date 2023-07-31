@@ -95,10 +95,7 @@ export class MaterialController extends Controller {
                 throw new Error(`Subject doesn't exist`);
             }
             if (
-                !(await this.chapterService.chapterIsChildOfSubject(
-                    chapter,
-                    subject
-                ))
+                !(await this.chapterService.isChildOfSubject(chapter, subject))
             ) {
                 throw new Error(
                     `Chapter doesn't exist or does not belong to this subject`
@@ -310,7 +307,7 @@ export class MaterialController extends Controller {
                 const oldChapter = doc.chapter,
                     newChapter: Types.ObjectId = info.chapter ?? oldChapter;
                 if (
-                    !(await this.chapterService.chapterIsChildOfSubject(
+                    !(await this.chapterService.isChildOfSubject(
                         newChapter,
                         newSubject
                     ))

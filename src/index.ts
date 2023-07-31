@@ -13,13 +13,13 @@ import {
     PreviousExamService,
     SubjectService,
     AccessLevelService,
-    QuestionTemplateService,
-    QuizTemplateService,
     QuizService,
     MapperService,
     TaskSchedulingService,
     SocketService,
     ChapterService,
+    QuestionService,
+    QuizSessionService,
 } from "./services/index";
 
 import {
@@ -30,10 +30,10 @@ import {
     SubjectController,
     UserController,
     AccessLevelController,
-    QuestionTemplateController,
-    QuizTemplateController,
     QuizController,
     ChapterController,
+    QuestionController,
+    QuizSessionController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -88,16 +88,16 @@ container
     .to(AccessLevelService)
     .inSingletonScope();
 container
-    .bind<QuestionTemplateService>(ServiceType.QuestionTemplate)
-    .to(QuestionTemplateService)
-    .inSingletonScope();
-container
-    .bind<QuizTemplateService>(ServiceType.QuizTemplate)
-    .to(QuizTemplateService)
+    .bind<QuestionService>(ServiceType.Question)
+    .to(QuestionService)
     .inSingletonScope();
 container
     .bind<QuizService>(ServiceType.Quiz)
     .to(QuizService)
+    .inSingletonScope();
+container
+    .bind<QuizSessionService>(ServiceType.QuizSession)
+    .to(QuizSessionService)
     .inSingletonScope();
 container
     .bind<MapperService>(ServiceType.Mapper)
@@ -126,11 +126,9 @@ Promise.all([
             container.resolve<ChapterController>(ChapterController),
             container.resolve<MaterialController>(MaterialController),
             container.resolve<AccessLevelController>(AccessLevelController),
-            container.resolve<QuestionTemplateController>(
-                QuestionTemplateController
-            ),
-            container.resolve<QuizTemplateController>(QuizTemplateController),
+            container.resolve<QuestionController>(QuestionController),
             container.resolve<QuizController>(QuizController),
+            container.resolve<QuizSessionController>(QuizSessionController),
         ],
         toNumber(process.env.PORT),
         [

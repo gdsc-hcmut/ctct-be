@@ -72,7 +72,7 @@ export class ChapterService {
         );
     }
 
-    async chapterIsChildOfSubject(
+    async isChildOfSubject(
         chapterId: Types.ObjectId,
         subjectId: Types.ObjectId
     ) {

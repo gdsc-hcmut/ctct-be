@@ -1,9 +1,7 @@
 import { injectable } from "inversify";
+import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
 import { logger } from "../lib/logger";
-import { FilterQuery, Types } from "mongoose";
-import QuizModel, { QuizDocument, QuizStatus } from "../models/quiz.model";
-import { ConcreteQuestion } from "../models/question_template.model";
-import _ from "lodash";
+import QuizModel, { QuizDocument } from "../models/quiz.model";
 
 @injectable()
 export class QuizService {
@@ -11,71 +9,77 @@ export class QuizService {
         logger.info("[Quiz] Initializing...");
     }
 
-    async create(
-        userId: Types.ObjectId,
-        status: QuizStatus,
-        duration: number,
-        startTime: number,
-        fromTemplate: Types.ObjectId,
-        questions: ConcreteQuestion[]
-    ) {
+    async create(userId: Types.ObjectId, data: any) {
+        const now = Date.now();
         return (
             await QuizModel.create([
                 {
-                    userId: userId,
-                    status: status,
-                    createdAt: Date.now(),
-                    duration: duration,
-                    startTime: startTime,
-                    fromTemplate: fromTemplate,
-                    questions: questions,
+                    ...data,
+                    createdBy: userId,
+                    createdAt: now,
+                    lastUpdatedAt: now,
                 },
             ])
         )[0];
     }
 
-    async getOneQuizOfUserExpanded(
-        userId: Types.ObjectId,
-        quizId: Types.ObjectId
+    async markAsDeleted(
+        id: Types.ObjectId,
+        options: QueryOptions<QuizDocument> = {}
     ) {
-        return await QuizModel.findOne({
-            _id: quizId,
-            userId: userId,
-        }).populate({
-            path: "fromTemplate",
-            populate: {
-                path: "subject",
-                model: "subjects",
-            },
-        });
+        return await QuizModel.findOneAndUpdate(
+            { _id: id },
+            { deletedAt: Date.now() },
+            { ...options, new: true }
+        );
     }
 
-    async getQuizById(id: Types.ObjectId) {
-        return await QuizModel.findById(id);
-    }
-
-    async userHasUnfinishedQuiz(
-        userId: Types.ObjectId,
-        quizTemplateId: Types.ObjectId
-    ) {
+    // check if there is a quiz that maintains a reference
+    // to the given question
+    async checkQuizWithQuestion(questionId: Types.ObjectId) {
         return (
             (await QuizModel.findOne({
-                userId: userId,
-                fromTemplate: quizTemplateId,
-                status: QuizStatus.ONGOING,
+                potentialQuestions: questionId,
+                deletedAt: { $exists: false },
             })) != null
         );
     }
 
-    async getUserOngoingQuizById(
-        quizId: Types.ObjectId,
-        userId: Types.ObjectId
-    ) {
+    async getQuizById(id: Types.ObjectId) {
         return await QuizModel.findOne({
-            _id: quizId,
-            userId: userId,
-            status: QuizStatus.ONGOING,
+            _id: id,
+            deletedAt: { $exists: false },
         });
+    }
+
+    async editOneQuiz(
+        id: Types.ObjectId,
+        update: UpdateQuery<QuizDocument> = {},
+        options: QueryOptions<QuizDocument> = {}
+    ) {
+        return await QuizModel.findOneAndUpdate(
+            { _id: id, deletedAt: { $exists: false } },
+            { ...update, lastUpdatedAt: Date.now() },
+            { ...options, new: true }
+        );
+    }
+
+    async quizWithSubjectExists(subjectId: Types.ObjectId) {
+        return (
+            (await QuizModel.findOne({
+                subject: subjectId,
+                deletedAt: { $exists: false },
+            })) != null
+        );
+    }
+
+    async quizWithChapterExists(chapterId: Types.ObjectId) {
+        return (
+            (await QuizModel.findOne({
+                chapter: chapterId,
+                deletedAt: { $exists: false },
+            })) != null
+        );
     }
 
     async getPaginated(
@@ -87,9 +91,11 @@ export class QuizService {
         return await Promise.all([
             QuizModel.count({
                 ...query,
+                deletedAt: { $exists: false },
             }),
             QuizModel.find({
                 ...query,
+                deletedAt: { $exists: false },
             })
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
@@ -100,6 +106,7 @@ export class QuizService {
     async getPopulated(query: FilterQuery<QuizDocument>, paths: string[]) {
         return await QuizModel.find({
             ...query,
+            deletedAt: { $exists: false },
         }).populate(paths);
     }
 }

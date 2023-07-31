@@ -1,44 +1,37 @@
-import mongoose, { Document, Types, Schema } from "mongoose";
-import { ConcreteQuestion } from "./question_template.model";
-
-/**
- * There is no REGISTERED state, since taking a quiz means starting it instantly,
- * maybe add schedule quiz start time?
- */
-export enum QuizStatus {
-    ONGOING = "ONGOING",
-    ENDED = "ENDED",
-}
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 export type QuizDocument = Document & {
-    userId: Types.ObjectId;
-    status: QuizStatus;
+    name: string;
+    description: string;
+    subject: Types.ObjectId;
+    chapter: Types.ObjectId;
 
-    createdAt: number;
     duration: number;
-    startTime: number;
-    // the time at which the user finished the test, not necessarily startTime + duration
-    endTime?: number;
+    potentialQuestions: Types.ObjectId[];
+    sampleSize: number;
 
-    // percentage of points ([0, 100])
-    standardizedScore: number;
-
-    fromTemplate: Types.ObjectId;
-    questions: ConcreteQuestion[];
+    createdBy: Types.ObjectId;
+    createdAt: number;
+    lastUpdatedAt?: number;
+    deletedAt: number;
 };
 
 const quizSchema = new Schema<QuizDocument>({
-    userId: { type: Schema.Types.ObjectId, ref: "users" },
-    status: { type: String, required: true, enum: QuizStatus },
+    name: { type: String, required: true, default: "" },
+    description: { type: String, required: false, default: "" },
+    subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
+    chapter: { type: Schema.Types.ObjectId, ref: "chapters", required: true },
 
-    createdAt: { type: Number, required: true },
     duration: { type: Number, required: true },
-    startTime: { type: Number, required: true },
-    endTime: { type: Number, required: false },
-    standardizedScore: { type: Number, required: false, default: 0 },
+    potentialQuestions: [
+        { type: Schema.Types.ObjectId, ref: "questions", required: true },
+    ],
+    sampleSize: { type: Number, required: true },
 
-    fromTemplate: { type: Schema.Types.ObjectId, ref: "quiz_templates" },
-    questions: Array<ConcreteQuestion>,
+    createdBy: { type: Schema.Types.ObjectId, ref: "users" },
+    createdAt: Number,
+    lastUpdatedAt: Number,
+    deletedAt: Number,
 });
 
 const QuizModel = mongoose.model<QuizDocument>("quizzes", quizSchema);

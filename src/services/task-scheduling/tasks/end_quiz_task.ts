@@ -1,34 +1,37 @@
-import { QuizDocument, QuizStatus } from "../../../models/quiz.model";
-import mongoose, { Types } from "mongoose";
-import { QuizService } from "../../quiz.service";
-import { SocketService } from "../../server-events/socket.service";
-import { logger } from "../../../lib/logger";
-import { TaskSchedulingService } from "../task_scheduling.service";
+import {
+    QuizSessionDocument,
+    QuizStatus,
+} from "../../../models/quiz_session.model";
 import { ScheduledTask } from "../scheduled_task";
-import { QuestionTemplateService } from "../../question_template.service";
+import { Types } from "mongoose";
+import { QuizSessionService } from "../../../services/quiz_session.service";
+import { SocketService } from "../../../services/server-events/socket.service";
+import { TaskSchedulingService } from "../task_scheduling.service";
+import { QuestionService } from "../../../services/question.service";
+import { logger } from "../../../lib/logger";
 
-export class EndQuizTask implements ScheduledTask<QuizDocument> {
+export class EndQuizTask implements ScheduledTask<QuizSessionDocument> {
     private userId: Types.ObjectId;
     private quizId: Types.ObjectId;
-    private quizService: QuizService;
+    private quizSessionService: QuizSessionService;
     private socketService: SocketService;
     private taskSchedulingService: TaskSchedulingService;
-    private questionTemplateService: QuestionTemplateService;
+    private questionService: QuestionService;
 
     constructor(
         userId: Types.ObjectId,
         quizId: Types.ObjectId,
-        quizService: QuizService,
+        quizSessionService: QuizSessionService,
         socketService: SocketService,
         taskSchedulingService: TaskSchedulingService,
-        questionTemplateService: QuestionTemplateService
+        questionService: QuestionService
     ) {
         this.userId = userId;
         this.quizId = quizId;
-        this.quizService = quizService;
+        this.quizSessionService = quizSessionService;
         this.socketService = socketService;
         this.taskSchedulingService = taskSchedulingService;
-        this.questionTemplateService = questionTemplateService;
+        this.questionService = questionService;
     }
 
     async execute() {
@@ -51,7 +54,7 @@ export class EndQuizTask implements ScheduledTask<QuizDocument> {
                 );
             }
 
-            const quiz = await this.quizService.getUserOngoingQuizById(
+            const quiz = await this.quizSessionService.getUserOngoingQuizById(
                 this.quizId,
                 this.userId
             );
@@ -63,22 +66,19 @@ export class EndQuizTask implements ScheduledTask<QuizDocument> {
             }
 
             quiz.questions.forEach((question) => {
-                this.questionTemplateService.processQuestionAnswer(question);
+                this.questionService.processQuestionAnswer(question);
             });
             quiz.status = QuizStatus.ENDED;
             quiz.endTime = quizEndTime;
             let cur = 0,
                 tot = 0;
             quiz.questions.forEach((question) => {
-                question.subQuestions.forEach((subQuestion) => {
-                    tot++;
-                    if (subQuestion.isCorrect) {
-                        cur++;
-                    }
-                });
+                tot++;
+                if (question.isCorrect) {
+                    cur++;
+                }
             });
             quiz.standardizedScore = tot === 0 ? 0 : (10 * cur) / tot;
-            quiz.markModified("questions");
             await quiz.save();
 
             return quiz;
