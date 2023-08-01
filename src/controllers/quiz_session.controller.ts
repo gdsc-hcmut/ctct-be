@@ -12,7 +12,7 @@ import {
     SocketService,
     TaskSchedulingService,
 } from "../services/index";
-import { FilterQuery, Types } from "mongoose";
+import { Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { QuizSessionDocument } from "../models/quiz_session.model";
 import _ from "lodash";
@@ -21,6 +21,7 @@ import { EndQuizTask } from "../services/task-scheduling/tasks/end_quiz_task";
 import { ScheduledTaskType } from "../services/task-scheduling/schedule_task_type";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import { UserAnswer } from "../models/question.model";
+import { QueryQuizSessionDto } from "../lib/dto/query_quiz_session.dto";
 
 @injectable()
 export class QuizSessionController extends Controller {
@@ -106,20 +107,20 @@ export class QuizSessionController extends Controller {
                 )
             );
 
-            const startTime = Date.now();
-            const quizDeadline = startTime + quiz.duration;
+            const startedAt = Date.now();
+            const quizDeadline = startedAt + quiz.duration;
 
             const quizSession = await this.quizSessionService.create(
                 userId,
                 quiz.duration,
-                startTime,
+                startedAt,
                 quizId,
                 concreteQuestions
             );
             // schedule a task to end this quiz
             logger.debug(
                 `Scheduling quiz ${quiz._id} to start at ${new Date(
-                    startTime
+                    startedAt
                 ).toString()} and end at ${new Date(quizDeadline).toString()}`
             );
             await this.taskSchedulingService.schedule(
@@ -147,24 +148,45 @@ export class QuizSessionController extends Controller {
         try {
             const userId = req.tokenMeta.userId;
 
-            const query: FilterQuery<QuizSessionDocument> = {
-                userId: userId,
+            const query: QueryQuizSessionDto = {
+                name:
+                    req.query.name !== undefined
+                        ? decodeURIComponent(req.query.name as string)
+                        : undefined,
+                subject:
+                    req.query.subject !== undefined
+                        ? new Types.ObjectId(req.query.subject as string)
+                        : undefined,
+                chapter:
+                    req.query.chapter !== undefined
+                        ? new Types.ObjectId(req.query.chapter as string)
+                        : undefined,
             };
-            if (req.query.name) {
-                query.fromQuiz.name = {
-                    $regex: decodeURIComponent(req.query.name as string),
-                };
-            }
-            if (req.query.subject) {
-                query.fromQuiz.subject = new Types.ObjectId(
-                    req.query.subject as string
-                );
-            }
-            if (req.query.chapter) {
-                query.fromQuiz.chapter = new Types.ObjectId(
-                    req.query.chapter as string
-                );
-            }
+
+            const quizSessionFilter = (quizSession: QuizSessionDocument) => {
+                if (query.name) {
+                    const quizSessionName = (quizSession.fromQuiz as any)
+                        .name as string;
+                    if (!quizSessionName.match(query.name)) {
+                        return false;
+                    }
+                }
+                if (query.subject) {
+                    const quizSessionSubject = (quizSession.fromQuiz as any)
+                        .subject as Types.ObjectId;
+                    if (!quizSessionSubject.equals(query.subject)) {
+                        return false;
+                    }
+                }
+                if (query.chapter) {
+                    const quizSessionChapter = (quizSession.fromQuiz as any)
+                        .chapter as Types.ObjectId;
+                    if (!quizSessionChapter.equals(query.chapter)) {
+                        return false;
+                    }
+                }
+                return true;
+            };
 
             const pageSize: number = req.query.pageSize
                 ? parseInt(req.query.pageSize as string)
@@ -174,27 +196,37 @@ export class QuizSessionController extends Controller {
                 : 1;
 
             if (req.query.pagination === "false") {
-                const result = await this.quizSessionService.getPopulated(
-                    query,
-                    ["fromQuiz", "fromQuiz.subject", "fromQuiz.chapter"]
-                );
-                res.composer.success({
-                    total: result.length,
-                    result,
-                });
-            } else {
-                const [total, result] =
-                    await this.quizSessionService.getPaginated(
-                        query,
-                        ["fromQuiz", "fromQuiz.subject", "fromQuiz.chapter"],
-                        pageSize,
-                        pageNumber
-                    );
+                const result = (
+                    await this.quizSessionService.getExpanded({
+                        userId: userId,
+                    })
+                ).filter(quizSessionFilter);
+
                 const adjustedResult = result.map((quizSession) =>
                     this.mapperService.adjustQuizSessionAccordingToStatus(
                         quizSession
                     )
                 );
+
+                res.composer.success({
+                    total: result.length,
+                    result: adjustedResult,
+                });
+            } else {
+                const [total, unmappedResult] =
+                    await this.quizSessionService.getPaginated(
+                        { userId: userId },
+                        pageSize,
+                        pageNumber
+                    );
+
+                const adjustedResult = unmappedResult
+                    .filter(quizSessionFilter)
+                    .map((quizSession) =>
+                        this.mapperService.adjustQuizSessionAccordingToStatus(
+                            quizSession
+                        )
+                    );
 
                 res.composer.success({
                     total,
@@ -214,19 +246,24 @@ export class QuizSessionController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
-            const quizSession =
-                await this.quizSessionService.getOneQuizOfUserExpanded(
-                    userId,
-                    quizSessionId
-                );
+            const quizSession = await this.quizSessionService.getByIdPopulated(
+                quizSessionId
+            );
+            console.log(quizSession);
+
             if (!quizSession) {
                 throw new Error(`Quiz doesn't exist`);
+            }
+
+            if (!quizSession.userId.equals(userId)) {
+                throw new Error(`This quiz was not taken by you`);
             }
 
             const result =
                 this.mapperService.adjustQuizSessionAccordingToStatus(
                     quizSession
                 );
+
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

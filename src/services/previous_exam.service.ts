@@ -96,15 +96,23 @@ export class PreviousExamService {
         });
     }
 
-    async getByIdPopulated(id: Types.ObjectId, paths: string[]) {
-        return await PreviousExamModel.findOne({
-            _id: id,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        projection: ProjectionType<PreviousExamDocument>,
+        paths: string[]
+    ) {
+        return await PreviousExamModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 
     async getPaginated(
         query: FilterQuery<PreviousExamDocument>,
+        projection: ProjectionType<PreviousExamDocument>,
         paths: string[],
         pageSize: number,
         pageNumber: number
@@ -114,10 +122,13 @@ export class PreviousExamService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            PreviousExamModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            PreviousExamModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
@@ -126,12 +137,16 @@ export class PreviousExamService {
 
     async getPopulated(
         query: FilterQuery<PreviousExamDocument>,
+        projection: ProjectionType<PreviousExamDocument>,
         paths: string[]
     ) {
-        return await PreviousExamModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+        return await PreviousExamModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 
     async editOne(

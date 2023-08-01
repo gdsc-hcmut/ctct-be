@@ -6,7 +6,13 @@ import AccessLevelModel, {
 } from "../models/access_level.model";
 import { ServiceType } from "../types";
 import { CacheService } from "./index";
-import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import { TokenDocument } from "../models/token.model";
 import _ from "lodash";
 
@@ -240,6 +246,7 @@ export class AccessLevelService {
 
     async getPaginated(
         query: FilterQuery<AccessLevelDocument>,
+        projection: ProjectionType<AccessLevelDocument>,
         paths: string[],
         pageSize: number,
         pageNumber: number
@@ -249,10 +256,13 @@ export class AccessLevelService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            AccessLevelModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            AccessLevelModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
@@ -261,11 +271,29 @@ export class AccessLevelService {
 
     async getPopulated(
         query: FilterQuery<AccessLevelDocument>,
+        projection: ProjectionType<AccessLevelDocument>,
         paths: string[]
     ) {
-        return await AccessLevelModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+        return await AccessLevelModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
+    }
+
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        projection: ProjectionType<AccessLevelDocument>,
+        paths: string[]
+    ) {
+        return await AccessLevelModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 }

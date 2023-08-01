@@ -85,8 +85,23 @@ export class ChapterService {
         );
     }
 
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        projection: ProjectionType<ChapterDocument>,
+        paths: string[]
+    ) {
+        return await ChapterModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
+    }
+
     async getPaginated(
         query: FilterQuery<ChapterDocument>,
+        projection: ProjectionType<ChapterDocument>,
         paths: string[],
         pageSize: number,
         pageNumber: number
@@ -96,20 +111,30 @@ export class ChapterService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            ChapterModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            ChapterModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
         ]);
     }
 
-    async getPopulated(query: FilterQuery<ChapterDocument>, paths: string[]) {
-        return await ChapterModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+    async getPopulated(
+        query: FilterQuery<ChapterDocument>,
+        projection: ProjectionType<ChapterDocument>,
+        paths: string[]
+    ) {
+        return await ChapterModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 }

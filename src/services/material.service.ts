@@ -99,22 +99,36 @@ export class MaterialService {
         );
     }
 
-    async getById(id: Types.ObjectId) {
-        return await MaterialModel.findOne({
-            _id: id,
-            deletedAt: { $exists: false },
-        });
+    async getById(
+        id: Types.ObjectId,
+        projection: ProjectionType<MaterialDocument> = {}
+    ) {
+        return await MaterialModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection
+        );
     }
 
-    async getByIdPopulated(id: Types.ObjectId, paths: string[]) {
-        return await MaterialModel.findOne({
-            _id: id,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        projection: ProjectionType<MaterialDocument>,
+        paths: string[]
+    ) {
+        return await MaterialModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 
     async getPaginated(
         query: FilterQuery<MaterialDocument>,
+        projection: ProjectionType<MaterialDocument>,
         paths: string[],
         pageSize: number,
         pageNumber: number
@@ -124,21 +138,31 @@ export class MaterialService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            MaterialModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            MaterialModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
         ]);
     }
 
-    async getPopulated(query: FilterQuery<MaterialDocument>, paths: string[]) {
-        return await MaterialModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+    async getPopulated(
+        query: FilterQuery<MaterialDocument>,
+        projection: ProjectionType<MaterialDocument>,
+        paths: string[]
+    ) {
+        return await MaterialModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 
     async editOneMaterial(

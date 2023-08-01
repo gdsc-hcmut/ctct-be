@@ -13,8 +13,6 @@ import {
     QuizService,
 } from "../services/index";
 import { FilterQuery, Types } from "mongoose";
-import _ from "lodash";
-import { Permission } from "../models/access_level.model";
 import { logger } from "../lib/logger";
 import { SubjectDocument } from "../models/subject.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
@@ -38,44 +36,32 @@ export class SubjectController extends Controller {
     ) {
         super();
 
+        this.router.all("*", this.authService.authenticate(false));
         this.router.get("/", this.getAll.bind(this));
-
-        this.router.all("*", authService.authenticate());
-        this.router.post("/", this.create.bind(this));
-        this.router.patch("/:docId", this.edit.bind(this));
-        this.router.delete("/:docId", this.delete.bind(this));
+        this.router.get("/:subjectId", this.getById.bind(this));
     }
 
-    async create(req: Request, res: Response) {
+    async getById(req: Request, res: Response) {
         try {
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
+            const subjectId = new Types.ObjectId(req.params.subjectId);
+            const subject = await this.subjectService.getSubjectById(
+                subjectId,
+                {
+                    createdBy: 0,
+                    createdAt: 0,
+                    lastUpdatedAt: 0,
+                    __v: 0,
+                }
             );
-            const canCreateSubject = await canPerform(
-                Permission.ADMIN_CREATE_SUBJECT
-            );
-            if (!canCreateSubject) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
+
+            if (!subject) {
+                throw new Error(`Subject does not exist`);
             }
 
-            const { userId } = req.tokenMeta;
-            const { name, description = "" } = req.body;
-
-            if (!name) {
-                throw new Error(`Missing 'name' field`);
-            }
-
-            const doc = await this.subjectService.create(
-                name,
-                userId,
-                description
-            );
-            res.composer.success(doc);
+            res.composer.success(subject);
         } catch (error) {
             logger.error(error.message);
-            console.log(error);
+            console.error(error);
             res.composer.badRequest(error.message);
         }
     }
@@ -99,6 +85,12 @@ export class SubjectController extends Controller {
             if (req.query.pagination === "false") {
                 const result = await this.subjectService.getPopulated(
                     query,
+                    {
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
                     []
                 );
                 res.composer.success({
@@ -108,6 +100,12 @@ export class SubjectController extends Controller {
             } else {
                 const [total, result] = await this.subjectService.getPaginated(
                     query,
+                    {
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
                     [],
                     pageSize,
                     pageNumber
@@ -119,114 +117,6 @@ export class SubjectController extends Controller {
                     result,
                 });
             }
-        } catch (error) {
-            logger.error(error.message);
-            console.log(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
-    async edit(req: Request, res: Response) {
-        try {
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
-            const canEditSubject = await canPerform(
-                Permission.ADMIN_EDIT_SUBJECT
-            );
-            if (!canEditSubject) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.subjectService.getSubjectById(docId);
-
-            if (!doc) {
-                throw new Error(`Subject doesn't exist or has been deleted`);
-            }
-
-            const info = _.pick(req.body, ["name", "description"]);
-
-            const result = await this.subjectService.editOneSubject(
-                docId,
-                info,
-                {
-                    new: true,
-                }
-            );
-            res.composer.success(result);
-        } catch (error) {
-            logger.error(error.message);
-            console.log(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
-    async delete(req: Request, res: Response) {
-        try {
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
-            const canDeleteSubject = await canPerform(
-                Permission.ADMIN_DELETE_SUBJECT
-            );
-            if (!canDeleteSubject) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const docId = new Types.ObjectId(req.params.docId);
-            const sub = await this.subjectService.getSubjectById(docId);
-
-            if (!sub) {
-                throw new Error(`Subject doesn't exist or has been deleted`);
-            }
-
-            // check if anything holds a reference to this subject
-            const [
-                materialWithThisSubject,
-                previousExamWithThisSubject,
-                questionWithThisSubject,
-                quizWithThisSubject,
-                chapterWithThisSubject,
-            ] = await Promise.all([
-                this.materialService.materialWithSubjectExists(docId),
-                this.previousExamService.previousExamWithSubjectExists(docId),
-                this.questionService.questionWithSubjectExists(docId),
-                this.quizService.quizWithSubjectExists(docId),
-                this.chapterService.chapterWithSubjectExists(docId),
-            ]);
-            if (materialWithThisSubject) {
-                throw new Error(
-                    `There are still materials that belong to this subject. Please delete them first`
-                );
-            }
-            if (previousExamWithThisSubject) {
-                throw new Error(
-                    `There are still previous exams that belong to this subject. Please delete them first`
-                );
-            }
-            if (questionWithThisSubject) {
-                throw new Error(
-                    `There are still question that belong to this subject. Please delete them first`
-                );
-            }
-            if (quizWithThisSubject) {
-                throw new Error(
-                    `There are still quiz that belong to this subject. Please delete them first`
-                );
-            }
-            if (chapterWithThisSubject) {
-                throw new Error(
-                    `There are still chapters that belong to this subject. Please delete them first`
-                );
-            }
-
-            const result = await this.subjectService.markAsDeleted(docId);
-            res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.log(error);

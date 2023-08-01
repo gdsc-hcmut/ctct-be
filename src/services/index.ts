@@ -3,7 +3,7 @@ import { UserService } from "./user.service";
 import { CacheService } from "./cache.service";
 import { FileUploadService } from "./file-upload.service";
 import { MaterialService } from "./material.service";
-import { PreviousExamService } from "./previous-exams.service";
+import { PreviousExamService } from "./previous_exam.service";
 import { SubjectService } from "./subject.service";
 import { AccessLevelService } from "./access_level.service";
 import { QuestionService } from "./question.service";

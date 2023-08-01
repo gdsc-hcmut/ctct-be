@@ -1,6 +1,6 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { FilterQuery, Types } from "mongoose";
+import { FilterQuery, PipelineStage, Types } from "mongoose";
 import { ConcreteQuestion } from "../models/question.model";
 import QuizSessionModel, {
     QuizSessionDocument,
@@ -35,22 +35,6 @@ export class QuizSessionService {
         )[0];
     }
 
-    async getOneQuizOfUserExpanded(
-        userId: Types.ObjectId,
-        quizId: Types.ObjectId
-    ) {
-        return await QuizSessionModel.findOne({
-            _id: quizId,
-            userId: userId,
-        }).populate({
-            path: "fromQuiz",
-            populate: {
-                path: "subject",
-                model: "subjects",
-            },
-        });
-    }
-
     async getQuizById(id: Types.ObjectId) {
         return await QuizSessionModel.findById(id);
     }
@@ -78,29 +62,62 @@ export class QuizSessionService {
 
     async getPaginated(
         query: FilterQuery<QuizSessionDocument>,
-        paths: string[],
         pageSize: number,
         pageNumber: number
     ) {
         return await Promise.all([
             QuizSessionModel.count({
                 ...query,
+                deletedAt: { $exists: false },
             }),
             QuizSessionModel.find({
                 ...query,
+                deletedAt: { $exists: false },
             })
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate({
+                    path: "fromQuiz",
+                    populate: [
+                        {
+                            path: "subject",
+                        },
+                        {
+                            path: "chapter",
+                        },
+                    ],
+                }),
         ]);
     }
 
-    async getPopulated(
-        query: FilterQuery<QuizSessionDocument>,
-        paths: string[]
-    ) {
+    async getExpanded(query: FilterQuery<QuizSessionDocument>) {
         return await QuizSessionModel.find({
             ...query,
-        }).populate(paths);
+            deletedAt: { $exists: false },
+        }).populate({
+            path: "fromQuiz",
+            populate: [
+                {
+                    path: "subject",
+                },
+                {
+                    path: "chapter",
+                },
+            ],
+        });
+    }
+
+    async getByIdPopulated(id: Types.ObjectId) {
+        return await QuizSessionModel.findById(id).populate({
+            path: "fromQuiz",
+            populate: [
+                {
+                    path: "subject",
+                },
+                {
+                    path: "chapter",
+                },
+            ],
+        });
     }
 }

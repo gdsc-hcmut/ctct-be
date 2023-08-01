@@ -1,5 +1,11 @@
 import { injectable } from "inversify";
-import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import { logger } from "../lib/logger";
 import QuizModel, { QuizDocument } from "../models/quiz.model";
 import { CreateQuizDto } from "../lib/dto/index";
@@ -85,6 +91,7 @@ export class QuizService {
 
     async getPaginated(
         query: FilterQuery<QuizDocument>,
+        projection: ProjectionType<QuizDocument>,
         paths: string[],
         pageSize: number,
         pageNumber: number
@@ -94,20 +101,44 @@ export class QuizService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            QuizModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            QuizModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
         ]);
     }
 
-    async getPopulated(query: FilterQuery<QuizDocument>, paths: string[]) {
-        return await QuizModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+    async getPopulated(
+        query: FilterQuery<QuizDocument>,
+        projection: ProjectionType<QuizDocument>,
+        paths: string[]
+    ) {
+        return await QuizModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
+    }
+
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        projection: ProjectionType<QuizDocument>,
+        paths: string[]
+    ) {
+        return await QuizModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 }

@@ -16,9 +16,9 @@ export type QuizSessionDocument = Document & {
 
     createdAt: number;
     duration: number;
-    startTime: number;
+    startedAt: number;
     // the time at which the user finished the test, not necessarily startTime + duration
-    endTime?: number;
+    endedAt?: number;
 
     // score standardized to [0, 10]
     standardizedScore: number;
@@ -33,8 +33,8 @@ const quizSessionSchema = new Schema<QuizSessionDocument>({
 
     createdAt: { type: Number, required: true },
     duration: { type: Number, required: true },
-    startTime: { type: Number, required: true },
-    endTime: { type: Number, required: false },
+    startedAt: { type: Number, required: true },
+    endedAt: { type: Number, required: false },
     standardizedScore: { type: Number, required: false, default: 0 },
 
     fromQuiz: { type: Schema.Types.ObjectId, ref: "quizzes" },

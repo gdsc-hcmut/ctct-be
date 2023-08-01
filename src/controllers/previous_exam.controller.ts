@@ -4,41 +4,43 @@ import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
 import {
     AuthService,
-    SubjectService,
-    MaterialService,
+    PreviousExamService,
     FileUploadService,
+    SubjectService,
     AccessLevelService,
-    ChapterService,
 } from "../services/index";
 import { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
-import { MaterialDocument } from "../models/material.model";
+import {
+    PreviousExamDocument,
+    PreviousExamType,
+    Semester,
+} from "../models/previous-exam.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import _ from "lodash";
 
 @injectable()
-export class MaterialController extends Controller {
+export class PreviousExamController extends Controller {
     public readonly router = Router();
-    public readonly path = "/material";
+    public readonly path = "/previous_exam";
 
     constructor(
         @inject(ServiceType.Auth) private authService: AuthService,
-        @inject(ServiceType.Subject) private subjectService: SubjectService,
-        @inject(ServiceType.Material) private materialService: MaterialService,
+        @inject(ServiceType.PreviousExam)
+        private previousExamService: PreviousExamService,
         @inject(ServiceType.FileUpload)
         private fileUploadService: FileUploadService,
+        @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.AccessLevel)
-        private accessLevelService: AccessLevelService,
-        @inject(ServiceType.Chapter) private chapterService: ChapterService
+        private accessLevelService: AccessLevelService
     ) {
         super();
 
-        this.router.all("*", this.authService.authenticate());
-
-        this.router.get("/:materialId", this.getById.bind(this));
-        this.router.get("/:materialId/download", this.download.bind(this));
-        this.router.get("/", this.getAll.bind(this));
+        this.router.all("*", this.authService.authenticate(false));
+        this.router.get("/:previousExamId", this.getById.bind(this));
+        this.router.get("/:previousExamId/download", this.download.bind(this));
+        this.router.get("/", this.getAvailable.bind(this));
     }
 
     async getById(req: Request, res: Response) {
@@ -46,31 +48,34 @@ export class MaterialController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            const canView = await canPerform(Permission.VIEW_MATERIAL);
+            const canView = await canPerform(Permission.VIEW_PREVIOUS_EXAM);
             if (!canView) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
 
-            const materialId = new Types.ObjectId(req.params.materialId);
-            const material = await this.materialService.getByIdPopulated(
-                materialId,
-                {
-                    __v: 0,
-                    resource: 0,
-                    createdBy: 0,
-                    createdAt: 0,
-                    lastUpdatedAt: 0,
-                },
-                ["subject", "chapter"]
+            const previousExamId = new Types.ObjectId(
+                req.params.previousExamId
             );
+            const previousExam =
+                await this.previousExamService.getByIdPopulated(
+                    previousExamId,
+                    {
+                        __v: 0,
+                        resource: 0,
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                    },
+                    ["subject"]
+                );
 
-            if (!material) {
-                throw new Error(`Material not found`);
+            if (!previousExam) {
+                throw new Error(`Previous exam not found`);
             }
 
-            const result = _.omit(material.toObject(), [
+            const result = _.omit(previousExam.toObject(), [
                 "subject.__v",
                 "subject.createdAt",
                 "subject.createdBy",
@@ -94,22 +99,26 @@ export class MaterialController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            const canView = await canPerform(Permission.VIEW_MATERIAL);
+            const canView = await canPerform(Permission.VIEW_PREVIOUS_EXAM);
             if (!canView) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
 
-            const materialId = new Types.ObjectId(req.params.materialId);
-            const material = await this.materialService.getById(materialId);
+            const previousExamId = new Types.ObjectId(
+                req.params.previousExamId
+            );
+            const previousExam = await this.previousExamService.getById(
+                previousExamId
+            );
 
-            if (!material) {
-                throw new Error(`Material doesn't exist`);
+            if (!previousExam) {
+                throw new Error(`Previous exam doesn't exist`);
             }
 
             const file = await this.fileUploadService.downloadFile(
-                material.resource
+                previousExam.resource
             );
             res.setHeader(
                 "Content-Disposition",
@@ -124,24 +133,28 @@ export class MaterialController extends Controller {
         }
     }
 
-    async getAll(req: Request, res: Response) {
+    async getAvailable(req: Request, res: Response) {
         try {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            const canView = await canPerform(Permission.VIEW_MATERIAL);
+            const canView = await canPerform(Permission.VIEW_PREVIOUS_EXAM);
             if (!canView) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
             }
 
-            const query: FilterQuery<MaterialDocument> = {};
+            const query: FilterQuery<PreviousExamDocument> = {};
+
             if (req.query.subject) {
                 query.subject = new Types.ObjectId(req.query.subject as string);
             }
-            if (req.query.chapter) {
-                query.chapter = new Types.ObjectId(req.query.chapter as string);
+            if (req.query.semester) {
+                query.semester = req.query.semester as Semester;
+            }
+            if (req.query.type) {
+                query.type = req.query.type as PreviousExamType;
             }
             if (req.query.name) {
                 query.name = {
@@ -169,7 +182,7 @@ export class MaterialController extends Controller {
 
             if (req.query.pagination === "false") {
                 const result = (
-                    await this.materialService.getPopulated(
+                    await this.previousExamService.getPopulated(
                         query,
                         {
                             __v: 0,
@@ -178,16 +191,18 @@ export class MaterialController extends Controller {
                             createdAt: 0,
                             lastUpdatedAt: 0,
                         },
-                        ["subject", "chapter"]
+                        ["subject"]
                     )
-                ).map((material) => _.omit(material.toObject(), hiddenFields));
+                ).map((previousExam) =>
+                    _.omit(previousExam.toObject(), hiddenFields)
+                );
                 res.composer.success({
                     total: result.length,
                     result,
                 });
             } else {
                 const [total, unmappedResult] =
-                    await this.materialService.getPaginated(
+                    await this.previousExamService.getPaginated(
                         query,
                         {
                             __v: 0,
@@ -196,13 +211,15 @@ export class MaterialController extends Controller {
                             createdAt: 0,
                             lastUpdatedAt: 0,
                         },
-                        ["subject", "chapter"],
+                        ["subject"],
                         pageSize,
                         pageNumber
                     );
-                const result = unmappedResult.map((material) =>
-                    _.omit(material.toObject(), hiddenFields)
+
+                const result = unmappedResult.map((previousExam) =>
+                    _.omit(previousExam.toObject(), hiddenFields)
                 );
+
                 res.composer.success({
                     total,
                     pageCount: Math.max(Math.ceil(total / pageSize), 1),

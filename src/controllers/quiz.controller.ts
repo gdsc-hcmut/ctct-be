@@ -13,10 +13,9 @@ import {
 import { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { Permission } from "../models/access_level.model";
-import _ from "lodash";
 import { QuizDocument } from "../models/quiz.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
-import { CreateQuizDto } from "../lib/dto/index";
+import _ from "lodash";
 
 @injectable()
 export class QuizController extends Controller {
@@ -36,84 +35,7 @@ export class QuizController extends Controller {
 
         this.router.all("*", authService.authenticate());
 
-        this.router.post("/", this.create.bind(this));
-        this.router.delete("/:quizId", this.delete.bind(this));
         this.router.get("/", this.getAll.bind(this));
-    }
-
-    async create(req: Request, res: Response) {
-        try {
-            const userId = req.tokenMeta.userId;
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
-            const canCreate = await canPerform(Permission.AMDIN_CREATE_QUIZ);
-            if (!canCreate) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const info: CreateQuizDto = {
-                name: req.body.name || "",
-                description: req.body.description || "",
-                subject: new Types.ObjectId(req.body.subject),
-                chapter: new Types.ObjectId(req.body.chapter),
-                duration: req.body.duration,
-                potentialQuestions: (
-                    req.body.potentialQuestions as string[]
-                ).map((question) => new Types.ObjectId(question)),
-                sampleSize: req.body.sampleSize,
-            };
-
-            const subjectExists = await this.subjectService.subjectExists(
-                info.subject
-            );
-            if (!subjectExists) {
-                throw new Error(`Subject doesn't exist`);
-            }
-            if (
-                !(await this.chapterService.isChildOfSubject(
-                    info.chapter,
-                    info.subject
-                ))
-            ) {
-                throw new Error(
-                    `Chapter does not exist or is not a child of the subject`
-                );
-            }
-            // check that all questions are unique
-            const duplicateQuestions = info.potentialQuestions.some(
-                (question, index) =>
-                    info.potentialQuestions.some(
-                        (otherQuestion, otherIndex) =>
-                            question.equals(otherQuestion) &&
-                            index !== otherIndex
-                    )
-            );
-            if (duplicateQuestions) {
-                throw new Error(`One or more questions are duplicated`);
-            }
-            if (
-                info.sampleSize <= 0 ||
-                info.sampleSize > info.potentialQuestions.length
-            ) {
-                throw new Error(`Sample size is invalid`);
-            }
-            const questionExists = await this.questionService.questionExists(
-                info.potentialQuestions
-            );
-            if (!questionExists) {
-                throw new Error(`One or more questions does not exist`);
-            }
-
-            const result = await this.quizService.create(userId, req.body);
-            res.composer.success(result);
-        } catch (error) {
-            logger.error(error.message);
-            console.log(error);
-            res.composer.badRequest(error.message);
-        }
     }
 
     async getAll(req: Request, res: Response) {
@@ -121,9 +43,8 @@ export class QuizController extends Controller {
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
-            const canViewWithoutAdmin = await canPerform(Permission.VIEW_QUIZ);
-            const canViewAsAdmin = await canPerform(Permission.ADMIN_VIEW_QUIZ);
-            if (!canViewWithoutAdmin && !canViewAsAdmin) {
+            const canView = await canPerform(Permission.VIEW_QUIZ);
+            if (!canView) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
                 );
@@ -150,22 +71,55 @@ export class QuizController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
+            const hiddenFields = [
+                "subject.__v",
+                "subject.createdAt",
+                "subject.createdBy",
+                "subject.lastUpdatedAt",
+                "chapter.__v",
+                "chapter.createdAt",
+                "chapter.createdBy",
+                "chapter.lastUpdatedAt",
+            ];
+
             if (req.query.pagination === "false") {
-                const result = await this.quizService.getPopulated(query, [
-                    "subject",
-                    "chapter",
-                ]);
+                const result = (
+                    await this.quizService.getPopulated(
+                        query,
+                        {
+                            potentialQuestions: 0,
+                            createdAt: 0,
+                            createdBy: 0,
+                            lastUpdatedAt: 0,
+                            __v: 0,
+                        },
+                        ["subject", "chapter"]
+                    )
+                ).map((quiz) => _.omit(quiz.toObject(), hiddenFields));
                 res.composer.success({
                     total: result.length,
                     result,
                 });
             } else {
-                const [total, result] = await this.quizService.getPaginated(
-                    query,
-                    ["subject", "chapter"],
-                    pageSize,
-                    pageNumber
+                const [total, unmappedResult] =
+                    await this.quizService.getPaginated(
+                        query,
+                        {
+                            potentialQuestions: 0,
+                            createdAt: 0,
+                            createdBy: 0,
+                            lastUpdatedAt: 0,
+                            __v: 0,
+                        },
+                        ["subject", "chapter"],
+                        pageSize,
+                        pageNumber
+                    );
+
+                const result = unmappedResult.map((quiz) =>
+                    _.omit(quiz.toObject(), hiddenFields)
                 );
+
                 res.composer.success({
                     total,
                     pageCount: Math.max(Math.ceil(total / pageSize), 1),
@@ -173,37 +127,6 @@ export class QuizController extends Controller {
                     result,
                 });
             }
-        } catch (error) {
-            logger.error(error.message);
-            console.log(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
-    async delete(req: Request, res: Response) {
-        try {
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
-            const canDelete = await canPerform(Permission.ADMIN_DELETE_QUIZ);
-            if (!canDelete) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const quizId = new Types.ObjectId(req.params.quizId);
-
-            const quiz = await this.quizService.getQuizById(quizId);
-
-            if (!quiz) {
-                throw new Error(`Quiz not found`);
-            }
-
-            // if we delete a quiz, all quizzes that were created from it
-            // still exist, and can be viewed by the user
-            const result = await this.quizService.markAsDeleted(quizId);
-            res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.log(error);

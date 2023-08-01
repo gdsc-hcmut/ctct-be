@@ -14,10 +14,9 @@ import {
 import { ChapterService } from "../services/index";
 import { logger } from "../lib/logger";
 import { FilterQuery, Types } from "mongoose";
-import { Permission } from "../models/access_level.model";
-import _ from "lodash";
 import { ChapterDocument } from "../models/chapter.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
+import _ from "lodash";
 
 @injectable()
 export class ChapterController extends Controller {
@@ -37,127 +36,41 @@ export class ChapterController extends Controller {
         super();
 
         this.router.all("*", this.authService.authenticate(false));
+        this.router.get("/:chapterId", this.getById.bind(this));
         this.router.get("/", this.getAll.bind(this));
-
-        this.router.all("*", this.authService.authenticate());
-        this.router.post("/", this.create.bind(this));
-        this.router.patch("/:chapterId", this.edit.bind(this));
-        this.router.delete("/:chapterId", this.delete.bind(this));
     }
 
-    async create(req: Request, res: Response) {
-        try {
-            const { userId } = req.tokenMeta;
-            const { name, description = "" } = req.body;
-            const subject = new Types.ObjectId(req.body.subject);
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
-
-            const canCreate = await canPerform(Permission.ADMIN_CREATE_CHAPTER);
-            if (!canCreate) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const subjectExists = await this.subjectService.subjectExists(
-                subject
-            );
-            if (!subjectExists) {
-                throw new Error(`Subject does not exist`);
-            }
-
-            const result = await this.chapterService.create(
-                name,
-                subject,
-                description,
-                userId
-            );
-            res.composer.success(result);
-        } catch (error) {
-            logger.error(error.message);
-            console.error(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
-    async edit(req: Request, res: Response) {
+    async getById(req: Request, res: Response) {
         try {
             const chapterId = new Types.ObjectId(req.params.chapterId);
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
-            );
 
-            const canEdit = await canPerform(Permission.ADMIN_EDIT_CHAPTER);
-            if (!canEdit) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const info = _.pick(req.body, ["name", "description"]);
-            const result = await this.chapterService.editOneChapter(
+            const chapter = await this.chapterService.getByIdPopulated(
                 chapterId,
-                info
-            );
-            if (!result) {
-                throw new Error(`The requested chapter is not found`);
-            }
-            res.composer.success(result);
-        } catch (error) {
-            logger.error(error.message);
-            console.error(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
-    async delete(req: Request, res: Response) {
-        try {
-            const chapterId = new Types.ObjectId(req.params.chapterId);
-            const canPerform = this.accessLevelService.permissionChecker(
-                req.tokenMeta
+                {
+                    createdAt: 0,
+                    createdBy: 0,
+                    lastUpdatedAt: 0,
+                    __v: 0,
+                },
+                ["subject"]
             );
 
-            const canDelete = await canPerform(Permission.ADMIN_DELETE_CHAPTER);
-            if (!canDelete) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
+            if (!chapter) {
+                throw new Error(`Chapter does not exist`);
             }
 
-            const [
-                materialWithThisChapter,
-                questionWithThisChapter,
-                quizWithThisChapter,
-            ] = await Promise.all([
-                this.materialService.materialWithChapterExists(chapterId),
-                this.questionService.questionWithChapterExists(chapterId),
-                this.quizService.quizWithChapterExists(chapterId),
+            const result = _.omit(chapter.toObject(), [
+                "subject.__v",
+                "subject.createdAt",
+                "subject.createdBy",
+                "subject.lastUpdatedAt",
             ]);
 
-            if (materialWithThisChapter) {
-                throw new Error(
-                    `This chapter is referenced by some materials. Please delete them first`
-                );
-            }
-            if (questionWithThisChapter) {
-                throw new Error(
-                    `This chapter is referenced by some question. Please delete them first`
-                );
-            }
-            if (quizWithThisChapter) {
-                throw new Error(
-                    `This chapter is referenced by some quiz. Please delete them first`
-                );
-            }
-
-            const result = await this.chapterService.markAsDeleted(chapterId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.error(error);
-            res.composer.badRequest(error.message);
+            res.composer.badRequest(error);
         }
     }
 
@@ -180,20 +93,47 @@ export class ChapterController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
+            const hiddenFields = [
+                "subject.__v",
+                "subject.createdAt",
+                "subject.createdBy",
+                "subject.lastUpdatedAt",
+            ];
+
             if (req.query.pagination === "false") {
-                const result = await this.chapterService.getPopulated(query, [
-                    "subject",
-                ]);
+                const result = (
+                    await this.chapterService.getPopulated(
+                        query,
+                        {
+                            createdAt: 0,
+                            createdBy: 0,
+                            lastUpdatedAt: 0,
+                            __v: 0,
+                        },
+                        ["subject"]
+                    )
+                ).map((chapter) => _.omit(chapter.toObject(), hiddenFields));
                 res.composer.success({
                     total: result.length,
                     result,
                 });
             } else {
-                const [total, result] = await this.chapterService.getPaginated(
-                    query,
-                    ["subject"],
-                    pageSize,
-                    pageNumber
+                const [total, unmappedResult] =
+                    await this.chapterService.getPaginated(
+                        query,
+                        {
+                            createdAt: 0,
+                            createdBy: 0,
+                            lastUpdatedAt: 0,
+                            __v: 0,
+                        },
+                        ["subject"],
+                        pageSize,
+                        pageNumber
+                    );
+
+                const result = unmappedResult.map((chapter) =>
+                    _.omit(chapter.toObject(), hiddenFields)
                 );
 
                 res.composer.success({

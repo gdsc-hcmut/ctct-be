@@ -29,11 +29,12 @@ import {
     PreviousExamController,
     SubjectController,
     UserController,
-    AccessLevelController,
     QuizController,
     ChapterController,
     QuestionController,
     QuizSessionController,
+    AdminController,
+    AccessLevelController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -118,6 +119,7 @@ Promise.all([
 ]).then(() => {
     const app = new App(
         [
+            container.resolve<AccessLevelController>(AccessLevelController),
             container.resolve<AuthController>(AuthController),
             container.resolve<UserController>(UserController),
             container.resolve<MeController>(MeController),
@@ -125,10 +127,10 @@ Promise.all([
             container.resolve<SubjectController>(SubjectController),
             container.resolve<ChapterController>(ChapterController),
             container.resolve<MaterialController>(MaterialController),
-            container.resolve<AccessLevelController>(AccessLevelController),
             container.resolve<QuestionController>(QuestionController),
             container.resolve<QuizController>(QuizController),
             container.resolve<QuizSessionController>(QuizSessionController),
+            container.resolve<AdminController>(AdminController),
         ],
         toNumber(process.env.PORT),
         [

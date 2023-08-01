@@ -1,6 +1,12 @@
 import { injectable } from "inversify";
 import SubjectModel, { SubjectDocument } from "../models/subject.model";
-import { FilterQuery, QueryOptions, Types, UpdateQuery } from "mongoose";
+import {
+    FilterQuery,
+    ProjectionType,
+    QueryOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import { logger } from "../lib/logger";
 import _ from "lodash";
 
@@ -25,11 +31,17 @@ export class SubjectService {
         )[0];
     }
 
-    async getSubjectById(id: Types.ObjectId) {
-        return await SubjectModel.findOne({
-            _id: id,
-            deletedAt: { $exists: false },
-        });
+    async getSubjectById(
+        id: Types.ObjectId,
+        projection: ProjectionType<SubjectDocument> = {}
+    ) {
+        return await SubjectModel.findOne(
+            {
+                _id: id,
+                deletedAt: { $exists: false },
+            },
+            projection
+        );
     }
 
     async markAsDeleted(
@@ -69,6 +81,7 @@ export class SubjectService {
 
     async getPaginated(
         query: FilterQuery<SubjectDocument>,
+        projection: ProjectionType<SubjectDocument>,
         paths: string[],
         pageSize: number,
         pageNumber: number
@@ -78,20 +91,30 @@ export class SubjectService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            SubjectModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            SubjectModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(paths),
         ]);
     }
 
-    async getPopulated(query: FilterQuery<SubjectDocument>, paths: string[]) {
-        return await SubjectModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(paths);
+    async getPopulated(
+        query: FilterQuery<SubjectDocument>,
+        projection: ProjectionType<SubjectDocument>,
+        paths: string[]
+    ) {
+        return await SubjectModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(paths);
     }
 }

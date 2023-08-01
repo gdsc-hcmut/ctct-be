@@ -38,6 +38,16 @@ export class MapperService {
             "fromQuiz.sampleSize",
             "fromQuiz.createdBy",
             "fromQuiz.createdAt",
+            "fromQuiz.lastUpdatedAt",
+            "fromQuiz.__v",
+            "fromQuiz.subject.__v",
+            "fromQuiz.subject.createdAt",
+            "fromQuiz.subject.createdBy",
+            "fromQuiz.subject.lastUpdatedAt",
+            "fromQuiz.chapter.__v",
+            "fromQuiz.chapter.createdAt",
+            "fromQuiz.chapter.createdBy",
+            "fromQuiz.chapter.lastUpdatedAt",
         ]);
 
         switch (status) {
@@ -48,7 +58,7 @@ export class MapperService {
                         this.maskAnswerFromConcreteQuestion(question)
                     ),
                     timeLeft:
-                        quizSession.startTime +
+                        quizSession.startedAt +
                         quizSession.duration -
                         Date.now(),
                 };

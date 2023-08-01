@@ -69,7 +69,7 @@ export class EndQuizTask implements ScheduledTask<QuizSessionDocument> {
                 this.questionService.processQuestionAnswer(question);
             });
             quiz.status = QuizStatus.ENDED;
-            quiz.endTime = quizEndTime;
+            quiz.endedAt = quizEndTime;
             let cur = 0,
                 tot = 0;
             quiz.questions.forEach((question) => {
