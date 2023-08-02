@@ -17,11 +17,16 @@ export const ServiceType = {
     FileUpload: Symbol.for("FileUpload"),
     PreviousExam: Symbol.for("PreviousExam"),
     Subject: Symbol.for("Subject"),
+    Chapter: Symbol.for("Chapter"),
     Material: Symbol.for("Material"),
     Cache: Symbol.for("Cache"),
     AccessLevel: Symbol.for("AccessLevel"),
-    QuestionTemplate: Symbol.for("QuestionTemplate"),
-    QuizTemplate: Symbol.for("QuizTemplate"),
+    Question: Symbol.for("Question"),
+    Quiz: Symbol.for("Quiz"),
+    QuizSession: Symbol.for("QuizSession"),
+    Mapper: Symbol.for("Mapper"),
+    TaskScheduling: Symbol.for("TaskScheduling"),
+    Socket: Symbol.for("Socket"),
 };
 
 export enum PrivacyType {

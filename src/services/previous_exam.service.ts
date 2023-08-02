@@ -5,57 +5,61 @@ import mongoose, {
     FilterQuery,
     ProjectionType,
     QueryOptions,
-    SaveOptions,
     Types,
     UpdateQuery,
 } from "mongoose";
-import MaterialModel, { MaterialDocument } from "../models/material.model";
+import PreviousExamModel, {
+    PreviousExamDocument,
+    PreviousExamType,
+    Semester,
+} from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
 import { logger } from "../lib/logger";
 import _ from "lodash";
 
 @injectable()
-export class MaterialService {
+export class PreviousExamService {
     @lazyInject(ServiceType.FileUpload)
     private fileUploadService: FileUploadService;
 
     constructor() {
-        logger.info("[Material] Initializing...");
+        logger.info("[PreviousExam] Initializing...");
     }
 
     async create(
         name: string,
         description: string,
         subject: Types.ObjectId,
-        chapter: Types.ObjectId,
+        semester: Semester,
+        type: PreviousExamType,
         userId: Types.ObjectId,
         files: Express.Multer.File[],
         compressionStrategy: FileCompressionStrategy
     ) {
-        // transaction here because the material and attachment
-        // document has to consistent with each other
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
             console.assert(files.length === 1);
-            const compressedFiles = await this.fileUploadService.uploadFiles(
-                files,
-                compressionStrategy,
-                { session: session }
-            );
+            const uploadedAttachments =
+                await this.fileUploadService.uploadFiles(
+                    files,
+                    compressionStrategy,
+                    { session: session }
+                );
             const now = Date.now();
+
             const result = (
-                await MaterialModel.create(
+                await PreviousExamModel.create(
                     [
                         {
                             name: name,
-                            subject: subject,
-                            chapter: chapter,
-
                             description: description,
+                            subject: subject,
+                            semester: semester,
+                            type: type,
 
-                            resource: compressedFiles[0]._id,
+                            resource: uploadedAttachments[0]._id,
                             createdBy: userId,
                             createdAt: now,
                             lastUpdatedAt: now,
@@ -64,7 +68,6 @@ export class MaterialService {
                     { session: session }
                 )
             )[0];
-
             await session.commitTransaction();
             return result;
         } catch (error) {
@@ -77,47 +80,28 @@ export class MaterialService {
 
     async markAsDeleted(
         id: Types.ObjectId,
-        options: QueryOptions<MaterialDocument> = {}
+        options: QueryOptions<PreviousExamDocument> = {}
     ) {
-        return await MaterialModel.findOneAndUpdate(
+        return await PreviousExamModel.findOneAndUpdate(
             { _id: id },
             { deletedAt: Date.now() },
             { ...options, new: true }
         );
     }
 
-    async materialWithSubjectChapterExists(
-        subject: Types.ObjectId,
-        chapter: Types.ObjectId
-    ) {
-        return (
-            (await MaterialModel.findOne({
-                subject: subject,
-                chapter: chapter,
-                deletedAt: { $exists: false },
-            })) != null
-        );
-    }
-
-    async getById(
-        id: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument> = {}
-    ) {
-        return await MaterialModel.findOne(
-            {
-                _id: id,
-                deletedAt: { $exists: false },
-            },
-            projection
-        );
+    async getById(id: Types.ObjectId) {
+        return await PreviousExamModel.findOne({
+            _id: id,
+            deletedAt: { $exists: false },
+        });
     }
 
     async getByIdPopulated(
         id: Types.ObjectId,
-        projection: ProjectionType<MaterialDocument>,
+        projection: ProjectionType<PreviousExamDocument>,
         paths: string[]
     ) {
-        return await MaterialModel.findOne(
+        return await PreviousExamModel.findOne(
             {
                 _id: id,
                 deletedAt: { $exists: false },
@@ -127,18 +111,18 @@ export class MaterialService {
     }
 
     async getPaginated(
-        query: FilterQuery<MaterialDocument>,
-        projection: ProjectionType<MaterialDocument>,
+        query: FilterQuery<PreviousExamDocument>,
+        projection: ProjectionType<PreviousExamDocument>,
         paths: string[],
         pageSize: number,
         pageNumber: number
     ) {
         return await Promise.all([
-            MaterialModel.count({
+            PreviousExamModel.count({
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            MaterialModel.find(
+            PreviousExamModel.find(
                 {
                     ...query,
                     deletedAt: { $exists: false },
@@ -152,11 +136,11 @@ export class MaterialService {
     }
 
     async getPopulated(
-        query: FilterQuery<MaterialDocument>,
-        projection: ProjectionType<MaterialDocument>,
+        query: FilterQuery<PreviousExamDocument>,
+        projection: ProjectionType<PreviousExamDocument>,
         paths: string[]
     ) {
-        return await MaterialModel.find(
+        return await PreviousExamModel.find(
             {
                 ...query,
                 deletedAt: { $exists: false },
@@ -165,31 +149,25 @@ export class MaterialService {
         ).populate(paths);
     }
 
-    async editOneMaterial(
+    async editOne(
         id: Types.ObjectId,
-        update: UpdateQuery<MaterialDocument> = {},
-        options: QueryOptions<MaterialDocument> = {}
+        update: UpdateQuery<PreviousExamDocument> = {},
+        options: QueryOptions<PreviousExamDocument> = {}
     ) {
-        return await MaterialModel.findOneAndUpdate(
-            { _id: id, deletedAt: { $exists: false } },
-            { ...update, lastupdatedAt: Date.now() },
-            { ...options, new: true }
+        return await PreviousExamModel.findOneAndUpdate(
+            { _id: id },
+            { ...update, lastUpdatedAt: Date.now() },
+            {
+                ...options,
+                new: true,
+            }
         );
     }
 
-    async materialWithSubjectExists(subjectId: Types.ObjectId) {
+    async previousExamWithSubjectExists(subjectId: Types.ObjectId) {
         return (
-            (await MaterialModel.findOne({
+            (await PreviousExamModel.findOne({
                 subject: subjectId,
-                deletedAt: { $exists: false },
-            })) != null
-        );
-    }
-
-    async materialWithChapterExists(chapterId: Types.ObjectId) {
-        return (
-            (await MaterialModel.findOne({
-                chapter: chapterId,
                 deletedAt: { $exists: false },
             })) != null
         );

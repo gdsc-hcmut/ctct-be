@@ -8,12 +8,14 @@ import {
     MaterialService,
     PreviousExamService,
     AccessLevelService,
-    QuestionTemplateService,
-    QuizTemplateService,
+    ChapterService,
+    QuestionService,
+    QuizService,
 } from "../services/index";
-import mongoose, { Types } from "mongoose";
-import _ from "lodash";
-import { Permission } from "../models/access_level.model";
+import { FilterQuery, Types } from "mongoose";
+import { logger } from "../lib/logger";
+import { SubjectDocument } from "../models/subject.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class SubjectController extends Controller {
@@ -28,218 +30,97 @@ export class SubjectController extends Controller {
         private previousExamService: PreviousExamService,
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
-        @inject(ServiceType.QuestionTemplate)
-        private questionTemplateService: QuestionTemplateService,
-        @inject(ServiceType.QuizTemplate)
-        private quizTemplateService: QuizTemplateService
+        @inject(ServiceType.Question) private questionService: QuestionService,
+        @inject(ServiceType.Quiz) private quizService: QuizService,
+        @inject(ServiceType.Chapter) private chapterService: ChapterService
     ) {
         super();
 
-        this.router.get("/all", this.getAllSubjects.bind(this));
-
-        this.router.all("*", authService.authenticate());
-        this.router.post("/", this.create.bind(this));
-        this.router.patch("/edit/:docId", this.editSubject.bind(this));
-        this.router.delete("/delete/:docId", this.deleteOne.bind(this));
+        this.router.all("*", this.authService.authenticate(false));
+        this.router.get("/", this.getAll.bind(this));
+        this.router.get("/:subjectId", this.getById.bind(this));
     }
 
-    async create(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+    async getById(req: Request, res: Response) {
         try {
-            const { userId } = req.tokenMeta;
-            const { name } = req.body;
-            let { description } = req.body;
-            if (!description) description = "";
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    req.tokenMeta.accessLevels,
-                    Permission.CREATE_SUBJECT,
-                    req.tokenMeta.isManager
-                ))
-            ) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            if (!name) {
-                throw new Error(`Missing 'name' field`);
-            }
-
-            const doc = await this.subjectService.create(
-                name,
-                userId,
-                description
-            );
-            res.composer.success(doc);
-            await session.commitTransaction();
-        } catch (error) {
-            console.log(error);
-            await session.abortTransaction();
-            res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
-        }
-    }
-
-    async getAllSubjects(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
-        try {
-            const ans = await this.subjectService.find({});
-            res.composer.success(ans);
-            await session.commitTransaction();
-        } catch (error) {
-            console.log(error);
-            await session.abortTransaction();
-            res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
-        }
-    }
-
-    async editSubject(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
-        try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.EDIT_SUBJECT,
-                    req.tokenMeta.isManager
-                ))
-            ) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
-            }
-
-            const docId = new Types.ObjectId(req.params.docId);
-            const doc = await this.subjectService.findOne({
-                _id: docId,
-            });
-            if (!doc) {
-                throw new Error(`Document doesn't exist`);
-            }
-
-            const info = _.pick(req.body, ["name", "description"]);
-
-            await this.subjectService.findOneAndUpdate(
-                { _id: docId },
+            const subjectId = new Types.ObjectId(req.params.subjectId);
+            const subject = await this.subjectService.getSubjectById(
+                subjectId,
                 {
-                    ...info,
-                    lastUpdatedAt: Date.now(),
+                    createdBy: 0,
+                    createdAt: 0,
+                    lastUpdatedAt: 0,
+                    __v: 0,
                 }
             );
-            res.composer.success(true);
-            await session.commitTransaction();
+
+            if (!subject) {
+                throw new Error(`Subject does not exist`);
+            }
+
+            res.composer.success(subject);
         } catch (error) {
-            console.log(error);
-            await session.abortTransaction();
+            logger.error(error.message);
+            console.error(error);
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 
-    async deleteOne(req: Request, res: Response) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+    async getAll(req: Request, res: Response) {
         try {
-            const userAccessLevels = req.tokenMeta.accessLevels;
-
-            if (
-                !(await this.accessLevelService.accessLevelsCanPerformAction(
-                    userAccessLevels,
-                    Permission.DELETE_SUBJECT,
-                    req.tokenMeta.isManager
-                ))
-            ) {
-                throw new Error(
-                    `Your role(s) does not have the permission to perform this action`
-                );
+            const query: FilterQuery<SubjectDocument> = {};
+            if (req.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(req.query.name as string),
+                };
             }
 
-            const docId = new Types.ObjectId(req.params.docId);
-            const sub = await this.subjectService.findOne({
-                _id: docId,
-            });
-            if (!sub) {
-                throw new Error(`Subject doesn't exist`);
-            }
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
 
-            // check if anything holds a reference to this subject
-            const [
-                materialWithThisSubject,
-                previousExamWithThisSubject,
-                questionTemplateWithThisSubject,
-                quizTemplateWithThisSubject,
-            ] = await Promise.all([
-                (async () => {
-                    return (
-                        (await this.materialService.findOne({
-                            subject: docId,
-                        })) != null
-                    );
-                })(),
-                (async () => {
-                    return (
-                        (await this.previousExamService.findOne({
-                            subject: docId,
-                        })) != null
-                    );
-                })(),
-                (async () => {
-                    return (
-                        (await this.questionTemplateService.findOne({
-                            subject: docId,
-                        })) != null
-                    );
-                })(),
-                (async () => {
-                    return (
-                        (await this.quizTemplateService.findOne({
-                            subject: docId,
-                        })) != null
-                    );
-                })(),
-            ]);
-            if (materialWithThisSubject) {
-                throw new Error(
-                    `There are still materials that belong to this subject. Please delete them first`
+            if (req.query.pagination === "false") {
+                const result = await this.subjectService.getPopulated(
+                    query,
+                    {
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
+                    []
                 );
-            }
-            if (previousExamWithThisSubject) {
-                throw new Error(
-                    `There are still previous exams that belong to this subject. Please delete them first`
+                res.composer.success({
+                    total: result.length,
+                    result,
+                });
+            } else {
+                const [total, result] = await this.subjectService.getPaginated(
+                    query,
+                    {
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
+                    [],
+                    pageSize,
+                    pageNumber
                 );
+                res.composer.success({
+                    total,
+                    pageCount: Math.max(Math.ceil(total / pageSize), 1),
+                    pageSize,
+                    result,
+                });
             }
-            if (questionTemplateWithThisSubject) {
-                throw new Error(
-                    `There are still question templates that belong to this subject. Please delete them first`
-                );
-            }
-            if (quizTemplateWithThisSubject) {
-                throw new Error(
-                    `There are still quiz templates that belong to this subject. Please delete them first`
-                );
-            }
-
-            const result = await this.subjectService.findOneAndDelete({
-                _id: docId,
-            });
-            res.composer.success(result);
-            await session.commitTransaction();
         } catch (error) {
+            logger.error(error.message);
             console.log(error);
-            await session.abortTransaction();
             res.composer.badRequest(error.message);
-        } finally {
-            await session.endSession();
         }
     }
 }

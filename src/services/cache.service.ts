@@ -10,7 +10,7 @@ export class CacheService {
 
     constructor() {
         logger.info(
-            `Constructing Cache service to listen at port ${process.env.CACHE_PORT}`
+            `[Cache] Initializing... (port: ${process.env.CACHE_PORT}))`
         );
         this.client = createClient({
             socket: {
@@ -23,7 +23,7 @@ export class CacheService {
         this.lock = new AsyncLock();
     }
 
-    async set(key: string, value: string, options: any = {}) {
+    async set(key: string, value: string, options: redis.SetOptions = {}) {
         this.client.set(key, value, options);
     }
 
@@ -46,17 +46,14 @@ export class CacheService {
     async getWithPopulate(
         key: string,
         f: () => Promise<string>,
-        options: any = {}
+        options: redis.SetOptions = {}
     ) {
-        const res = await this.client.get(key);
-        if (res != null) {
-            return res;
-        }
         return await this.lock.acquire(key, async () => {
             let x = await this.client.get(key);
             if (x != null) {
                 return x;
             }
+            logger.debug(`Cache miss on key ${key}`);
             x = await f();
             await this.client.set(key, x, options);
             return x;

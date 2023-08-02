@@ -1,10 +1,10 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-export type QuizTemplateDocument = Document & {
+export type QuizDocument = Document & {
     name: string;
     description: string;
     subject: Types.ObjectId;
-    visibleTo: Types.ObjectId[];
+    chapter: Types.ObjectId;
 
     duration: number;
     potentialQuestions: Types.ObjectId[];
@@ -12,26 +12,27 @@ export type QuizTemplateDocument = Document & {
 
     createdBy: Types.ObjectId;
     createdAt: number;
+    lastUpdatedAt?: number;
+    deletedAt: number;
 };
 
-const quizTemplateSchema = new Schema<QuizTemplateDocument>({
+const quizSchema = new Schema<QuizDocument>({
     name: { type: String, required: true, default: "" },
     description: { type: String, required: false, default: "" },
-    subject: { type: Schema.Types.ObjectId, ref: "subjects" },
-    visibleTo: [{ type: Schema.Types.ObjectId, required: true }],
+    subject: { type: Schema.Types.ObjectId, ref: "subjects", required: true },
+    chapter: { type: Schema.Types.ObjectId, ref: "chapters", required: true },
 
     duration: { type: Number, required: true },
     potentialQuestions: [
-        { type: Schema.Types.ObjectId, ref: "question_templates" },
+        { type: Schema.Types.ObjectId, ref: "questions", required: true },
     ],
     sampleSize: { type: Number, required: true },
 
     createdBy: { type: Schema.Types.ObjectId, ref: "users" },
     createdAt: Number,
+    lastUpdatedAt: Number,
+    deletedAt: Number,
 });
 
-const QuizTemplateModel = mongoose.model<QuizTemplateDocument>(
-    "quiz_templates",
-    quizTemplateSchema
-);
-export default QuizTemplateModel;
+const QuizModel = mongoose.model<QuizDocument>("quizzes", quizSchema);
+export default QuizModel;

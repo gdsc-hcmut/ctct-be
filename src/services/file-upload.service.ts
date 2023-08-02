@@ -6,8 +6,10 @@ import { Bucket } from "@google-cloud/storage";
 import { randomUUID } from "crypto";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import getRawBody from "raw-body";
-import AttachmentModel from "../models/attachment.model";
-import { Types } from "mongoose";
+import AttachmentModel, {
+    AttachmentDocument,
+} from "../models/attachment.model";
+import { QueryOptions, SaveOptions, Types } from "mongoose";
 import { ServiceType } from "../types";
 import { CacheService } from "./cache.service";
 import { logger } from "../lib/logger";
@@ -34,7 +36,8 @@ export class FileUploadService {
 
     async uploadFiles(
         files: Express.Multer.File[],
-        compressionStrategy: FileCompressionStrategy
+        compressionStrategy: FileCompressionStrategy,
+        options: SaveOptions = {}
     ) {
         const res = await Promise.all(
             files.map((file) =>
@@ -50,11 +53,18 @@ export class FileUploadService {
                         contentType: file.mimetype,
                     });
 
-                    return await AttachmentModel.create({
-                        originalName: file.originalname,
-                        refName: refName,
-                        mimetype: file.mimetype,
-                    });
+                    return (
+                        await AttachmentModel.create(
+                            [
+                                {
+                                    originalName: file.originalname,
+                                    refName: refName,
+                                    mimetype: file.mimetype,
+                                },
+                            ],
+                            options
+                        )
+                    )[0];
                 })()
             )
         );
@@ -62,8 +72,11 @@ export class FileUploadService {
         return res;
     }
 
-    async downloadFile(id: Types.ObjectId): Promise<DownloadFileInfo> {
-        const doc = await AttachmentModel.findById(id);
+    async downloadFile(
+        id: Types.ObjectId,
+        options: QueryOptions<AttachmentDocument> = {}
+    ): Promise<DownloadFileInfo> {
+        const doc = await AttachmentModel.findById(id, {}, options);
         if (!doc) {
             return null;
         }
@@ -96,24 +109,30 @@ export class FileUploadService {
     /**
      * try to delete attachments and return whether they were deleted successfully or not
      */
-    async deleteFiles(ids: Types.ObjectId[]): Promise<boolean[]> {
-        const ans: boolean[] = await Promise.all(
-            ids.map((id) =>
-                (async () => {
-                    const doc = await AttachmentModel.findOneAndDelete({
-                        _id: id,
-                    });
-                    if (!doc) {
-                        return false;
-                    }
-                    const { refName } = doc;
-                    const file = this.bucket.file(refName);
-                    await file.delete();
-                    return true;
-                })()
-            )
-        );
+    // async deleteFiles(
+    //     ids: Types.ObjectId[],
+    //     options: QueryOptions<AttachmentDocument> = {}
+    // ): Promise<boolean[]> {
+    //     const ans: boolean[] = await Promise.all(
+    //         ids.map((id) =>
+    //             (async () => {
+    //                 const doc = await AttachmentModel.findOneAndDelete(
+    //                     {
+    //                         _id: id,
+    //                     },
+    //                     options
+    //                 );
+    //                 if (!doc) {
+    //                     return false;
+    //                 }
+    //                 const { refName } = doc;
+    //                 const file = this.bucket.file(refName);
+    //                 await file.delete();
+    //                 return true;
+    //             })()
+    //         )
+    //     );
 
-        return ans;
-    }
+    //     return ans;
+    // }
 }

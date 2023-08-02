@@ -13,8 +13,13 @@ import {
     PreviousExamService,
     SubjectService,
     AccessLevelService,
-    QuestionTemplateService,
-    QuizTemplateService,
+    QuizService,
+    MapperService,
+    TaskSchedulingService,
+    SocketService,
+    ChapterService,
+    QuestionService,
+    QuizSessionService,
 } from "./services/index";
 
 import {
@@ -24,9 +29,12 @@ import {
     PreviousExamController,
     SubjectController,
     UserController,
+    QuizController,
+    ChapterController,
+    QuestionController,
+    QuizSessionController,
+    AdminController,
     AccessLevelController,
-    QuestionTemplateController,
-    QuizTemplateController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -65,6 +73,10 @@ container
     .to(SubjectService)
     .inSingletonScope();
 container
+    .bind<ChapterService>(ServiceType.Chapter)
+    .to(ChapterService)
+    .inSingletonScope();
+container
     .bind<MaterialService>(ServiceType.Material)
     .to(MaterialService)
     .inSingletonScope();
@@ -77,12 +89,28 @@ container
     .to(AccessLevelService)
     .inSingletonScope();
 container
-    .bind<QuestionTemplateService>(ServiceType.QuestionTemplate)
-    .to(QuestionTemplateService)
+    .bind<QuestionService>(ServiceType.Question)
+    .to(QuestionService)
     .inSingletonScope();
 container
-    .bind<QuizTemplateService>(ServiceType.QuizTemplate)
-    .to(QuizTemplateService)
+    .bind<QuizService>(ServiceType.Quiz)
+    .to(QuizService)
+    .inSingletonScope();
+container
+    .bind<QuizSessionService>(ServiceType.QuizSession)
+    .to(QuizSessionService)
+    .inSingletonScope();
+container
+    .bind<MapperService>(ServiceType.Mapper)
+    .to(MapperService)
+    .inSingletonScope();
+container
+    .bind<TaskSchedulingService>(ServiceType.TaskScheduling)
+    .to(TaskSchedulingService)
+    .inSingletonScope();
+container
+    .bind<SocketService>(ServiceType.Socket)
+    .to(SocketService)
     .inSingletonScope();
 
 // Initialize service first
@@ -91,17 +119,18 @@ Promise.all([
 ]).then(() => {
     const app = new App(
         [
+            container.resolve<AccessLevelController>(AccessLevelController),
             container.resolve<AuthController>(AuthController),
             container.resolve<UserController>(UserController),
             container.resolve<MeController>(MeController),
             container.resolve<PreviousExamController>(PreviousExamController),
             container.resolve<SubjectController>(SubjectController),
+            container.resolve<ChapterController>(ChapterController),
             container.resolve<MaterialController>(MaterialController),
-            container.resolve<AccessLevelController>(AccessLevelController),
-            container.resolve<QuestionTemplateController>(
-                QuestionTemplateController
-            ),
-            container.resolve<QuizTemplateController>(QuizTemplateController),
+            container.resolve<QuestionController>(QuestionController),
+            container.resolve<QuizController>(QuizController),
+            container.resolve<QuizSessionController>(QuizSessionController),
+            container.resolve<AdminController>(AdminController),
         ],
         toNumber(process.env.PORT),
         [
@@ -111,5 +140,5 @@ Promise.all([
     );
 
     app.listen();
-    // container.get<SocketService>(ServiceType.Socket).initialize(app.io);
+    container.get<SocketService>(ServiceType.Socket).initialize(app.io);
 });

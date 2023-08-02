@@ -29,7 +29,7 @@ export class AuthService {
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService
     ) {
-        logger.info("Constructing Auth service");
+        logger.info("[Auth] Initializing...");
     }
 
     applyMiddleware() {

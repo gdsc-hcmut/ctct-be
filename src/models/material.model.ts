@@ -3,34 +3,36 @@ import mongoose, { Types, Schema } from "mongoose";
 export type MaterialDocument = Document & {
     name: string;
     subject: Types.ObjectId;
-    chapter: number;
+    chapter: Types.ObjectId;
 
-    visibleTo: Types.ObjectId[];
-
-    subtitle: string;
     description: string;
     resource: Types.ObjectId;
     createdBy: Types.ObjectId;
     createdAt: number;
-    lastUpdatedAt: number;
+    lastUpdatedAt?: number;
+
+    deletedAt: number;
 };
 
 const materialSchema = new Schema<MaterialDocument>({
     name: { type: String, required: true },
-    subject: { type: Schema.Types.ObjectId, ref: "subjects" },
-    chapter: Number,
+    subject: { type: Schema.Types.ObjectId, required: true, ref: "subjects" },
+    chapter: { type: Schema.Types.ObjectId, required: true, ref: "chapters" },
 
-    visibleTo: [{ type: Schema.Types.ObjectId, ref: "access_levels" }],
-
-    subtitle: String,
     description: String,
-    resource: { type: Schema.Types.ObjectId, ref: "attachments" },
+    resource: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: "attachments",
+    },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: "users",
     },
     createdAt: Number,
     lastUpdatedAt: Number,
+
+    deletedAt: Number,
 });
 
 const MaterialModel = mongoose.model<MaterialDocument>(
