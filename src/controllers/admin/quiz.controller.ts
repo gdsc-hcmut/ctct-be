@@ -17,6 +17,7 @@ import { logger } from "../../lib/logger";
 import { QuizDocument } from "../../models/quiz.model";
 import { DEFAULT_PAGINATION_SIZE } from "../../config";
 import _ from "lodash";
+import { EditQuizDto } from "../../lib/dto/edit_quiz.dto";
 
 @injectable()
 export class AdminQuizController extends Controller {
@@ -40,6 +41,7 @@ export class AdminQuizController extends Controller {
         this.router.delete("/:quizId", this.delete.bind(this));
         this.router.get("/", this.getAll.bind(this));
         this.router.get("/:quizId", this.getById.bind(this));
+        this.router.patch("/:quizId", this.edit.bind(this));
     }
 
     async create(req: Request, res: Response) {
@@ -284,6 +286,101 @@ export class AdminQuizController extends Controller {
                 "chapter.lastUpdatedAt",
                 "potentialQuestions.__v",
             ]);
+
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async edit(req: Request, res: Response) {
+        try {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            const canEdit = await canPerform(Permission.ADMIN_EDIT_QUIZ);
+            if (!canEdit) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const quizId = new Types.ObjectId(req.params.quizId);
+            const quiz = await this.quizService.getQuizById(quizId);
+
+            if (!quiz) {
+                throw new Error(`Quiz not found`);
+            }
+
+            const info: EditQuizDto = {
+                name: req.body.name ?? quiz.name,
+                description: req.body.description ?? quiz.description,
+                subject: req.body.subject
+                    ? new Types.ObjectId(req.body.subject)
+                    : quiz.subject,
+                chapter: req.body.chapter
+                    ? new Types.ObjectId(req.body.chapter)
+                    : quiz.chapter,
+
+                duration: req.body.duration ?? quiz.duration,
+                potentialQuestions: req.body.potentialQuestions
+                    ? (req.body.potentialQuestions as string[]).map(
+                          (questionId) => new Types.ObjectId(questionId)
+                      )
+                    : quiz.potentialQuestions,
+                sampleSize: req.body.sampleSize ?? quiz.sampleSize,
+            };
+
+            const chapterIsChildOfSubject =
+                await this.chapterService.isChildOfSubject(
+                    info.chapter,
+                    info.subject
+                );
+            if (!chapterIsChildOfSubject) {
+                throw new Error(`Chapter doesn't belong to subject`);
+            }
+
+            const validDuration = info.duration > 0;
+            if (!validDuration) {
+                throw new Error(`Duration must be posititve`);
+            }
+
+            const questionsEmpty = info.potentialQuestions.length === 0;
+            if (questionsEmpty) {
+                throw new Error(`Potential questions cannot be empty`);
+            }
+
+            const questionsExists = await this.questionService.questionExists(
+                info.potentialQuestions
+            );
+            if (!questionsExists) {
+                throw new Error(`One or more questions doesn't exist`);
+            }
+
+            const questionDuplicate = info.potentialQuestions.some(
+                (question, index) =>
+                    info.potentialQuestions.some(
+                        (otherQuestion, otherIndex) =>
+                            question.equals(otherQuestion) &&
+                            index !== otherIndex
+                    )
+            );
+            if (questionDuplicate) {
+                throw new Error(`Found duplicate questions`);
+            }
+
+            const validSampleSize =
+                info.sampleSize > 0 &&
+                info.sampleSize <= info.potentialQuestions.length;
+            if (!validSampleSize) {
+                throw new Error(
+                    `Sample size must be between 1 and ${info.potentialQuestions.length}`
+                );
+            }
+
+            const result = await this.quizService.edit(quizId, info);
 
             res.composer.success(result);
         } catch (error) {
