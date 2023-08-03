@@ -3,6 +3,7 @@ import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
 import mongoose, {
     FilterQuery,
+    PopulateOptions,
     ProjectionType,
     QueryOptions,
     Types,
@@ -99,7 +100,7 @@ export class PreviousExamService {
     async getByIdPopulated(
         id: Types.ObjectId,
         projection: ProjectionType<PreviousExamDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await PreviousExamModel.findOne(
             {
@@ -107,13 +108,13 @@ export class PreviousExamService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 
     async getPaginated(
         query: FilterQuery<PreviousExamDocument>,
         projection: ProjectionType<PreviousExamDocument>,
-        paths: string[],
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -131,14 +132,14 @@ export class PreviousExamService {
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate(populateOptions),
         ]);
     }
 
     async getPopulated(
         query: FilterQuery<PreviousExamDocument>,
         projection: ProjectionType<PreviousExamDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await PreviousExamModel.find(
             {
@@ -146,7 +147,7 @@ export class PreviousExamService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 
     async editOne(

@@ -1,6 +1,6 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { FilterQuery, PipelineStage, Types } from "mongoose";
+import { FilterQuery, PipelineStage, PopulateOptions, Types } from "mongoose";
 import { ConcreteQuestion } from "../models/question.model";
 import QuizSessionModel, {
     QuizSessionDocument,
@@ -62,6 +62,7 @@ export class QuizSessionService {
 
     async getPaginated(
         query: FilterQuery<QuizSessionDocument>,
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -76,48 +77,24 @@ export class QuizSessionService {
             })
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate({
-                    path: "fromQuiz",
-                    populate: [
-                        {
-                            path: "subject",
-                        },
-                        {
-                            path: "chapter",
-                        },
-                    ],
-                }),
+                .populate(populateOptions),
         ]);
     }
 
-    async getExpanded(query: FilterQuery<QuizSessionDocument>) {
+    async getExpanded(
+        query: FilterQuery<QuizSessionDocument>,
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
+    ) {
         return await QuizSessionModel.find({
             ...query,
             deletedAt: { $exists: false },
-        }).populate({
-            path: "fromQuiz",
-            populate: [
-                {
-                    path: "subject",
-                },
-                {
-                    path: "chapter",
-                },
-            ],
-        });
+        }).populate(populateOptions);
     }
 
-    async getByIdPopulated(id: Types.ObjectId) {
-        return await QuizSessionModel.findById(id).populate({
-            path: "fromQuiz",
-            populate: [
-                {
-                    path: "subject",
-                },
-                {
-                    path: "chapter",
-                },
-            ],
-        });
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
+    ) {
+        return await QuizSessionModel.findById(id).populate(populateOptions);
     }
 }

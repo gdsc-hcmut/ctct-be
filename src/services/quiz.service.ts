@@ -1,6 +1,7 @@
 import { injectable } from "inversify";
 import {
     FilterQuery,
+    PopulateOptions,
     ProjectionType,
     QueryOptions,
     Types,
@@ -92,7 +93,7 @@ export class QuizService {
     async getPaginated(
         query: FilterQuery<QuizDocument>,
         projection: ProjectionType<QuizDocument>,
-        paths: string[],
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -110,14 +111,14 @@ export class QuizService {
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate(populateOptions),
         ]);
     }
 
     async getPopulated(
         query: FilterQuery<QuizDocument>,
         projection: ProjectionType<QuizDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await QuizModel.find(
             {
@@ -125,13 +126,13 @@ export class QuizService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 
     async getByIdPopulated(
         id: Types.ObjectId,
         projection: ProjectionType<QuizDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await QuizModel.findOne(
             {
@@ -139,6 +140,6 @@ export class QuizService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 }

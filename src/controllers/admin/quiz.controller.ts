@@ -259,7 +259,14 @@ export class AdminQuizController extends Controller {
                 {
                     __v: 0,
                 },
-                ["subject", "chapter", "potentialQuestions"]
+                [
+                    { path: "subject" },
+                    { path: "chapter" },
+                    {
+                        path: "potentialQuestions",
+                        populate: [{ path: "subject" }, { path: "chapter" }],
+                    },
+                ]
             );
 
             if (!quiz) {
@@ -275,6 +282,7 @@ export class AdminQuizController extends Controller {
                 "chapter.createdAt",
                 "chapter.createdBy",
                 "chapter.lastUpdatedAt",
+                "potentialQuestions.__v",
             ]);
 
             res.composer.success(result);

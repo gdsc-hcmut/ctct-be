@@ -2,6 +2,7 @@ import { injectable } from "inversify";
 import { logger } from "../lib/logger";
 import {
     FilterQuery,
+    PopulateOptions,
     ProjectionType,
     QueryOptions,
     Types,
@@ -88,7 +89,7 @@ export class ChapterService {
     async getByIdPopulated(
         id: Types.ObjectId,
         projection: ProjectionType<ChapterDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await ChapterModel.findOne(
             {
@@ -96,13 +97,13 @@ export class ChapterService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 
     async getPaginated(
         query: FilterQuery<ChapterDocument>,
         projection: ProjectionType<ChapterDocument>,
-        paths: string[],
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -120,14 +121,14 @@ export class ChapterService {
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate(populateOptions),
         ]);
     }
 
     async getPopulated(
         query: FilterQuery<ChapterDocument>,
         projection: ProjectionType<ChapterDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await ChapterModel.find(
             {
@@ -135,6 +136,6 @@ export class ChapterService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 }

@@ -2,6 +2,7 @@ import { injectable } from "inversify";
 import SubjectModel, { SubjectDocument } from "../models/subject.model";
 import {
     FilterQuery,
+    PopulateOptions,
     ProjectionType,
     QueryOptions,
     Types,
@@ -82,7 +83,7 @@ export class SubjectService {
     async getPaginated(
         query: FilterQuery<SubjectDocument>,
         projection: ProjectionType<SubjectDocument>,
-        paths: string[],
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -100,14 +101,14 @@ export class SubjectService {
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate(populateOptions),
         ]);
     }
 
     async getPopulated(
         query: FilterQuery<SubjectDocument>,
         projection: ProjectionType<SubjectDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await SubjectModel.find(
             {
@@ -115,6 +116,6 @@ export class SubjectService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 }

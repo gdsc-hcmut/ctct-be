@@ -1,6 +1,6 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { FilterQuery, QueryOptions, Types } from "mongoose";
+import { FilterQuery, PopulateOptions, QueryOptions, Types } from "mongoose";
 import QuestionModel, {
     ConcreteQuestion,
     QuestionDocument,
@@ -247,7 +247,7 @@ export class QuestionService {
 
     async getPaginated(
         query: FilterQuery<QuestionDocument>,
-        paths: string[],
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -262,15 +262,18 @@ export class QuestionService {
             })
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate(populateOptions),
         ]);
     }
 
-    async getPopulated(query: FilterQuery<QuestionDocument>, paths: string[]) {
+    async getPopulated(
+        query: FilterQuery<QuestionDocument>,
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
+    ) {
         return await QuestionModel.find({
             ...query,
             deletedAt: { $exists: false },
-        }).populate(paths);
+        }).populate(populateOptions);
     }
 
     async getById(id: Types.ObjectId) {
@@ -280,11 +283,14 @@ export class QuestionService {
         });
     }
 
-    async getByIdPopulated(id: Types.ObjectId, paths: string[]) {
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
+    ) {
         return await QuestionModel.findOne({
             _id: id,
             deletedAt: { $exists: false },
-        }).populate(paths);
+        }).populate(populateOptions);
     }
 
     async questionWithSubjectExists(subjectId: Types.ObjectId) {
