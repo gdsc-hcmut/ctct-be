@@ -3,6 +3,7 @@ import { ServiceType } from "../types";
 import { FileUploadService } from "./file-upload.service";
 import mongoose, {
     FilterQuery,
+    PopulateOptions,
     ProjectionType,
     QueryOptions,
     SaveOptions,
@@ -115,7 +116,7 @@ export class MaterialService {
     async getByIdPopulated(
         id: Types.ObjectId,
         projection: ProjectionType<MaterialDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await MaterialModel.findOne(
             {
@@ -123,13 +124,13 @@ export class MaterialService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 
     async getPaginated(
         query: FilterQuery<MaterialDocument>,
         projection: ProjectionType<MaterialDocument>,
-        paths: string[],
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -147,14 +148,14 @@ export class MaterialService {
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate(populateOptions),
         ]);
     }
 
     async getPopulated(
         query: FilterQuery<MaterialDocument>,
         projection: ProjectionType<MaterialDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await MaterialModel.find(
             {
@@ -162,7 +163,7 @@ export class MaterialService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 
     async editOneMaterial(

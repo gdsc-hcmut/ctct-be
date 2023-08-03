@@ -197,9 +197,22 @@ export class QuizSessionController extends Controller {
 
             if (req.query.pagination === "false") {
                 const result = (
-                    await this.quizSessionService.getExpanded({
-                        userId: userId,
-                    })
+                    await this.quizSessionService.getExpanded(
+                        {
+                            userId: userId,
+                        },
+                        {
+                            path: "fromQuiz",
+                            populate: [
+                                {
+                                    path: "subject",
+                                },
+                                {
+                                    path: "chapter",
+                                },
+                            ],
+                        }
+                    )
                 ).filter(quizSessionFilter);
 
                 const adjustedResult = result.map((quizSession) =>
@@ -216,6 +229,17 @@ export class QuizSessionController extends Controller {
                 const [total, unmappedResult] =
                     await this.quizSessionService.getPaginated(
                         { userId: userId },
+                        {
+                            path: "fromQuiz",
+                            populate: [
+                                {
+                                    path: "subject",
+                                },
+                                {
+                                    path: "chapter",
+                                },
+                            ],
+                        },
                         pageSize,
                         pageNumber
                     );
@@ -247,9 +271,19 @@ export class QuizSessionController extends Controller {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
             const quizSession = await this.quizSessionService.getByIdPopulated(
-                quizSessionId
+                quizSessionId,
+                {
+                    path: "fromQuiz",
+                    populate: [
+                        {
+                            path: "subject",
+                        },
+                        {
+                            path: "chapter",
+                        },
+                    ],
+                }
             );
-            console.log(quizSession);
 
             if (!quizSession) {
                 throw new Error(`Quiz doesn't exist`);

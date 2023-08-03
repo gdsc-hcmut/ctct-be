@@ -8,6 +8,7 @@ import { ServiceType } from "../types";
 import { CacheService } from "./index";
 import {
     FilterQuery,
+    PopulateOptions,
     ProjectionType,
     QueryOptions,
     Types,
@@ -247,7 +248,7 @@ export class AccessLevelService {
     async getPaginated(
         query: FilterQuery<AccessLevelDocument>,
         projection: ProjectionType<AccessLevelDocument>,
-        paths: string[],
+        populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
     ) {
@@ -265,14 +266,14 @@ export class AccessLevelService {
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
-                .populate(paths),
+                .populate(populateOptions),
         ]);
     }
 
     async getPopulated(
         query: FilterQuery<AccessLevelDocument>,
         projection: ProjectionType<AccessLevelDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await AccessLevelModel.find(
             {
@@ -280,13 +281,13 @@ export class AccessLevelService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 
     async getByIdPopulated(
         id: Types.ObjectId,
         projection: ProjectionType<AccessLevelDocument>,
-        paths: string[]
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
         return await AccessLevelModel.findOne(
             {
@@ -294,6 +295,6 @@ export class AccessLevelService {
                 deletedAt: { $exists: false },
             },
             projection
-        ).populate(paths);
+        ).populate(populateOptions);
     }
 }
