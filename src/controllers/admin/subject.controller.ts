@@ -228,7 +228,7 @@ export class AdminSubjectController extends Controller {
                 );
             }
 
-            const subjectId = new Types.ObjectId(req.params.subjectid);
+            const subjectId = new Types.ObjectId(req.params.subjectId);
             const subject = await this.subjectService.getSubjectById(subjectId);
 
             if (!subject) {
