@@ -173,7 +173,7 @@ export class MaterialService {
     ) {
         return await MaterialModel.findOneAndUpdate(
             { _id: id, deletedAt: { $exists: false } },
-            { ...update, lastupdatedAt: Date.now() },
+            { ...update, lastUpdatedAt: Date.now() },
             { ...options, new: true }
         );
     }
