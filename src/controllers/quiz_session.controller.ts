@@ -133,7 +133,7 @@ export class QuizSessionController extends Controller {
             );
             await this.taskSchedulingService.schedule(
                 new Date(quizDeadline),
-                ScheduledTaskType.END_QUIZ,
+                ScheduledTaskType.END_QUIZ_SESSION,
                 {
                     userId: userId,
                     quizId: quiz._id,

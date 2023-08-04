@@ -37,7 +37,7 @@ export class EndQuizTask implements ScheduledTask<QuizSessionDocument> {
     async execute() {
         try {
             logger.info(
-                `Ending quiz ${this.quizId.toString()} by ${this.userId.toString()}`
+                `Ending quiz session ${this.quizId.toString()} by ${this.userId.toString()}`
             );
             const quizEndTime = Date.now();
             const countCancelled = await this.taskSchedulingService.disable({
@@ -79,9 +79,26 @@ export class EndQuizTask implements ScheduledTask<QuizSessionDocument> {
                 }
             });
             quiz.standardizedScore = tot === 0 ? 0 : (10 * cur) / tot;
-            await quiz.save();
 
-            return quiz;
+            // let's use atomic operation instead of save(), because a
+            // race condition might occur and prevent us from ending the quiz
+            const result = await this.quizSessionService.findOneAndUpdate(
+                { _id: this.quizId },
+                {
+                    questions: quiz.questions,
+                    status: QuizStatus.ENDED,
+                    endedAt: quizEndTime,
+                    standardizedScore: quiz.standardizedScore,
+                },
+                { new: true }
+            );
+
+            this.socketService.endQuizSession(
+                this.userId.toString(),
+                this.quizId.toString()
+            );
+
+            return result;
         } catch (error) {
             logger.error(error.message);
             console.log(error);

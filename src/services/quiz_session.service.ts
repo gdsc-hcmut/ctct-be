@@ -5,7 +5,9 @@ import {
     PipelineStage,
     PopulateOptions,
     ProjectionType,
+    QueryOptions,
     Types,
+    UpdateQuery,
 } from "mongoose";
 import { ConcreteQuestion } from "../models/question.model";
 import QuizSessionModel, {
@@ -114,5 +116,13 @@ export class QuizSessionService {
         return await QuizSessionModel.findById(id, projection).populate(
             populateOptions
         );
+    }
+
+    async findOneAndUpdate(
+        query: FilterQuery<QuizSessionDocument>,
+        update: UpdateQuery<QuizSessionDocument>,
+        options: QueryOptions = {}
+    ) {
+        return await QuizSessionModel.findOneAndUpdate(query, update, options);
     }
 }
