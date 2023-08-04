@@ -205,9 +205,13 @@ export class QuizSessionController extends Controller {
 
             if (req.query.pagination === "false") {
                 const result = (
-                    await this.quizSessionService.getExpanded(
+                    await this.quizSessionService.getPopulated(
                         {
                             userId: userId,
+                        },
+                        {
+                            __v: 0,
+                            questions: 0,
                         },
                         {
                             path: "fromQuiz",
@@ -237,6 +241,10 @@ export class QuizSessionController extends Controller {
                 const [total, unmappedResult] =
                     await this.quizSessionService.getPaginated(
                         { userId: userId },
+                        {
+                            __v: 0,
+                            questions: 0,
+                        },
                         {
                             path: "fromQuiz",
                             populate: [
@@ -280,6 +288,9 @@ export class QuizSessionController extends Controller {
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
             const quizSession = await this.quizSessionService.getByIdPopulated(
                 quizSessionId,
+                {
+                    __v: 0,
+                },
                 {
                     path: "fromQuiz",
                     populate: [

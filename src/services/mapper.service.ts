@@ -36,7 +36,7 @@ export class MapperService {
         switch (status) {
             case QuizStatus.ONGOING: {
                 return {
-                    ..._.omit(data, ["questions"]),
+                    ..._.omit(data, ["questions", "standardizedScore"]),
                     questions: _.map(data.questions, (question) =>
                         _.omit(question, [
                             "answerKey",

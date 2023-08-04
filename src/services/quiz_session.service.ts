@@ -1,6 +1,12 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { FilterQuery, PipelineStage, PopulateOptions, Types } from "mongoose";
+import {
+    FilterQuery,
+    PipelineStage,
+    PopulateOptions,
+    ProjectionType,
+    Types,
+} from "mongoose";
 import { ConcreteQuestion } from "../models/question.model";
 import QuizSessionModel, {
     QuizSessionDocument,
@@ -63,6 +69,7 @@ export class QuizSessionService {
 
     async getPaginated(
         query: FilterQuery<QuizSessionDocument>,
+        projection: ProjectionType<QuizSessionDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
@@ -72,30 +79,40 @@ export class QuizSessionService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            QuizSessionModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            QuizSessionModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(populateOptions),
         ]);
     }
 
-    async getExpanded(
+    async getPopulated(
         query: FilterQuery<QuizSessionDocument>,
+        projection: ProjectionType<QuizSessionDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
-        return await QuizSessionModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(populateOptions);
+        return await QuizSessionModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(populateOptions);
     }
 
     async getByIdPopulated(
         id: Types.ObjectId,
+        projection: ProjectionType<QuizSessionDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
-        return await QuizSessionModel.findById(id).populate(populateOptions);
+        return await QuizSessionModel.findById(id, projection).populate(
+            populateOptions
+        );
     }
 }
