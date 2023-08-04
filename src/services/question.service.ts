@@ -60,10 +60,10 @@ export class QuestionService {
             ..._.omit(question, "options"),
             options: options,
         });
-        return this.generateConcreteQuestion(questionDocument);
+        return this.generateConcreteQuestion(questionDocument, 1);
     }
 
-    generateConcreteQuestion(question: QuestionDocument) {
+    generateConcreteQuestion(question: QuestionDocument, questionId: number) {
         const charStream = new CharStream(question.code);
         const lexer = new GrammarLexer(charStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -74,7 +74,7 @@ export class QuestionService {
         const symbols = Object.fromEntries(visitor.getSymbols());
 
         const result: ConcreteQuestion = {
-            questionId: randomUUID().toString(),
+            questionId,
             type: question.type,
             description: Mustache.render(question.description, symbols),
             explanation: Mustache.render(question.explanation, symbols),

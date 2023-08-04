@@ -14,7 +14,7 @@ export type UserAnswer = {
 
 export type ConcreteQuestion = {
     // unique ID for each question
-    questionId: string;
+    questionId: number;
 
     type: QuestionType;
     description: string;

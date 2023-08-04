@@ -105,13 +105,14 @@ export class QuizSessionController extends Controller {
             );
 
             const concreteQuestions = await Promise.all(
-                potentialQuestions.map((questionId) =>
+                potentialQuestions.map((questionId, index) =>
                     (async () => {
                         const question = await this.questionService.getById(
                             questionId
                         );
                         return this.questionService.generateConcreteQuestion(
-                            question
+                            question,
+                            index + 1
                         );
                     })()
                 )
@@ -357,7 +358,7 @@ export class QuizSessionController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
-            const questionId = req.params.questionId as string;
+            const questionId = parseInt(req.params.questionId);
 
             const quizSession =
                 await this.quizSessionService.getUserOngoingQuizById(
@@ -442,7 +443,7 @@ export class QuizSessionController extends Controller {
                 throw new Error(`Can only note after quiz session has ended`);
             }
 
-            const questionId = req.params.questionId as string;
+            const questionId = parseInt(req.params.questionId);
 
             const questionExists = _.some(
                 quizSession.questions,
