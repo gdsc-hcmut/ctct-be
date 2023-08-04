@@ -50,7 +50,7 @@ export class QuizSessionController extends Controller {
         this.router.get("/:quizSessionId", this.getById.bind(this));
         this.router.post("/:quizId", this.create.bind(this));
         this.router.post(
-            "/:quizSessionId/:index/answer",
+            "/:quizSessionId/:questionId/answer",
             this.saveAnswer.bind(this)
         );
         this.router.post(
@@ -58,11 +58,11 @@ export class QuizSessionController extends Controller {
             this.submitQuizSession.bind(this)
         );
         this.router.post(
-            "/:quizSessionId/:index/flag",
+            "/:quizSessionId/:questionId/flag",
             this.flagQuestion.bind(this)
         );
         this.router.post(
-            "/:quizSessionId/:index/note",
+            "/:quizSessionId/:questionId/note",
             this.noteQuestion.bind(this)
         );
     }
@@ -102,14 +102,14 @@ export class QuizSessionController extends Controller {
             );
 
             const concreteQuestions = await Promise.all(
-                potentialQuestions.map((questionId) =>
+                potentialQuestions.map((questionId, index) =>
                     (async () => {
                         const question = await this.questionService.getById(
                             questionId
                         );
-                        console.debug(question);
                         return this.questionService.generateConcreteQuestion(
-                            question
+                            question,
+                            index
                         );
                     })()
                 )
@@ -318,7 +318,7 @@ export class QuizSessionController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
-            const questionIndex = parseInt(req.params.index);
+            const questionId = parseInt(req.params.questionId);
 
             const quizSession =
                 await this.quizSessionService.getUserOngoingQuizById(
@@ -331,19 +331,22 @@ export class QuizSessionController extends Controller {
 
             const answer = req.body as UserAnswer;
 
-            if (
-                !(
-                    questionIndex >= 0 &&
-                    questionIndex < quizSession.questions.length
-                )
-            ) {
-                throw new Error(`Question index out of range`);
+            const questionExists = _.some(
+                quizSession.questions,
+                (question) => question.questionId === questionId
+            );
+            if (!questionExists) {
+                throw new Error(`Question doesn't exist`);
             }
 
-            this.questionService.attachUserAnswerToQuestion(
-                quizSession.questions[questionIndex],
-                answer
-            );
+            quizSession.questions.forEach((question) => {
+                if (question.questionId === questionId) {
+                    this.questionService.attachUserAnswerToQuestion(
+                        question,
+                        answer
+                    );
+                }
+            });
             quizSession.markModified("questions");
             await quizSession.save();
 
@@ -396,19 +399,21 @@ export class QuizSessionController extends Controller {
                 throw new Error(`Quiz session doesn't exist or has ended`);
             }
 
-            const questionIndex = parseInt(req.params.index);
+            const questionId = parseInt(req.params.questionId);
 
-            if (
-                !(
-                    questionIndex >= 0 &&
-                    questionIndex < quizSession.questions.length
-                )
-            ) {
-                throw new Error(`Question index out of range`);
+            const questionExists = _.some(
+                quizSession.questions,
+                (question) => question.questionId === questionId
+            );
+            if (!questionExists) {
+                throw new Error(`Question doesn't exist`);
             }
 
-            quizSession.questions[questionIndex].isFlagged =
-                !quizSession.questions[questionIndex].isFlagged;
+            quizSession.questions.forEach((question) => {
+                if (question.questionId === questionId) {
+                    question.isFlagged = !question.isFlagged;
+                }
+            });
             quizSession.markModified("questions");
             await quizSession.save();
 
@@ -443,19 +448,21 @@ export class QuizSessionController extends Controller {
                 throw new Error(`Can only note after quiz session has ended`);
             }
 
-            const questionIndex = parseInt(req.params.index);
+            const questionId = parseInt(req.params.questionId);
 
-            if (
-                !(
-                    questionIndex >= 0 &&
-                    questionIndex < quizSession.questions.length
-                )
-            ) {
-                throw new Error(`Question index out of range`);
+            const questionExists = _.some(
+                quizSession.questions,
+                (question) => question.questionId === questionId
+            );
+            if (!questionExists) {
+                throw new Error(`Question doesn't exist`);
             }
 
-            quizSession.questions[questionIndex].userNote = req.body
-                .note as string;
+            quizSession.questions.forEach((question) => {
+                if (question.questionId === questionId) {
+                    question.userNote = req.body.note as string;
+                }
+            });
             quizSession.markModified("questions");
             await quizSession.save();
 

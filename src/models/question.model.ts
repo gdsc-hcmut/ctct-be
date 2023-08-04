@@ -13,6 +13,9 @@ export type UserAnswer = {
 };
 
 export type ConcreteQuestion = {
+    // unique ID for each question (for pagination)
+    questionId: number;
+
     type: QuestionType;
     description: string;
     options?: {
