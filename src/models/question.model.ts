@@ -29,6 +29,12 @@ export type ConcreteQuestion = {
     userAnswerKeys?: number[];
     userAnswerField?: string | number;
     isCorrect: boolean;
+
+    // flag a question for later view
+    isFlagged: boolean;
+
+    // note for each question after quiz session ends
+    userNote: string;
 };
 
 export type QuestionDocument = Document & {

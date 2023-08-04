@@ -14,7 +14,7 @@ import {
 } from "../services/index";
 import { Types } from "mongoose";
 import { logger } from "../lib/logger";
-import { QuizSessionDocument } from "../models/quiz_session.model";
+import { QuizSessionDocument, QuizStatus } from "../models/quiz_session.model";
 import _ from "lodash";
 import { Permission } from "../models/access_level.model";
 import { EndQuizTask } from "../services/task-scheduling/tasks/end_quiz_task";
@@ -56,6 +56,14 @@ export class QuizSessionController extends Controller {
         this.router.post(
             "/:quizSessionId/submit",
             this.submitQuizSession.bind(this)
+        );
+        this.router.post(
+            "/:quizSessionId/:index/flag",
+            this.flagQuestion.bind(this)
+        );
+        this.router.post(
+            "/:quizSessionId/:index/note",
+            this.noteQuestion.bind(this)
         );
     }
 
@@ -365,6 +373,96 @@ export class QuizSessionController extends Controller {
                 this.taskSchedulingService,
                 this.questionService
             ).execute();
+
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async flagQuestion(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+            const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
+
+            const quizSession =
+                await this.quizSessionService.getUserOngoingQuizById(
+                    quizSessionId,
+                    userId
+                );
+            if (!quizSession) {
+                throw new Error(`Quiz session doesn't exist or has ended`);
+            }
+
+            const questionIndex = parseInt(req.params.index);
+
+            if (
+                !(
+                    questionIndex >= 0 &&
+                    questionIndex < quizSession.questions.length
+                )
+            ) {
+                throw new Error(`Question index out of range`);
+            }
+
+            quizSession.questions[questionIndex].isFlagged =
+                !quizSession.questions[questionIndex].isFlagged;
+            quizSession.markModified("questions");
+            await quizSession.save();
+
+            const result =
+                this.mapperService.adjustQuizSessionAccordingToStatus(
+                    quizSession
+                );
+
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async noteQuestion(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+            const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
+
+            const quizSession = await this.quizSessionService.getQuizById(
+                quizSessionId
+            );
+            if (!quizSession) {
+                throw new Error(`Quiz session doesn't exist or has ended`);
+            }
+            if (!quizSession.userId.equals(userId)) {
+                throw new Error(`You didn't take this quiz`);
+            }
+            if (quizSession.status !== QuizStatus.ENDED) {
+                throw new Error(`Can only note after quiz session has ended`);
+            }
+
+            const questionIndex = parseInt(req.params.index);
+
+            if (
+                !(
+                    questionIndex >= 0 &&
+                    questionIndex < quizSession.questions.length
+                )
+            ) {
+                throw new Error(`Question index out of range`);
+            }
+
+            quizSession.questions[questionIndex].userNote = req.body
+                .note as string;
+            quizSession.markModified("questions");
+            await quizSession.save();
+
+            const result =
+                this.mapperService.adjustQuizSessionAccordingToStatus(
+                    quizSession
+                );
 
             res.composer.success(result);
         } catch (error) {

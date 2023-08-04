@@ -77,6 +77,8 @@ export class QuestionService {
             description: Mustache.render(question.description, symbols),
             explanation: Mustache.render(question.explanation, symbols),
             isCorrect: false,
+            isFlagged: false,
+            userNote: "",
         };
 
         switch (question.type) {

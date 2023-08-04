@@ -1,30 +1,12 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { ConcreteQuestion } from "../models/question.model";
 import _ from "lodash";
-import { QuizDocument } from "../models/quiz.model";
 import { QuizSessionDocument, QuizStatus } from "../models/quiz_session.model";
 
 @injectable()
 export class MapperService {
     constructor() {
         logger.info("[Mapper] Initializing...");
-    }
-
-    maskAnswerFromConcreteQuestion(question: ConcreteQuestion) {
-        return {
-            ..._.omit(question, [
-                "answerKey",
-                "answerKeys",
-                "answerField",
-                "explanation",
-                "isCorrect",
-            ]),
-        };
-    }
-
-    maskQuestionsFromQuiz(quiz: QuizDocument) {
-        return _.omit(quiz.toObject(), ["potentialQuestions"]);
     }
 
     adjustQuizSessionAccordingToStatus(quizSession: QuizSessionDocument) {
@@ -48,6 +30,7 @@ export class MapperService {
             "fromQuiz.chapter.createdAt",
             "fromQuiz.chapter.createdBy",
             "fromQuiz.chapter.lastUpdatedAt",
+            "__v",
         ]);
 
         switch (status) {
@@ -55,7 +38,14 @@ export class MapperService {
                 return {
                     ..._.omit(data, ["questions"]),
                     questions: _.map(data.questions, (question) =>
-                        this.maskAnswerFromConcreteQuestion(question)
+                        _.omit(question, [
+                            "answerKey",
+                            "answerKeys",
+                            "answerField",
+                            "explanation",
+                            "isCorrect",
+                            "userNotes",
+                        ])
                     ),
                     timeLeft:
                         quizSession.startedAt +

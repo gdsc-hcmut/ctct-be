@@ -16,20 +16,21 @@ export class QuizSessionService {
     async create(
         userId: Types.ObjectId,
         duration: number,
-        startTime: number,
+        startedAt: number,
         fromQuiz: Types.ObjectId,
         questions: ConcreteQuestion[]
     ) {
+        const now = Date.now();
         return (
             await QuizSessionModel.create([
                 {
-                    userId: userId,
+                    userId,
                     status: QuizStatus.ONGOING,
-                    createdAt: Date.now(),
-                    duration: duration,
-                    startTime: startTime,
-                    fromQuiz: fromQuiz,
-                    questions: questions,
+                    createdAt: now,
+                    duration,
+                    startedAt,
+                    fromQuiz,
+                    questions,
                 },
             ])
         )[0];
