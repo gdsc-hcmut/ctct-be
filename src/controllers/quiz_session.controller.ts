@@ -58,10 +58,6 @@ export class QuizSessionController extends Controller {
             this.submitQuizSession.bind(this)
         );
         this.router.post(
-            "/:quizSessionId/:questionId/flag",
-            this.flagQuestion.bind(this)
-        );
-        this.router.post(
             "/:quizSessionId/:questionId/note",
             this.noteQuestion.bind(this)
         );
@@ -82,11 +78,14 @@ export class QuizSessionController extends Controller {
                 );
             }
 
-            const isDoingSimilarQuiz =
-                await this.quizSessionService.userIsDoingQuiz(userId, quizId);
-            if (isDoingSimilarQuiz) {
+            const ongoingSessionFromSameQuiz =
+                await this.quizSessionService.findOngoingSessionFromQuiz(
+                    userId,
+                    quizId
+                );
+            if (ongoingSessionFromSameQuiz) {
                 throw new Error(
-                    `You have not finished this quiz, and cannot take a new one`
+                    `You already have an ongoing quiz session from this quiz`
                 );
             }
 
@@ -102,14 +101,13 @@ export class QuizSessionController extends Controller {
             );
 
             const concreteQuestions = await Promise.all(
-                potentialQuestions.map((questionId, index) =>
+                potentialQuestions.map((questionId) =>
                     (async () => {
                         const question = await this.questionService.getById(
                             questionId
                         );
                         return this.questionService.generateConcreteQuestion(
-                            question,
-                            index
+                            question
                         );
                     })()
                 )
@@ -144,6 +142,7 @@ export class QuizSessionController extends Controller {
                 this.mapperService.adjustQuizSessionAccordingToStatus(
                     quizSession
                 );
+
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -329,7 +328,7 @@ export class QuizSessionController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
-            const questionId = parseInt(req.params.questionId);
+            const questionId = req.params.questionId as string;
 
             const quizSession =
                 await this.quizSessionService.getUserOngoingQuizById(
@@ -396,51 +395,6 @@ export class QuizSessionController extends Controller {
         }
     }
 
-    async flagQuestion(req: Request, res: Response) {
-        try {
-            const { userId } = req.tokenMeta;
-            const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
-
-            const quizSession =
-                await this.quizSessionService.getUserOngoingQuizById(
-                    quizSessionId,
-                    userId
-                );
-            if (!quizSession) {
-                throw new Error(`Quiz session doesn't exist or has ended`);
-            }
-
-            const questionId = parseInt(req.params.questionId);
-
-            const questionExists = _.some(
-                quizSession.questions,
-                (question) => question.questionId === questionId
-            );
-            if (!questionExists) {
-                throw new Error(`Question doesn't exist`);
-            }
-
-            quizSession.questions.forEach((question) => {
-                if (question.questionId === questionId) {
-                    question.isFlagged = !question.isFlagged;
-                }
-            });
-            quizSession.markModified("questions");
-            await quizSession.save();
-
-            const result =
-                this.mapperService.adjustQuizSessionAccordingToStatus(
-                    quizSession
-                );
-
-            res.composer.success(result);
-        } catch (error) {
-            logger.error(error.message);
-            console.log(error);
-            res.composer.badRequest(error.message);
-        }
-    }
-
     async noteQuestion(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
@@ -459,7 +413,7 @@ export class QuizSessionController extends Controller {
                 throw new Error(`Can only note after quiz session has ended`);
             }
 
-            const questionId = parseInt(req.params.questionId);
+            const questionId = req.params.questionId as string;
 
             const questionExists = _.some(
                 quizSession.questions,

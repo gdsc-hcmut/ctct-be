@@ -44,7 +44,7 @@ export class MapperService {
                             "answerField",
                             "explanation",
                             "isCorrect",
-                            "userNotes",
+                            "userNote",
                         ])
                     ),
                     timeLeft:

@@ -84,10 +84,8 @@ export class AdminQuestionController extends Controller {
             }
             const questionId = new Types.ObjectId(req.params.questionId);
             const question = await this.questionService.getById(questionId);
-            const result = this.questionService.generateConcreteQuestion(
-                question,
-                0
-            );
+            const result =
+                this.questionService.generateConcreteQuestion(question);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

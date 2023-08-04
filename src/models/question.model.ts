@@ -13,8 +13,8 @@ export type UserAnswer = {
 };
 
 export type ConcreteQuestion = {
-    // unique ID for each question (for pagination)
-    questionId: number;
+    // unique ID for each question
+    questionId: string;
 
     type: QuestionType;
     description: string;
@@ -32,9 +32,6 @@ export type ConcreteQuestion = {
     userAnswerKeys?: number[];
     userAnswerField?: string | number;
     isCorrect: boolean;
-
-    // flag a question for later view
-    isFlagged: boolean;
 
     // note for each question after quiz session ends
     userNote: string;

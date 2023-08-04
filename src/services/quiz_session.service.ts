@@ -48,14 +48,15 @@ export class QuizSessionService {
         return await QuizSessionModel.findById(id);
     }
 
-    async userIsDoingQuiz(userId: Types.ObjectId, quizId: Types.ObjectId) {
-        return (
-            (await QuizSessionModel.findOne({
-                userId: userId,
-                fromQuiz: quizId,
-                status: QuizStatus.ONGOING,
-            })) != null
-        );
+    async findOngoingSessionFromQuiz(
+        userId: Types.ObjectId,
+        quizId: Types.ObjectId
+    ) {
+        return await QuizSessionModel.findOne({
+            userId,
+            fromQuiz: quizId,
+            status: QuizStatus.ONGOING,
+        });
     }
 
     async getUserOngoingQuizById(

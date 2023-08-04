@@ -15,6 +15,7 @@ import Mustache from "mustache";
 import _ from "lodash";
 import { CreateQuestionDto } from "../lib/dto/create_question.dto";
 import { PreviewQuestionDto } from "../lib/dto/index";
+import { randomUUID } from "crypto";
 
 @injectable()
 export class QuestionService {
@@ -59,10 +60,10 @@ export class QuestionService {
             ..._.omit(question, "options"),
             options: options,
         });
-        return this.generateConcreteQuestion(questionDocument, 0);
+        return this.generateConcreteQuestion(questionDocument);
     }
 
-    generateConcreteQuestion(question: QuestionDocument, questionId: number) {
+    generateConcreteQuestion(question: QuestionDocument) {
         const charStream = new CharStream(question.code);
         const lexer = new GrammarLexer(charStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -73,12 +74,11 @@ export class QuestionService {
         const symbols = Object.fromEntries(visitor.getSymbols());
 
         const result: ConcreteQuestion = {
-            questionId,
+            questionId: randomUUID().toString(),
             type: question.type,
             description: Mustache.render(question.description, symbols),
             explanation: Mustache.render(question.explanation, symbols),
             isCorrect: false,
-            isFlagged: false,
             userNote: "",
         };
 
