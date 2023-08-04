@@ -3,6 +3,7 @@ import { injectable } from "inversify";
 import User, { UserDocument } from "../models/user.model";
 import mongoose, {
     FilterQuery,
+    PopulateOptions,
     ProjectionType,
     QueryOptions,
     Types,
@@ -48,8 +49,11 @@ export class UserService {
         return await User.findOne({ _id: id });
     }
 
-    async getUserByIdExpanded(id: Types.ObjectId) {
-        return await User.findById(id).populate("accessLevels");
+    async getByIdPopulated(
+        id: Types.ObjectId,
+        populateOptions: PopulateOptions | (string | PopulateOptions)[]
+    ) {
+        return await User.findById(id).populate(populateOptions);
     }
 
     async findOne(query: FilterQuery<UserDocument>) {
@@ -85,5 +89,20 @@ export class UserService {
             },
             options
         );
+    }
+
+    async getById(id: Types.ObjectId) {
+        return await User.findById(id);
+    }
+
+    async edit(
+        id: Types.ObjectId,
+        update: UpdateQuery<UserDocument>,
+        options: QueryOptions<UserDocument> = {}
+    ) {
+        return await User.findOneAndUpdate({ _id: id }, update, {
+            ...options,
+            new: true,
+        });
     }
 }

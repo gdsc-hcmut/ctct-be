@@ -2,14 +2,26 @@ import mongoose, { Document, Types } from "mongoose";
 
 const Schema = mongoose.Schema;
 
+export enum Gender {
+    MALE = "MALE",
+    FEMALE = "FEMALE",
+    OTHER = "OTHER",
+}
+
 export type UserDocument = Document & {
     googleId: string;
     accessLevels: Types.ObjectId[];
     isManager: boolean;
-    name: string;
     picture: string;
+
+    familyAndMiddleName: string;
+    givenName: string;
+    studentId: string;
+    major: string;
     dateOfBirth: number;
+    gender: Gender;
     email: string;
+    phoneNumber: string;
 };
 
 const userSchema = new Schema<UserDocument>({
@@ -21,10 +33,16 @@ const userSchema = new Schema<UserDocument>({
         },
     ],
     isManager: { type: Boolean, default: false },
-    name: { type: String, required: true },
     picture: String,
+
+    familyAndMiddleName: { type: String, default: "" },
+    givenName: { type: String, default: "" },
+    studentId: { type: String, default: "" },
+    major: { type: String, default: "" },
     dateOfBirth: Number,
-    email: String,
+    gender: { type: String, enum: Gender },
+    email: { String, default: "" },
+    phoneNumber: { String, default: "" },
 });
 
 const User = mongoose.model<UserDocument>("User", userSchema);
