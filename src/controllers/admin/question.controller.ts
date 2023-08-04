@@ -20,6 +20,8 @@ import { Permission } from "../../models/access_level.model";
 import { CreateQuestionDto, PreviewQuestionDto } from "../../lib/dto";
 import { QuestionDocument, QuestionType } from "../../models/question.model";
 import { DEFAULT_PAGINATION_SIZE } from "../../config";
+import { EditQuestionDto } from "../../lib/dto/edit_question.dto";
+import _ from "lodash";
 
 @injectable()
 export class AdminQuestionController extends Controller {
@@ -47,6 +49,8 @@ export class AdminQuestionController extends Controller {
         this.router.post("/preview", this.previewQuestion.bind(this));
         this.router.post("/", this.create.bind(this));
         this.router.get("/", this.getAll.bind(this));
+        this.router.get("/:questionId", this.getById.bind(this));
+        this.router.patch("/:questionId", this.edit.bind(this));
         this.router.delete("/:questionId", this.delete.bind(this));
     }
 
@@ -409,6 +413,121 @@ export class AdminQuestionController extends Controller {
                     result,
                 });
             }
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async getById(req: Request, res: Response) {
+        try {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            const canView = await canPerform(Permission.ADMIN_VIEW_QUESTION);
+            if (!canView) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const questionId = new Types.ObjectId(req.params.questionId);
+            const question = await this.questionService.getByIdPopulated(
+                questionId,
+                ["subject", "chapter"]
+            );
+
+            if (!question) {
+                throw new Error(`Question does not exist`);
+            }
+
+            res.composer.success(question);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async edit(req: Request, res: Response) {
+        try {
+            const canPerform = this.accessLevelService.permissionChecker(
+                req.tokenMeta
+            );
+            const canEdit = await canPerform(Permission.ADMIN_EDIT_QUESTION);
+            if (!canEdit) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const questionId = new Types.ObjectId(req.params.questionId);
+            const question = await this.questionService.getById(questionId);
+
+            if (!question) {
+                throw new Error(`Question does not exist`);
+            }
+
+            // let's just work with one type of question for now
+
+            const info: EditQuestionDto = {
+                name: req.body.name ?? question.name,
+                code: req.body.code ?? question.code,
+                subject: req.body.subject
+                    ? new Types.ObjectId(req.body.subject)
+                    : question.subject,
+                chapter: req.body.chapter
+                    ? new Types.ObjectId(req.body.chapter)
+                    : question.chapter,
+
+                description: req.body.description ?? question.description,
+
+                options:
+                    req.body.options ??
+                    question.options.map((option) => option.description),
+                shuffleOptions:
+                    req.body.shuffleOptions ?? question.shuffleOptions,
+                answerKeys: req.body.answerKeys ?? question.answerKeys,
+                answerField: req.body.answerField ?? question.answerField,
+                matchCase: req.body.matchCase ?? question.matchCase,
+                maximumError: req.body.maximumError ?? question.maximumError,
+
+                explanation: req.body.explanation ?? question.explanation,
+            };
+
+            const chapterIsChildOfSubject =
+                await this.chapterService.isChildOfSubject(
+                    info.chapter,
+                    info.subject
+                );
+            if (!chapterIsChildOfSubject) {
+                throw new Error(`Chapter does not belong to subject`);
+            }
+
+            const duplicateKeys =
+                _.uniq(info.answerKeys).length !== info.answerKeys.length;
+            if (duplicateKeys) {
+                throw new Error(`answerKeys contain duplicates`);
+            }
+
+            const keysInRange = _.every(
+                info.answerKeys,
+                (key) => key >= 0 && key < info.options.length
+            );
+            if (!keysInRange) {
+                throw new Error(`Some values of answerKeys are out of bound`);
+            }
+
+            const result = await this.questionService.edit(questionId, {
+                ..._.omit(info, "options"),
+                options: info.options.map((option, index) => ({
+                    description: option,
+                    key: index,
+                })),
+            });
+
+            res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.log(error);

@@ -1,6 +1,12 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { FilterQuery, PopulateOptions, QueryOptions, Types } from "mongoose";
+import {
+    FilterQuery,
+    PopulateOptions,
+    QueryOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import QuestionModel, {
     ConcreteQuestion,
     QuestionDocument,
@@ -241,6 +247,18 @@ export class QuestionService {
         return await QuestionModel.findOneAndUpdate(
             { _id: id },
             { deletedAt: Date.now() },
+            { ...options, new: true }
+        );
+    }
+
+    async edit(
+        id: Types.ObjectId,
+        update: UpdateQuery<QuestionDocument>,
+        options: QueryOptions<QuestionDocument> = {}
+    ) {
+        return await QuestionModel.findOneAndUpdate(
+            { _id: id },
+            { ...update, lastUpdatedAt: Date.now() },
             { ...options, new: true }
         );
     }

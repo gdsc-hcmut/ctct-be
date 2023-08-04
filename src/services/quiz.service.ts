@@ -42,6 +42,18 @@ export class QuizService {
         );
     }
 
+    async edit(
+        id: Types.ObjectId,
+        update: UpdateQuery<QuizDocument>,
+        options: QueryOptions<QuizDocument> = {}
+    ) {
+        return await QuizModel.findOneAndUpdate(
+            { _id: id },
+            { ...update, lastUpdatedAt: Date.now() },
+            { ...options, new: true }
+        );
+    }
+
     // check if there is a quiz that maintains a reference
     // to the given question
     async checkQuizWithQuestion(questionId: Types.ObjectId) {

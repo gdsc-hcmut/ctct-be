@@ -156,9 +156,6 @@ export class AdminMaterialController extends Controller {
                 "chapter",
             ]);
 
-            if (info.chapter) {
-                info.chapter = parseInt(info.chapter);
-            }
             if (info.subject) {
                 info.subject = new Types.ObjectId(info.subject);
             }
