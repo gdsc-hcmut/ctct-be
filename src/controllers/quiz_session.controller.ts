@@ -49,6 +49,10 @@ export class QuizSessionController extends Controller {
         this.router.get("/", this.getMy.bind(this));
         this.router.get("/:quizSessionId", this.getById.bind(this));
         this.router.post("/:quizId", this.create.bind(this));
+        this.router.get(
+            "/quiz/:quizId",
+            this.getOngoingSessionOfQuiz.bind(this)
+        );
         this.router.post(
             "/:quizSessionId/:questionId/answer",
             this.saveAnswer.bind(this)
@@ -144,6 +148,31 @@ export class QuizSessionController extends Controller {
                 );
 
             res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async getOngoingSessionOfQuiz(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+            const quizId = new Types.ObjectId(req.params.quizId);
+
+            const quizSession =
+                await this.quizSessionService.findOngoingSessionFromQuiz(
+                    userId,
+                    quizId
+                );
+
+            res.composer.success(
+                quizSession
+                    ? this.mapperService.adjustQuizSessionAccordingToStatus(
+                          quizSession
+                      )
+                    : quizSession
+            );
         } catch (error) {
             logger.error(error.message);
             console.log(error);
