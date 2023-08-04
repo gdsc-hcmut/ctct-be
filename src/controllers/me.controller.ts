@@ -60,16 +60,17 @@ export class MeController extends Controller {
                 phoneNumber: req.body.phoneNumber ?? user.phoneNumber,
             };
 
-            const invalidDob =
-                info.dateOfBirth !== undefined && info.dateOfBirth > Date.now();
-            if (invalidDob) {
+            const validDob =
+                info.dateOfBirth === undefined ||
+                info.dateOfBirth <= Date.now();
+            if (!validDob) {
                 throw new Error("Invalid date of birth");
             }
 
-            const invalidGender =
-                info.gender !== undefined &&
-                !Object.values(Gender).includes(info.gender);
-            if (invalidGender) {
+            const validGender =
+                info.gender === undefined ||
+                Object.values(Gender).includes(info.gender);
+            if (!validGender) {
                 throw new Error(`Gender ${info.gender} is invalid`);
             }
 
