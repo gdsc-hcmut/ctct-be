@@ -371,11 +371,11 @@ export class QuizSessionController extends Controller {
 
             const answer = req.body as UserAnswer;
 
-            const questionExists = _.some(
+            const isQuestionExists = _.some(
                 quizSession.questions,
                 (question) => question.questionId === questionId
             );
-            if (!questionExists) {
+            if (!isQuestionExists) {
                 throw new Error(`Question doesn't exist`);
             }
 
@@ -445,11 +445,11 @@ export class QuizSessionController extends Controller {
 
             const questionId = parseInt(req.params.questionId);
 
-            const questionExists = _.some(
+            const isQuestionExists = _.some(
                 quizSession.questions,
                 (question) => question.questionId === questionId
             );
-            if (!questionExists) {
+            if (!isQuestionExists) {
                 throw new Error(`Question doesn't exist`);
             }
 
