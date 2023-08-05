@@ -9,6 +9,7 @@ import {
     FileUploadService,
     AccessLevelService,
     ChapterService,
+    UserActivityService,
 } from "../services/index";
 import { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
@@ -16,6 +17,7 @@ import { Permission } from "../models/access_level.model";
 import { MaterialDocument } from "../models/material.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import _ from "lodash";
+import { UserActivityType } from "../models/user_activity.model";
 
 @injectable()
 export class MaterialController extends Controller {
@@ -30,7 +32,9 @@ export class MaterialController extends Controller {
         private fileUploadService: FileUploadService,
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
-        @inject(ServiceType.Chapter) private chapterService: ChapterService
+        @inject(ServiceType.Chapter) private chapterService: ChapterService,
+        @inject(ServiceType.UserActivity)
+        private userActivityService: UserActivityService
     ) {
         super();
 
@@ -111,6 +115,15 @@ export class MaterialController extends Controller {
             const file = await this.fileUploadService.downloadFile(
                 material.resource
             );
+
+            if (req.tokenMeta?.userId) {
+                await this.userActivityService.create(
+                    UserActivityType.VIEW_MATERIAL,
+                    req.tokenMeta.userId,
+                    materialId
+                );
+            }
+
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename=${encodeURI(file.originalName)}`

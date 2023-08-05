@@ -11,6 +11,7 @@ import {
     QuizSessionService,
     SocketService,
     TaskSchedulingService,
+    UserActivityService,
 } from "../services/index";
 import { Types } from "mongoose";
 import { logger } from "../lib/logger";
@@ -22,6 +23,7 @@ import { ScheduledTaskType } from "../services/task-scheduling/schedule_task_typ
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import { UserAnswer } from "../models/question.model";
 import { QueryQuizSessionDto } from "../lib/dto/query_quiz_session.dto";
+import { UserActivityType } from "../models/user_activity.model";
 
 @injectable()
 export class QuizSessionController extends Controller {
@@ -40,7 +42,9 @@ export class QuizSessionController extends Controller {
         @inject(ServiceType.Question) private questionService: QuestionService,
         @inject(ServiceType.Socket) private socketService: SocketService,
         @inject(ServiceType.TaskScheduling)
-        private taskSchedulingService: TaskSchedulingService
+        private taskSchedulingService: TaskSchedulingService,
+        @inject(ServiceType.UserActivity)
+        private userActivityService: UserActivityService
     ) {
         super();
 
@@ -136,6 +140,13 @@ export class QuizSessionController extends Controller {
                 this.mapperService.adjustQuizSessionAccordingToStatus(
                     quizSession
                 );
+
+            await this.userActivityService.create(
+                UserActivityType.START_QUIZ_SESSION,
+                userId,
+                quizSession._id
+            );
+
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);

@@ -13,6 +13,7 @@ import { MapperService } from "./mapper.service";
 import { TaskSchedulingService } from "./task-scheduling/task_scheduling.service";
 import { SocketService } from "./server-events/socket.service";
 import { ChapterService } from "./chapter.service";
+import { UserActivityService } from "./user_activity.service";
 
 export {
     AuthService,
@@ -30,4 +31,5 @@ export {
     TaskSchedulingService,
     SocketService,
     ChapterService,
+    UserActivityService,
 };
