@@ -8,6 +8,7 @@ import {
     FileUploadService,
     SubjectService,
     AccessLevelService,
+    UserActivityService,
 } from "../services/index";
 import { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
@@ -19,6 +20,7 @@ import {
 } from "../models/previous-exam.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import _ from "lodash";
+import { UserActivityType } from "../models/user_activity.model";
 
 @injectable()
 export class PreviousExamController extends Controller {
@@ -33,7 +35,9 @@ export class PreviousExamController extends Controller {
         private fileUploadService: FileUploadService,
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.AccessLevel)
-        private accessLevelService: AccessLevelService
+        private accessLevelService: AccessLevelService,
+        @inject(ServiceType.UserActivity)
+        private userActivityService: UserActivityService
     ) {
         super();
 
@@ -120,6 +124,15 @@ export class PreviousExamController extends Controller {
             const file = await this.fileUploadService.downloadFile(
                 previousExam.resource
             );
+
+            if (req.tokenMeta?.userId) {
+                await this.userActivityService.create(
+                    UserActivityType.VIEW_PREVIOUS_EXAM,
+                    req.tokenMeta.userId,
+                    previousExamId
+                );
+            }
+
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename=${encodeURI(file.originalName)}`

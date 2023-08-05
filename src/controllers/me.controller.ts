@@ -2,11 +2,21 @@ import { inject, injectable } from "inversify";
 import { Router } from "express";
 import { Controller } from "./controller";
 import { Request, Response, ServiceType } from "../types";
-import { UserService, AuthService } from "../services/index";
+import {
+    UserService,
+    AuthService,
+    UserActivityService,
+} from "../services/index";
 import { ErrorNotFound } from "../lib/errors";
 import { logger } from "../lib/logger";
 import { EditProfileDto } from "../lib/dto/edit_profile.dto";
 import { Gender } from "../models/user.model";
+import { FilterQuery, Types } from "mongoose";
+import {
+    UserActivityDocument,
+    UserActivityType,
+} from "../models/user_activity.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class MeController extends Controller {
@@ -15,7 +25,9 @@ export class MeController extends Controller {
 
     constructor(
         @inject(ServiceType.User) private userService: UserService,
-        @inject(ServiceType.Auth) private authService: AuthService
+        @inject(ServiceType.Auth) private authService: AuthService,
+        @inject(ServiceType.UserActivity)
+        private userActivityService: UserActivityService
     ) {
         super();
         this.router.all("*", this.authService.authenticate());
@@ -23,6 +35,11 @@ export class MeController extends Controller {
         // My profile
         this.router.get("/", this.getMyProfile.bind(this));
         this.router.patch("/", this.editProfile.bind(this));
+        this.router.get("/activity", this.getActivities.bind(this));
+        this.router.delete(
+            "/activity/:activityId",
+            this.deleteActivity.bind(this)
+        );
     }
 
     async getMyProfile(req: Request, res: Response) {
@@ -82,6 +99,112 @@ export class MeController extends Controller {
             }
 
             const result = await this.userService.edit(userId, info);
+
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    public async getActivities(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+
+            const query: FilterQuery<UserActivityDocument> = {
+                userId: userId,
+            };
+
+            if (req.query.type) {
+                const isValidType = Object.values(UserActivityType).includes(
+                    req.query.type as UserActivityType
+                );
+                if (!isValidType) {
+                    throw new Error(`Invalid activity type ${req.query.type}`);
+                }
+
+                query.type = req.query.type as UserActivityType;
+            }
+
+            const pageSize: number = req.query.pageSize
+                ? parseInt(req.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = req.query.pageNumber
+                ? parseInt(req.query.pageNumber as string)
+                : 1;
+
+            const [total, activities] =
+                await this.userActivityService.getPaginated(
+                    query,
+                    {
+                        __v: 0,
+                    },
+                    [
+                        {
+                            // case type = UserActivityType.VIEW_MATERIAL
+                            path: "materialId",
+                            select: "_id name subject chapter",
+                            populate: [
+                                { path: "subject", select: "_id name" },
+                                { path: "chapter", select: "_id name" },
+                            ],
+                        },
+                        {
+                            // case type = UserActivityType.VIEW_PREVIOUS_EXAM
+                            path: "previousExamId",
+                            select: "_id name subject semester type",
+                            populate: [{ path: "subject", select: "_id name" }],
+                        },
+                        {
+                            // case type = UserActivityType.START_QUIZ_SESSION
+                            path: "quizSessionId",
+                            select: "_id status fromQuiz",
+                            populate: {
+                                path: "fromQuiz",
+                                select: "_id name subject chapter",
+                                populate: [
+                                    { path: "subject", select: "_id name" },
+                                    { path: "chapter", select: "_id name" },
+                                ],
+                            },
+                        },
+                    ],
+                    pageSize,
+                    pageNumber
+                );
+
+            res.composer.success({
+                total,
+                pageCount: Math.max(Math.ceil(total / pageSize), 1),
+                pageSize,
+                results: activities,
+            });
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    public async deleteActivity(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+            const activityId = new Types.ObjectId(req.params.activityId);
+
+            const activity = await this.userActivityService.getById(activityId);
+
+            if (!activity) {
+                throw new Error(`Activity not found`);
+            }
+
+            if (!activity.userId.equals(userId)) {
+                throw new Error(`You can only delete your own activity`);
+            }
+
+            const result = await this.userActivityService.markAsDeleted(
+                activityId
+            );
 
             res.composer.success(result);
         } catch (error) {

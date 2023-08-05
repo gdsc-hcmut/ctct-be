@@ -20,6 +20,7 @@ import {
     ChapterService,
     QuestionService,
     QuizSessionService,
+    UserActivityService,
 } from "./services/index";
 
 import {
@@ -111,6 +112,10 @@ container
 container
     .bind<SocketService>(ServiceType.Socket)
     .to(SocketService)
+    .inSingletonScope();
+container
+    .bind<UserActivityService>(ServiceType.UserActivity)
+    .to(UserActivityService)
     .inSingletonScope();
 
 // Initialize service first
