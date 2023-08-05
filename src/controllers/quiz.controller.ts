@@ -33,7 +33,7 @@ export class QuizController extends Controller {
     ) {
         super();
 
-        this.router.all("*", authService.authenticate());
+        this.router.all("*", authService.authenticate(false));
 
         this.router.get("/", this.getAll.bind(this));
     }

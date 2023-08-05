@@ -38,7 +38,7 @@ export class MaterialController extends Controller {
     ) {
         super();
 
-        this.router.all("*", this.authService.authenticate());
+        this.router.all("*", this.authService.authenticate(false));
 
         this.router.get("/:materialId", this.getById.bind(this));
         this.router.get("/:materialId/download", this.download.bind(this));

@@ -14,7 +14,6 @@ export type QuizSessionDocument = Document & {
     userId: Types.ObjectId;
     status: QuizStatus;
 
-    createdAt: number;
     duration: number;
     startedAt: number;
     // the time at which the user finished the test, not necessarily startTime + duration
@@ -31,7 +30,6 @@ const quizSessionSchema = new Schema<QuizSessionDocument>({
     userId: { type: Schema.Types.ObjectId, ref: "users" },
     status: { type: String, required: true, enum: QuizStatus },
 
-    createdAt: { type: Number, required: true },
     duration: { type: Number, required: true },
     startedAt: { type: Number, required: true },
     endedAt: { type: Number, required: false },

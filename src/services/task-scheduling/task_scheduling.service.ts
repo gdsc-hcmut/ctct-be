@@ -32,7 +32,10 @@ export class TaskSchedulingService {
             },
         });
 
-        this.agenda.define(ScheduledTaskType.END_QUIZ, this.endQuiz.bind(this));
+        this.agenda.define(
+            ScheduledTaskType.END_QUIZ_SESSION,
+            this.endQuizSession.bind(this)
+        );
 
         await this.agenda.start();
     }
@@ -66,7 +69,7 @@ export class TaskSchedulingService {
         return await this.agenda.disable(query);
     }
 
-    async endQuiz(job: Job) {
+    async endQuizSession(job: Job) {
         try {
             const userId = job.attrs.data.userId as Types.ObjectId;
             const quizId = job.attrs.data.quizId as Types.ObjectId;

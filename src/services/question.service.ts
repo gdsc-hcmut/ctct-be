@@ -21,6 +21,7 @@ import Mustache from "mustache";
 import _ from "lodash";
 import { CreateQuestionDto } from "../lib/dto/create_question.dto";
 import { PreviewQuestionDto } from "../lib/dto/index";
+import { randomUUID } from "crypto";
 
 @injectable()
 export class QuestionService {
@@ -65,10 +66,10 @@ export class QuestionService {
             ..._.omit(question, "options"),
             options: options,
         });
-        return this.generateConcreteQuestion(questionDocument);
+        return this.generateConcreteQuestion(questionDocument, 1);
     }
 
-    generateConcreteQuestion(question: QuestionDocument) {
+    generateConcreteQuestion(question: QuestionDocument, questionId: number) {
         const charStream = new CharStream(question.code);
         const lexer = new GrammarLexer(charStream);
         const tokenStream = new CommonTokenStream(lexer);
@@ -79,10 +80,12 @@ export class QuestionService {
         const symbols = Object.fromEntries(visitor.getSymbols());
 
         const result: ConcreteQuestion = {
+            questionId,
             type: question.type,
             description: Mustache.render(question.description, symbols),
             explanation: Mustache.render(question.explanation, symbols),
             isCorrect: false,
+            userNote: "",
         };
 
         switch (question.type) {
@@ -195,27 +198,56 @@ export class QuestionService {
     attachUserAnswerToQuestion(question: ConcreteQuestion, answer: UserAnswer) {
         switch (question.type) {
             case QuestionType.MULTIPLE_CHOICE_SINGLE_ANSWER: {
-                if (answer.answerKeys !== undefined) {
-                    question.userAnswerKeys = answer.answerKeys as number[];
+                if (answer.answerKeys === undefined) {
+                    throw new Error(`Missing 'answerKeys'`);
                 }
+                if (answer.answerKeys.length !== 1) {
+                    throw new Error(
+                        `answerKeys is expected to be of length 1, received ${answer.answerKeys.length}`
+                    );
+                }
+                const unknownOptions = _.difference(
+                    answer.answerKeys,
+                    question.options.map((opt) => opt.key)
+                );
+                if (unknownOptions.length > 0) {
+                    throw new Error(
+                        `The following keys do not belong to any options: ${unknownOptions.toString()}`
+                    );
+                }
+
+                question.userAnswerKeys = answer.answerKeys;
                 break;
             }
             case QuestionType.MULTIPLE_CHOICE_MULTIPLE_ANSWERS: {
-                if (answer.answerKeys !== undefined) {
-                    question.userAnswerKeys = answer.answerKeys as number[];
+                if (answer.answerKeys === undefined) {
+                    throw new Error(`Missing 'answerKeys'`);
                 }
+                const unknownOptions = _.difference(
+                    question.options.map((opt) => opt.key),
+                    answer.answerKeys
+                );
+                if (unknownOptions.length > 0) {
+                    throw new Error(
+                        `The following keys do not belong to any options: ${unknownOptions.toString()}`
+                    );
+                }
+
+                question.userAnswerKeys = answer.answerKeys;
                 break;
             }
             case QuestionType.NUMBER: {
-                if (answer.answerField !== undefined) {
-                    question.userAnswerField = answer.answerField as number;
+                if (answer.answerField === undefined) {
+                    throw new Error(`Missing 'answerField'`);
                 }
+                question.userAnswerField = answer.answerField as number;
                 break;
             }
             case QuestionType.TEXT: {
-                if (answer.answerField !== undefined) {
-                    question.userAnswerField = answer.answerField as string;
+                if (answer.answerField === undefined) {
+                    throw new Error(`Missing 'answerField'`);
                 }
+                question.userAnswerField = answer.answerField as string;
                 break;
             }
             default: {
