@@ -41,7 +41,7 @@ const userSchema = new Schema<UserDocument>({
     major: { type: String, default: "" },
     dateOfBirth: Number,
     gender: { type: String, enum: Gender },
-    email: { String, default: "" },
+    email: { type: String, default: "" },
     phoneNumber: { String, default: "" },
 });
 
