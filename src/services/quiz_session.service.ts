@@ -1,6 +1,14 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
-import { FilterQuery, PipelineStage, PopulateOptions, Types } from "mongoose";
+import {
+    FilterQuery,
+    PipelineStage,
+    PopulateOptions,
+    ProjectionType,
+    QueryOptions,
+    Types,
+    UpdateQuery,
+} from "mongoose";
 import { ConcreteQuestion } from "../models/question.model";
 import QuizSessionModel, {
     QuizSessionDocument,
@@ -16,20 +24,21 @@ export class QuizSessionService {
     async create(
         userId: Types.ObjectId,
         duration: number,
-        startTime: number,
+        startedAt: number,
         fromQuiz: Types.ObjectId,
         questions: ConcreteQuestion[]
     ) {
+        const now = Date.now();
         return (
             await QuizSessionModel.create([
                 {
-                    userId: userId,
+                    userId,
                     status: QuizStatus.ONGOING,
-                    createdAt: Date.now(),
-                    duration: duration,
-                    startTime: startTime,
-                    fromQuiz: fromQuiz,
-                    questions: questions,
+                    createdAt: now,
+                    duration,
+                    startedAt,
+                    fromQuiz,
+                    questions,
                 },
             ])
         )[0];
@@ -39,14 +48,15 @@ export class QuizSessionService {
         return await QuizSessionModel.findById(id);
     }
 
-    async userIsDoingQuiz(userId: Types.ObjectId, quizId: Types.ObjectId) {
-        return (
-            (await QuizSessionModel.findOne({
-                userId: userId,
-                fromQuiz: quizId,
-                status: QuizStatus.ONGOING,
-            })) != null
-        );
+    async findOngoingSessionFromQuiz(
+        userId: Types.ObjectId,
+        quizId: Types.ObjectId
+    ) {
+        return await QuizSessionModel.findOne({
+            userId,
+            fromQuiz: quizId,
+            status: QuizStatus.ONGOING,
+        });
     }
 
     async getUserOngoingQuizById(
@@ -62,6 +72,7 @@ export class QuizSessionService {
 
     async getPaginated(
         query: FilterQuery<QuizSessionDocument>,
+        projection: ProjectionType<QuizSessionDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[],
         pageSize: number,
         pageNumber: number
@@ -71,30 +82,48 @@ export class QuizSessionService {
                 ...query,
                 deletedAt: { $exists: false },
             }),
-            QuizSessionModel.find({
-                ...query,
-                deletedAt: { $exists: false },
-            })
+            QuizSessionModel.find(
+                {
+                    ...query,
+                    deletedAt: { $exists: false },
+                },
+                projection
+            )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
                 .populate(populateOptions),
         ]);
     }
 
-    async getExpanded(
+    async getPopulated(
         query: FilterQuery<QuizSessionDocument>,
+        projection: ProjectionType<QuizSessionDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
-        return await QuizSessionModel.find({
-            ...query,
-            deletedAt: { $exists: false },
-        }).populate(populateOptions);
+        return await QuizSessionModel.find(
+            {
+                ...query,
+                deletedAt: { $exists: false },
+            },
+            projection
+        ).populate(populateOptions);
     }
 
     async getByIdPopulated(
         id: Types.ObjectId,
+        projection: ProjectionType<QuizSessionDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[]
     ) {
-        return await QuizSessionModel.findById(id).populate(populateOptions);
+        return await QuizSessionModel.findById(id, projection).populate(
+            populateOptions
+        );
+    }
+
+    async findOneAndUpdate(
+        query: FilterQuery<QuizSessionDocument>,
+        update: UpdateQuery<QuizSessionDocument>,
+        options: QueryOptions = {}
+    ) {
+        return await QuizSessionModel.findOneAndUpdate(query, update, options);
     }
 }

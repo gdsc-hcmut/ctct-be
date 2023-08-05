@@ -15,6 +15,9 @@ export class SocketService {
     }
 
     onConnection(socket: CustomSocket) {
+        logger.debug(
+            `[Socket] ${SocketEventType.CONNECT}: ${socket.userId} has connected!`
+        );
         SocketConnectionRegistry.instance().addConnection(socket);
 
         // bind some events
@@ -22,6 +25,9 @@ export class SocketService {
         // disconnect event
         SocketConnectionRegistry.instance().removeConnection(socket);
         this.socketServer.on(SocketEventType.DISCONNECT, (reason: string) => {
+            logger.debug(
+                `[Socket] ${SocketEventType.DISCONNECT}: ${socket.userId} has disconnected!`
+            );
             SocketConnectionRegistry.instance().removeConnection(
                 socket,
                 reason
@@ -29,8 +35,18 @@ export class SocketService {
         });
     }
 
-    async endQuiz(userId: string, quizId: string) {
-        logger.debug(`Quiz ${quizId} by ${userId} has ended`);
+    async endQuizSession(userId: string, quizSessionId: string) {
+        logger.debug(
+            `[Socket] ${SocketEventType.END_QUIZ_SESSION}: Session ${quizSessionId} by user ${userId} has ended`
+        );
+        SocketConnectionRegistry.instance()
+            .getConnectionsOfUser(userId)
+            .forEach((connection) => {
+                connection.socket.emit(SocketEventType.END_QUIZ_SESSION, {
+                    userId,
+                    quizSessionId,
+                });
+            });
     }
 
     initialize = (socketServer: Server) => {

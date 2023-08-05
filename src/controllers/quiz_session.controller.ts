@@ -14,7 +14,7 @@ import {
 } from "../services/index";
 import { Types } from "mongoose";
 import { logger } from "../lib/logger";
-import { QuizSessionDocument } from "../models/quiz_session.model";
+import { QuizSessionDocument, QuizStatus } from "../models/quiz_session.model";
 import _ from "lodash";
 import { Permission } from "../models/access_level.model";
 import { EndQuizTask } from "../services/task-scheduling/tasks/end_quiz_task";
@@ -49,13 +49,21 @@ export class QuizSessionController extends Controller {
         this.router.get("/", this.getMy.bind(this));
         this.router.get("/:quizSessionId", this.getById.bind(this));
         this.router.post("/:quizId", this.create.bind(this));
+        this.router.get(
+            "/quiz/:quizId",
+            this.getOngoingSessionOfQuiz.bind(this)
+        );
         this.router.post(
-            "/:quizSessionId/:index/answer",
+            "/:quizSessionId/:questionId/answer",
             this.saveAnswer.bind(this)
         );
         this.router.post(
             "/:quizSessionId/submit",
             this.submitQuizSession.bind(this)
+        );
+        this.router.post(
+            "/:quizSessionId/:questionId/note",
+            this.noteQuestion.bind(this)
         );
     }
 
@@ -74,11 +82,14 @@ export class QuizSessionController extends Controller {
                 );
             }
 
-            const isDoingSimilarQuiz =
-                await this.quizSessionService.userIsDoingQuiz(userId, quizId);
-            if (isDoingSimilarQuiz) {
+            const ongoingSessionFromSameQuiz =
+                await this.quizSessionService.findOngoingSessionFromQuiz(
+                    userId,
+                    quizId
+                );
+            if (ongoingSessionFromSameQuiz) {
                 throw new Error(
-                    `You have not finished this quiz, and cannot take a new one`
+                    `You already have an ongoing quiz session from this quiz`
                 );
             }
 
@@ -94,14 +105,14 @@ export class QuizSessionController extends Controller {
             );
 
             const concreteQuestions = await Promise.all(
-                potentialQuestions.map((questionId) =>
+                potentialQuestions.map((questionId, index) =>
                     (async () => {
                         const question = await this.questionService.getById(
                             questionId
                         );
-                        console.debug(question);
                         return this.questionService.generateConcreteQuestion(
-                            question
+                            question,
+                            index + 1
                         );
                     })()
                 )
@@ -125,7 +136,7 @@ export class QuizSessionController extends Controller {
             );
             await this.taskSchedulingService.schedule(
                 new Date(quizDeadline),
-                ScheduledTaskType.END_QUIZ,
+                ScheduledTaskType.END_QUIZ_SESSION,
                 {
                     userId: userId,
                     quizId: quiz._id,
@@ -136,7 +147,33 @@ export class QuizSessionController extends Controller {
                 this.mapperService.adjustQuizSessionAccordingToStatus(
                     quizSession
                 );
+
             res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async getOngoingSessionOfQuiz(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+            const quizId = new Types.ObjectId(req.params.quizId);
+
+            const quizSession =
+                await this.quizSessionService.findOngoingSessionFromQuiz(
+                    userId,
+                    quizId
+                );
+
+            res.composer.success(
+                quizSession
+                    ? this.mapperService.adjustQuizSessionAccordingToStatus(
+                          quizSession
+                      )
+                    : quizSession
+            );
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -197,9 +234,13 @@ export class QuizSessionController extends Controller {
 
             if (req.query.pagination === "false") {
                 const result = (
-                    await this.quizSessionService.getExpanded(
+                    await this.quizSessionService.getPopulated(
                         {
                             userId: userId,
+                        },
+                        {
+                            __v: 0,
+                            questions: 0,
                         },
                         {
                             path: "fromQuiz",
@@ -229,6 +270,10 @@ export class QuizSessionController extends Controller {
                 const [total, unmappedResult] =
                     await this.quizSessionService.getPaginated(
                         { userId: userId },
+                        {
+                            __v: 0,
+                            questions: 0,
+                        },
                         {
                             path: "fromQuiz",
                             populate: [
@@ -273,6 +318,9 @@ export class QuizSessionController extends Controller {
             const quizSession = await this.quizSessionService.getByIdPopulated(
                 quizSessionId,
                 {
+                    __v: 0,
+                },
+                {
                     path: "fromQuiz",
                     populate: [
                         {
@@ -310,7 +358,7 @@ export class QuizSessionController extends Controller {
         try {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
-            const questionIndex = parseInt(req.params.index);
+            const questionId = parseInt(req.params.questionId);
 
             const quizSession =
                 await this.quizSessionService.getUserOngoingQuizById(
@@ -323,19 +371,22 @@ export class QuizSessionController extends Controller {
 
             const answer = req.body as UserAnswer;
 
-            if (
-                !(
-                    questionIndex >= 0 &&
-                    questionIndex < quizSession.questions.length
-                )
-            ) {
-                throw new Error(`Question index out of range`);
+            const isQuestionExists = _.some(
+                quizSession.questions,
+                (question) => question.questionId === questionId
+            );
+            if (!isQuestionExists) {
+                throw new Error(`Question doesn't exist`);
             }
 
-            this.questionService.attachUserAnswerToQuestion(
-                quizSession.questions[questionIndex],
-                answer
-            );
+            quizSession.questions.forEach((question) => {
+                if (question.questionId === questionId) {
+                    this.questionService.attachUserAnswerToQuestion(
+                        question,
+                        answer
+                    );
+                }
+            });
             quizSession.markModified("questions");
             await quizSession.save();
 
@@ -365,6 +416,55 @@ export class QuizSessionController extends Controller {
                 this.taskSchedulingService,
                 this.questionService
             ).execute();
+
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    async noteQuestion(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+            const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
+
+            const quizSession = await this.quizSessionService.getQuizById(
+                quizSessionId
+            );
+            if (!quizSession) {
+                throw new Error(`Quiz session doesn't exist or has ended`);
+            }
+            if (!quizSession.userId.equals(userId)) {
+                throw new Error(`You didn't take this quiz`);
+            }
+            if (quizSession.status !== QuizStatus.ENDED) {
+                throw new Error(`Can only note after quiz session has ended`);
+            }
+
+            const questionId = parseInt(req.params.questionId);
+
+            const isQuestionExists = _.some(
+                quizSession.questions,
+                (question) => question.questionId === questionId
+            );
+            if (!isQuestionExists) {
+                throw new Error(`Question doesn't exist`);
+            }
+
+            quizSession.questions.forEach((question) => {
+                if (question.questionId === questionId) {
+                    question.userNote = req.body.note as string;
+                }
+            });
+            quizSession.markModified("questions");
+            await quizSession.save();
+
+            const result =
+                this.mapperService.adjustQuizSessionAccordingToStatus(
+                    quizSession
+                );
 
             res.composer.success(result);
         } catch (error) {
