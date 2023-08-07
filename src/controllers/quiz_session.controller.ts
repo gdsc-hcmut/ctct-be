@@ -274,22 +274,34 @@ export class QuizSessionController extends Controller {
 
             logger.debug(postPopulateQuery);
 
-            const { total, result } =
-                req.query.pagination === "false"
-                    ? (
-                          await this.quizSessionService.getAllPopulated(
-                              prePopulateQuery,
-                              postPopulateQuery
-                          )
-                      )[0]
-                    : (
-                          await this.quizSessionService.getPaginated(
-                              prePopulateQuery,
-                              postPopulateQuery,
-                              pageSize,
-                              pageNumber
-                          )
-                      )[0];
+            const isValidPaginationOption =
+                req.query.pagination !== undefined &&
+                ["true", "false"].includes(req.query.pagination as string);
+            if (!isValidPaginationOption) {
+                throw new Error(
+                    `Invalid pagination option received '${req.query.pagination}'`
+                );
+            }
+
+            const isUsePagination =
+                req.query.pagination === undefined ||
+                req.query.pagination === "true";
+
+            const { total, result } = !isUsePagination
+                ? (
+                      await this.quizSessionService.getAllPopulated(
+                          prePopulateQuery,
+                          postPopulateQuery
+                      )
+                  )[0]
+                : (
+                      await this.quizSessionService.getPaginated(
+                          prePopulateQuery,
+                          postPopulateQuery,
+                          pageSize,
+                          pageNumber
+                      )
+                  )[0];
 
             for (let i = 0; i < result.length; i++) {
                 result[i] = _.omit(result[i], [
@@ -312,7 +324,7 @@ export class QuizSessionController extends Controller {
                 }
             }
 
-            if (req.query.pagination === "false") {
+            if (!isUsePagination) {
                 res.composer.success({
                     total,
                     result,
