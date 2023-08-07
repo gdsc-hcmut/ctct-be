@@ -122,7 +122,7 @@ export class QuizSessionController extends Controller {
             );
 
             const startedAt = Date.now();
-            const quizDeadline = startedAt + quiz.duration;
+            const quizSessionDeadline = startedAt + quiz.duration;
 
             const quizSession = await this.quizSessionService.create(
                 userId,
@@ -135,14 +135,16 @@ export class QuizSessionController extends Controller {
             logger.debug(
                 `Scheduling quiz ${quiz._id} to start at ${new Date(
                     startedAt
-                ).toString()} and end at ${new Date(quizDeadline).toString()}`
+                ).toString()} and end at ${new Date(
+                    quizSessionDeadline
+                ).toString()}`
             );
             await this.taskSchedulingService.schedule(
-                new Date(quizDeadline),
+                new Date(quizSessionDeadline),
                 ScheduledTaskType.END_QUIZ_SESSION,
                 {
                     userId: userId,
-                    quizId: quiz._id,
+                    quizSessionId: quizSession._id,
                 }
             );
 
@@ -383,7 +385,7 @@ export class QuizSessionController extends Controller {
             const questionId = parseInt(req.params.questionId);
 
             const quizSession =
-                await this.quizSessionService.getUserOngoingQuizById(
+                await this.quizSessionService.getOngoingQuizSessionOfUser(
                     quizSessionId,
                     userId
                 );
@@ -452,7 +454,7 @@ export class QuizSessionController extends Controller {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
 
-            const quizSession = await this.quizSessionService.getQuizById(
+            const quizSession = await this.quizSessionService.getById(
                 quizSessionId
             );
             if (!quizSession) {

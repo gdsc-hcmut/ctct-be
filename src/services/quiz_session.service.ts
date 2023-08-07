@@ -44,7 +44,7 @@ export class QuizSessionService {
         )[0];
     }
 
-    async getQuizById(id: Types.ObjectId) {
+    async getById(id: Types.ObjectId) {
         return await QuizSessionModel.findById(id);
     }
 
@@ -59,12 +59,12 @@ export class QuizSessionService {
         });
     }
 
-    async getUserOngoingQuizById(
-        quizId: Types.ObjectId,
+    async getOngoingQuizSessionOfUser(
+        quizSessionId: Types.ObjectId,
         userId: Types.ObjectId
     ) {
         return await QuizSessionModel.findOne({
-            _id: quizId,
+            _id: quizSessionId,
             userId: userId,
             status: QuizStatus.ONGOING,
         });

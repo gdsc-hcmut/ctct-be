@@ -72,20 +72,21 @@ export class TaskSchedulingService {
     async endQuizSession(job: Job) {
         try {
             const userId = job.attrs.data.userId as Types.ObjectId;
-            const quizId = job.attrs.data.quizId as Types.ObjectId;
+            const quizSessionId = job.attrs.data
+                .quizSessionId as Types.ObjectId;
             if (!userId) {
                 throw new Error(
                     `Trying to end quiz but missing ${userId.toString()}`
                 );
             }
-            if (!quizId) {
+            if (!quizSessionId) {
                 throw new Error(
-                    `Trying to end quiz of user ${userId.toString()} but missing ${quizId.toString()}`
+                    `Trying to end quiz of user ${userId.toString()} but missing ${quizSessionId.toString()}`
                 );
             }
             return await new EndQuizTask(
                 userId,
-                quizId,
+                quizSessionId,
                 this.quizSessionService,
                 this.socketService,
                 this,
