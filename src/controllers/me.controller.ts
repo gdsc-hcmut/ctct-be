@@ -6,6 +6,7 @@ import {
     UserService,
     AuthService,
     UserActivityService,
+    QuizSessionService,
 } from "../services/index";
 import { ErrorNotFound } from "../lib/errors";
 import { logger } from "../lib/logger";
@@ -27,7 +28,9 @@ export class MeController extends Controller {
         @inject(ServiceType.User) private userService: UserService,
         @inject(ServiceType.Auth) private authService: AuthService,
         @inject(ServiceType.UserActivity)
-        private userActivityService: UserActivityService
+        private userActivityService: UserActivityService,
+        @inject(ServiceType.QuizSession)
+        private quizSessionService: QuizSessionService
     ) {
         super();
         this.router.all("*", this.authService.authenticate());
@@ -40,6 +43,7 @@ export class MeController extends Controller {
             "/activity/:activityId",
             this.deleteActivity.bind(this)
         );
+        this.router.get("/statistics/quiz", this.getQuizStatistics.bind(this));
     }
 
     async getMyProfile(req: Request, res: Response) {
@@ -205,6 +209,23 @@ export class MeController extends Controller {
             const result = await this.userActivityService.markAsDeleted(
                 activityId
             );
+
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    public async getQuizStatistics(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+
+            const result =
+                await this.quizSessionService.getStatisticsGroupedBySubject(
+                    userId
+                );
 
             res.composer.success(result);
         } catch (error) {
