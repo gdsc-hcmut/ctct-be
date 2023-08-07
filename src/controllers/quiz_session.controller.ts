@@ -13,7 +13,7 @@ import {
     TaskSchedulingService,
     UserActivityService,
 } from "../services/index";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { logger } from "../lib/logger";
 import { QuizSessionDocument, QuizStatus } from "../models/quiz_session.model";
 import _ from "lodash";
@@ -22,7 +22,6 @@ import { EndQuizTask } from "../services/task-scheduling/tasks/end_quiz_task";
 import { ScheduledTaskType } from "../services/task-scheduling/schedule_task_type";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import { UserAnswer } from "../models/question.model";
-import { QueryQuizSessionDto } from "../lib/dto/query_quiz_session.dto";
 import { UserActivityType } from "../models/user_activity.model";
 
 @injectable()
@@ -123,7 +122,7 @@ export class QuizSessionController extends Controller {
             );
 
             const startedAt = Date.now();
-            const quizDeadline = startedAt + quiz.duration;
+            const quizSessionDeadline = startedAt + quiz.duration;
 
             const quizSession = await this.quizSessionService.create(
                 userId,
@@ -136,14 +135,16 @@ export class QuizSessionController extends Controller {
             logger.debug(
                 `Scheduling quiz ${quiz._id} to start at ${new Date(
                     startedAt
-                ).toString()} and end at ${new Date(quizDeadline).toString()}`
+                ).toString()} and end at ${new Date(
+                    quizSessionDeadline
+                ).toString()}`
             );
             await this.taskSchedulingService.schedule(
-                new Date(quizDeadline),
+                new Date(quizSessionDeadline),
                 ScheduledTaskType.END_QUIZ_SESSION,
                 {
                     userId: userId,
-                    quizId: quiz._id,
+                    quizSessionId: quizSession._id,
                 }
             );
 
@@ -195,45 +196,54 @@ export class QuizSessionController extends Controller {
         try {
             const userId = req.tokenMeta.userId;
 
-            const query: QueryQuizSessionDto = {
-                name:
-                    req.query.name !== undefined
-                        ? decodeURIComponent(req.query.name as string)
-                        : undefined,
-                subject:
-                    req.query.subject !== undefined
-                        ? new Types.ObjectId(req.query.subject as string)
-                        : undefined,
-                chapter:
-                    req.query.chapter !== undefined
-                        ? new Types.ObjectId(req.query.chapter as string)
-                        : undefined,
+            const prePopulateQuery: FilterQuery<QuizSessionDocument> = {
+                userId: userId,
             };
 
-            const quizSessionFilter = (quizSession: QuizSessionDocument) => {
-                if (query.name) {
-                    const quizSessionName = (quizSession.fromQuiz as any)
-                        .name as string;
-                    if (!quizSessionName.match(query.name)) {
-                        return false;
-                    }
+            if (req.query.status) {
+                const validStatus = Object.values(QuizStatus).includes(
+                    req.query.status as QuizStatus
+                );
+                if (!validStatus) {
+                    throw new Error(
+                        `Invalid status received ${req.query.status}`
+                    );
                 }
-                if (query.subject) {
-                    const quizSessionSubject = (quizSession.fromQuiz as any)
-                        .subject as Types.ObjectId;
-                    if (!quizSessionSubject.equals(query.subject)) {
-                        return false;
-                    }
-                }
-                if (query.chapter) {
-                    const quizSessionChapter = (quizSession.fromQuiz as any)
-                        .chapter as Types.ObjectId;
-                    if (!quizSessionChapter.equals(query.chapter)) {
-                        return false;
-                    }
-                }
-                return true;
-            };
+
+                prePopulateQuery.status = req.query.status as QuizStatus;
+            }
+
+            if (req.query.startedAtMin || req.query.startedAtMax) {
+                prePopulateQuery.startedAt = {
+                    $gte: req.query.startedAtMin
+                        ? parseInt(req.query.startedAtMin as string)
+                        : undefined,
+                    $lte: req.query.startedAtMax
+                        ? parseInt(req.query.startedAtMax as string)
+                        : undefined,
+                };
+                prePopulateQuery.startedAt = _.omitBy(
+                    prePopulateQuery.startedAt,
+                    _.isNil
+                );
+            }
+
+            if (req.query.endedAtMin || req.query.endedAtMax) {
+                prePopulateQuery.endedAt = {
+                    $gte: req.query.endedAtMin
+                        ? parseInt(req.query.endedAtMin as string)
+                        : undefined,
+                    $lte: req.query.endedAtMax
+                        ? parseInt(req.query.endedAtMax as string)
+                        : undefined,
+                };
+                prePopulateQuery.endedAt = _.omitBy(
+                    prePopulateQuery.endedAt,
+                    _.isNil
+                );
+            }
+
+            logger.debug(prePopulateQuery);
 
             const pageSize: number = req.query.pageSize
                 ? parseInt(req.query.pageSize as string)
@@ -242,76 +252,89 @@ export class QuizSessionController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            if (req.query.pagination === "false") {
-                const result = (
-                    await this.quizSessionService.getPopulated(
-                        {
-                            userId: userId,
-                        },
-                        {
-                            __v: 0,
-                            questions: 0,
-                        },
-                        {
-                            path: "fromQuiz",
-                            populate: [
-                                {
-                                    path: "subject",
-                                },
-                                {
-                                    path: "chapter",
-                                },
-                            ],
-                        }
-                    )
-                ).filter(quizSessionFilter);
-
-                const adjustedResult = result.map((quizSession) =>
-                    this.mapperService.adjustQuizSessionAccordingToStatus(
-                        quizSession
-                    )
+            const postPopulateQuery: FilterQuery<QuizSessionDocument> =
+                _.omitBy(
+                    {
+                        "fromQuiz.name": req.query.name
+                            ? {
+                                  $regex: decodeURIComponent(
+                                      req.query.name as string
+                                  ),
+                              }
+                            : undefined,
+                        "fromQuiz.subject._id": req.query.subject
+                            ? new Types.ObjectId(req.query.subject as string)
+                            : undefined,
+                        "fromQuiz.chapter._id": req.query.chapter
+                            ? new Types.ObjectId(req.query.chapter as string)
+                            : undefined,
+                    },
+                    _.isNil
                 );
 
+            logger.debug(postPopulateQuery);
+
+            const isValidPaginationOption =
+                req.query.pagination !== undefined &&
+                ["true", "false"].includes(req.query.pagination as string);
+            if (!isValidPaginationOption) {
+                throw new Error(
+                    `Invalid pagination option received '${req.query.pagination}'`
+                );
+            }
+
+            const isUsePagination =
+                req.query.pagination === undefined ||
+                req.query.pagination === "true";
+
+            const { total, result } = !isUsePagination
+                ? (
+                      await this.quizSessionService.getAllPopulated(
+                          prePopulateQuery,
+                          postPopulateQuery
+                      )
+                  )[0]
+                : (
+                      await this.quizSessionService.getPaginated(
+                          prePopulateQuery,
+                          postPopulateQuery,
+                          pageSize,
+                          pageNumber
+                      )
+                  )[0];
+
+            for (let i = 0; i < result.length; i++) {
+                result[i] = _.omit(result[i], [
+                    "fromQuiz.__v",
+                    "fromQuiz.potentialQuestions",
+                    "fromQuiz.createdAt",
+                    "fromQuiz.lastUpdatedAt",
+                    "fromQuiz.createdBy",
+                    "fromQuiz.chapter.createdBy",
+                    "fromQuiz.chapter.createdAt",
+                    "fromQuiz.chapter.lastUpdatedAt",
+                    "fromQuiz.chapter.__v",
+                    "fromQuiz.subject.createdBy",
+                    "fromQuiz.subject.createdAt",
+                    "fromQuiz.subject.lastUpdatedAt",
+                    "fromQuiz.subject.__v",
+                ]);
+                if (result[i].status === QuizStatus.ONGOING) {
+                    result[i] = _.omit(result[i], ["standardizedScore"]);
+                }
+            }
+
+            if (!isUsePagination) {
                 res.composer.success({
-                    total: result.length,
-                    result: adjustedResult,
+                    total,
+                    result,
                 });
             } else {
-                const [total, unmappedResult] =
-                    await this.quizSessionService.getPaginated(
-                        { userId: userId },
-                        {
-                            __v: 0,
-                            questions: 0,
-                        },
-                        {
-                            path: "fromQuiz",
-                            populate: [
-                                {
-                                    path: "subject",
-                                },
-                                {
-                                    path: "chapter",
-                                },
-                            ],
-                        },
-                        pageSize,
-                        pageNumber
-                    );
-
-                const adjustedResult = unmappedResult
-                    .filter(quizSessionFilter)
-                    .map((quizSession) =>
-                        this.mapperService.adjustQuizSessionAccordingToStatus(
-                            quizSession
-                        )
-                    );
-
                 res.composer.success({
                     total,
                     pageCount: Math.max(Math.ceil(total / pageSize), 1),
                     pageSize,
-                    result: adjustedResult,
+                    results: result,
                 });
             }
         } catch (error) {
@@ -332,23 +355,26 @@ export class QuizSessionController extends Controller {
                 },
                 {
                     path: "fromQuiz",
+                    select: "_id name subject chapter",
                     populate: [
                         {
                             path: "subject",
+                            select: "_id name",
                         },
                         {
                             path: "chapter",
+                            select: "_id name",
                         },
                     ],
                 }
             );
 
             if (!quizSession) {
-                throw new Error(`Quiz doesn't exist`);
+                throw new Error(`Quiz session doesn't exist`);
             }
 
             if (!quizSession.userId.equals(userId)) {
-                throw new Error(`This quiz was not taken by you`);
+                throw new Error(`Quiz session was not taken by you`);
             }
 
             const result =
@@ -371,7 +397,7 @@ export class QuizSessionController extends Controller {
             const questionId = parseInt(req.params.questionId);
 
             const quizSession =
-                await this.quizSessionService.getUserOngoingQuizById(
+                await this.quizSessionService.getOngoingQuizSessionOfUser(
                     quizSessionId,
                     userId
                 );
@@ -440,7 +466,7 @@ export class QuizSessionController extends Controller {
             const { userId } = req.tokenMeta;
             const quizSessionId = new Types.ObjectId(req.params.quizSessionId);
 
-            const quizSession = await this.quizSessionService.getQuizById(
+            const quizSession = await this.quizSessionService.getById(
                 quizSessionId
             );
             if (!quizSession) {

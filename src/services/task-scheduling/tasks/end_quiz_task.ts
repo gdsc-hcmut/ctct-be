@@ -12,7 +12,7 @@ import { logger } from "../../../lib/logger";
 
 export class EndQuizTask implements ScheduledTask<QuizSessionDocument> {
     private userId: Types.ObjectId;
-    private quizId: Types.ObjectId;
+    private quizSessionId: Types.ObjectId;
     private quizSessionService: QuizSessionService;
     private socketService: SocketService;
     private taskSchedulingService: TaskSchedulingService;
@@ -20,14 +20,14 @@ export class EndQuizTask implements ScheduledTask<QuizSessionDocument> {
 
     constructor(
         userId: Types.ObjectId,
-        quizId: Types.ObjectId,
+        quizSessionId: Types.ObjectId,
         quizSessionService: QuizSessionService,
         socketService: SocketService,
         taskSchedulingService: TaskSchedulingService,
         questionService: QuestionService
     ) {
         this.userId = userId;
-        this.quizId = quizId;
+        this.quizSessionId = quizSessionId;
         this.quizSessionService = quizSessionService;
         this.socketService = socketService;
         this.taskSchedulingService = taskSchedulingService;
@@ -37,65 +37,66 @@ export class EndQuizTask implements ScheduledTask<QuizSessionDocument> {
     async execute() {
         try {
             logger.info(
-                `Ending quiz session ${this.quizId.toString()} by ${this.userId.toString()}`
+                `Ending quiz session ${this.quizSessionId.toString()} by ${this.userId.toString()}`
             );
             const quizEndTime = Date.now();
             const countCancelled = await this.taskSchedulingService.disable({
                 "data.userId": this.userId,
-                "data.quizId": this.quizId,
+                "data.quizSessionId": this.quizSessionId,
             });
             if (countCancelled === 0) {
                 logger.debug(
-                    `Didn't disable any end quiz task similar to quiz ${this.quizId.toString()}`
+                    `Didn't disable any end quiz task similar to quiz ${this.quizSessionId.toString()}`
                 );
             } else {
                 logger.debug(
-                    `Disabled ${countCancelled} end quiz task similar to quiz ${this.quizId.toString()}`
+                    `Disabled ${countCancelled} end quiz task similar to quiz ${this.quizSessionId.toString()}`
                 );
             }
 
-            const quiz = await this.quizSessionService.getUserOngoingQuizById(
-                this.quizId,
-                this.userId
-            );
+            const quizSession =
+                await this.quizSessionService.getOngoingQuizSessionOfUser(
+                    this.quizSessionId,
+                    this.userId
+                );
 
-            if (!quiz) {
+            if (!quizSession) {
                 throw new Error(
                     `The requested quiz was not found, or may have already finished`
                 );
             }
 
-            quiz.questions.forEach((question) => {
+            quizSession.questions.forEach((question) => {
                 this.questionService.processQuestionAnswer(question);
             });
-            quiz.status = QuizStatus.ENDED;
-            quiz.endedAt = quizEndTime;
+            quizSession.status = QuizStatus.ENDED;
+            quizSession.endedAt = quizEndTime;
             let cur = 0,
                 tot = 0;
-            quiz.questions.forEach((question) => {
+            quizSession.questions.forEach((question) => {
                 tot++;
                 if (question.isCorrect) {
                     cur++;
                 }
             });
-            quiz.standardizedScore = tot === 0 ? 0 : (10 * cur) / tot;
+            quizSession.standardizedScore = tot === 0 ? 0 : (10 * cur) / tot;
 
             // let's use atomic operation instead of save(), because a
             // race condition might occur and prevent us from ending the quiz
             const result = await this.quizSessionService.findOneAndUpdate(
-                { _id: this.quizId },
+                { _id: this.quizSessionId },
                 {
-                    questions: quiz.questions,
+                    questions: quizSession.questions,
                     status: QuizStatus.ENDED,
                     endedAt: quizEndTime,
-                    standardizedScore: quiz.standardizedScore,
+                    standardizedScore: quizSession.standardizedScore,
                 },
                 { new: true }
             );
 
             this.socketService.endQuizSession(
                 this.userId.toString(),
-                this.quizId.toString()
+                this.quizSessionId.toString()
             );
 
             return result;

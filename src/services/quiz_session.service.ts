@@ -44,7 +44,7 @@ export class QuizSessionService {
         )[0];
     }
 
-    async getQuizById(id: Types.ObjectId) {
+    async getById(id: Types.ObjectId) {
         return await QuizSessionModel.findById(id);
     }
 
@@ -59,54 +59,15 @@ export class QuizSessionService {
         });
     }
 
-    async getUserOngoingQuizById(
-        quizId: Types.ObjectId,
+    async getOngoingQuizSessionOfUser(
+        quizSessionId: Types.ObjectId,
         userId: Types.ObjectId
     ) {
         return await QuizSessionModel.findOne({
-            _id: quizId,
+            _id: quizSessionId,
             userId: userId,
             status: QuizStatus.ONGOING,
         });
-    }
-
-    async getPaginated(
-        query: FilterQuery<QuizSessionDocument>,
-        projection: ProjectionType<QuizSessionDocument>,
-        populateOptions: PopulateOptions | (string | PopulateOptions)[],
-        pageSize: number,
-        pageNumber: number
-    ) {
-        return await Promise.all([
-            QuizSessionModel.count({
-                ...query,
-                deletedAt: { $exists: false },
-            }),
-            QuizSessionModel.find(
-                {
-                    ...query,
-                    deletedAt: { $exists: false },
-                },
-                projection
-            )
-                .skip(Math.max(pageSize * (pageNumber - 1), 0))
-                .limit(pageSize)
-                .populate(populateOptions),
-        ]);
-    }
-
-    async getPopulated(
-        query: FilterQuery<QuizSessionDocument>,
-        projection: ProjectionType<QuizSessionDocument>,
-        populateOptions: PopulateOptions | (string | PopulateOptions)[]
-    ) {
-        return await QuizSessionModel.find(
-            {
-                ...query,
-                deletedAt: { $exists: false },
-            },
-            projection
-        ).populate(populateOptions);
     }
 
     async getByIdPopulated(
@@ -125,5 +86,149 @@ export class QuizSessionService {
         options: QueryOptions = {}
     ) {
         return await QuizSessionModel.findOneAndUpdate(query, update, options);
+    }
+
+    public async getStatisticsGroupedBySubject(userId: Types.ObjectId) {
+        return await QuizSessionModel.aggregate([
+            {
+                $match: {
+                    userId: userId,
+                    status: QuizStatus.ENDED,
+                },
+            },
+            {
+                $lookup: {
+                    from: "quizzes",
+                    localField: "fromQuiz",
+                    foreignField: "_id",
+                    as: "fromQuiz",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$fromQuiz",
+                    includeArrayIndex: "string",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $lookup: {
+                    from: "subjects",
+                    localField: "fromQuiz.subject",
+                    foreignField: "_id",
+                    as: "fromQuiz.subject",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$fromQuiz.subject",
+                    includeArrayIndex: "string",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $group: {
+                    _id: "$fromQuiz.subject._id",
+                    name: { $first: "$fromQuiz.subject.name" },
+                    total: { $count: {} },
+                    score: { $avg: "$standardizedScore" },
+                },
+            },
+        ]);
+    }
+
+    private preparePipelineForGetAll(
+        prePopulateQuery: FilterQuery<QuizSessionDocument>,
+        postPopulateQuery: FilterQuery<QuizSessionDocument>
+    ): PipelineStage[] {
+        return [
+            { $match: prePopulateQuery },
+            {
+                $lookup: {
+                    from: "quizzes",
+                    localField: "fromQuiz",
+                    foreignField: "_id",
+                    as: "fromQuiz",
+                },
+            },
+            { $unwind: "$fromQuiz" },
+            {
+                $lookup: {
+                    from: "subjects",
+                    localField: "fromQuiz.subject",
+                    foreignField: "_id",
+                    as: "fromQuiz.subject",
+                },
+            },
+            { $unwind: "$fromQuiz.subject" },
+            {
+                $lookup: {
+                    from: "chapters",
+                    localField: "fromQuiz.chapter",
+                    foreignField: "_id",
+                    as: "fromQuiz.chapter",
+                },
+            },
+            { $unwind: "$fromQuiz.chapter" },
+            { $project: { __v: 0, questions: 0 } },
+            { $match: postPopulateQuery },
+        ];
+    }
+
+    public async getPaginated(
+        prePopulateQuery: FilterQuery<QuizSessionDocument>,
+        postPopulateQuery: FilterQuery<QuizSessionDocument>,
+        pageSize: number,
+        pageNumber: number
+    ) {
+        return await QuizSessionModel.aggregate([
+            ...this.preparePipelineForGetAll(
+                prePopulateQuery,
+                postPopulateQuery
+            ),
+            {
+                $facet: {
+                    metadata: [{ $count: "total" }],
+                    result: [
+                        { $skip: Math.max((pageNumber - 1) * pageSize, 0) },
+                        { $limit: pageSize },
+                    ],
+                },
+            },
+            {
+                $set: {
+                    total: {
+                        $ifNull: [{ $arrayElemAt: ["$metadata.total", 0] }, 0],
+                    },
+                },
+            },
+            { $project: { metadata: 0 } },
+        ]);
+    }
+
+    public async getAllPopulated(
+        prePopulateQuery: FilterQuery<QuizSessionDocument>,
+        postPopulateQuery: FilterQuery<QuizSessionDocument>
+    ) {
+        return await QuizSessionModel.aggregate([
+            ...this.preparePipelineForGetAll(
+                prePopulateQuery,
+                postPopulateQuery
+            ),
+            {
+                $facet: {
+                    metadata: [{ $count: "total" }],
+                    result: [],
+                },
+            },
+            {
+                $set: {
+                    total: {
+                        $ifNull: [{ $arrayElemAt: ["$metadata.total", 0] }, 0],
+                    },
+                },
+            },
+            { $project: { metadata: 0 } },
+        ]);
     }
 }

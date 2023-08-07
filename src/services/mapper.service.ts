@@ -12,26 +12,7 @@ export class MapperService {
     adjustQuizSessionAccordingToStatus(quizSession: QuizSessionDocument) {
         const status = quizSession.status;
 
-        const data = _.omit(quizSession.toObject(), [
-            "fromQuiz.potentialQuestions",
-            "fromQuiz.subject.createdBy",
-            "fromQuiz.subject.createdAt",
-            "fromQuiz.duration",
-            "fromQuiz.sampleSize",
-            "fromQuiz.createdBy",
-            "fromQuiz.createdAt",
-            "fromQuiz.lastUpdatedAt",
-            "fromQuiz.__v",
-            "fromQuiz.subject.__v",
-            "fromQuiz.subject.createdAt",
-            "fromQuiz.subject.createdBy",
-            "fromQuiz.subject.lastUpdatedAt",
-            "fromQuiz.chapter.__v",
-            "fromQuiz.chapter.createdAt",
-            "fromQuiz.chapter.createdBy",
-            "fromQuiz.chapter.lastUpdatedAt",
-            "__v",
-        ]);
+        const data = quizSession.toObject();
 
         switch (status) {
             case QuizStatus.ONGOING: {

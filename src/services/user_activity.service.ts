@@ -10,11 +10,12 @@ import {
     QueryOptions,
     Types,
 } from "mongoose";
+import { logger } from "../lib/logger";
 
 @injectable()
 export class UserActivityService {
     constructor() {
-        console.log("[UserActivity] Initializing...");
+        logger.info("[UserActivity] Initializing...");
     }
 
     public async create(

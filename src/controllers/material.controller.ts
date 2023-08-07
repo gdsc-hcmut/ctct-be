@@ -67,25 +67,17 @@ export class MaterialController extends Controller {
                     createdAt: 0,
                     lastUpdatedAt: 0,
                 },
-                ["subject", "chapter"]
+                [
+                    { path: "subject", select: "_id name" },
+                    { path: "chapter", select: "_id name" },
+                ]
             );
 
             if (!material) {
                 throw new Error(`Material not found`);
             }
 
-            const result = _.omit(material.toObject(), [
-                "subject.__v",
-                "subject.createdAt",
-                "subject.createdBy",
-                "subject.lastUpdatedAt",
-                "chapter.__v",
-                "chapter.createdAt",
-                "chapter.createdBy",
-                "chapter.lastUpdatedAt",
-            ]);
-
-            res.composer.success(result);
+            res.composer.success(material);
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -169,53 +161,43 @@ export class MaterialController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const hiddenFields = [
-                "subject.__v",
-                "subject.createdAt",
-                "subject.createdBy",
-                "subject.lastUpdatedAt",
-                "chapter.__v",
-                "chapter.createdAt",
-                "chapter.createdBy",
-                "chapter.lastUpdatedAt",
-            ];
-
             if (req.query.pagination === "false") {
-                const result = (
-                    await this.materialService.getPopulated(
-                        query,
-                        {
-                            __v: 0,
-                            resource: 0,
-                            createdBy: 0,
-                            createdAt: 0,
-                            lastUpdatedAt: 0,
-                        },
-                        ["subject", "chapter"]
-                    )
-                ).map((material) => _.omit(material.toObject(), hiddenFields));
+                const result = await this.materialService.getPopulated(
+                    query,
+                    {
+                        __v: 0,
+                        resource: 0,
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                    },
+                    [
+                        { path: "subject", select: "_id name" },
+                        { path: "chapter", select: "_id name" },
+                    ]
+                );
                 res.composer.success({
                     total: result.length,
                     result,
                 });
             } else {
-                const [total, unmappedResult] =
-                    await this.materialService.getPaginated(
-                        query,
-                        {
-                            __v: 0,
-                            resource: 0,
-                            createdBy: 0,
-                            createdAt: 0,
-                            lastUpdatedAt: 0,
-                        },
-                        ["subject", "chapter"],
-                        pageSize,
-                        pageNumber
-                    );
-                const result = unmappedResult.map((material) =>
-                    _.omit(material.toObject(), hiddenFields)
+                const [total, result] = await this.materialService.getPaginated(
+                    query,
+                    {
+                        __v: 0,
+                        resource: 0,
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                    },
+                    [
+                        { path: "subject", select: "_id name" },
+                        { path: "chapter", select: "_id name" },
+                    ],
+                    pageSize,
+                    pageNumber
                 );
+
                 res.composer.success({
                     total,
                     pageCount: Math.max(Math.ceil(total / pageSize), 1),
