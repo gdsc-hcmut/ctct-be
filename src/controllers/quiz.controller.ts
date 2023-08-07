@@ -71,53 +71,41 @@ export class QuizController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const hiddenFields = [
-                "subject.__v",
-                "subject.createdAt",
-                "subject.createdBy",
-                "subject.lastUpdatedAt",
-                "chapter.__v",
-                "chapter.createdAt",
-                "chapter.createdBy",
-                "chapter.lastUpdatedAt",
-            ];
-
             if (req.query.pagination === "false") {
-                const result = (
-                    await this.quizService.getPopulated(
-                        query,
-                        {
-                            potentialQuestions: 0,
-                            createdAt: 0,
-                            createdBy: 0,
-                            lastUpdatedAt: 0,
-                            __v: 0,
-                        },
-                        ["subject", "chapter"]
-                    )
-                ).map((quiz) => _.omit(quiz.toObject(), hiddenFields));
+                const result = await this.quizService.getPopulated(
+                    query,
+                    {
+                        potentialQuestions: 0,
+                        createdAt: 0,
+                        createdBy: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
+                    [
+                        { path: "subject", select: "_id name" },
+                        { path: "chapter", select: "_id name" },
+                    ]
+                );
                 res.composer.success({
                     total: result.length,
                     result,
                 });
             } else {
-                const [total, unmappedResult] =
-                    await this.quizService.getPaginated(
-                        query,
-                        {
-                            potentialQuestions: 0,
-                            createdAt: 0,
-                            createdBy: 0,
-                            lastUpdatedAt: 0,
-                            __v: 0,
-                        },
-                        ["subject", "chapter"],
-                        pageSize,
-                        pageNumber
-                    );
-
-                const result = unmappedResult.map((quiz) =>
-                    _.omit(quiz.toObject(), hiddenFields)
+                const [total, result] = await this.quizService.getPaginated(
+                    query,
+                    {
+                        potentialQuestions: 0,
+                        createdAt: 0,
+                        createdBy: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
+                    [
+                        { path: "subject", select: "_id name" },
+                        { path: "chapter", select: "_id name" },
+                    ],
+                    pageSize,
+                    pageNumber
                 );
 
                 res.composer.success({

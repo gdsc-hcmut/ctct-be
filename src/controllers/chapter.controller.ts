@@ -52,21 +52,17 @@ export class ChapterController extends Controller {
                     lastUpdatedAt: 0,
                     __v: 0,
                 },
-                ["subject"]
+                {
+                    path: "subject",
+                    select: "_id name",
+                }
             );
 
             if (!chapter) {
                 throw new Error(`Chapter does not exist`);
             }
 
-            const result = _.omit(chapter.toObject(), [
-                "subject.__v",
-                "subject.createdAt",
-                "subject.createdBy",
-                "subject.lastUpdatedAt",
-            ]);
-
-            res.composer.success(result);
+            res.composer.success(chapter);
         } catch (error) {
             logger.error(error.message);
             console.error(error);
@@ -93,47 +89,40 @@ export class ChapterController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const hiddenFields = [
-                "subject.__v",
-                "subject.createdAt",
-                "subject.createdBy",
-                "subject.lastUpdatedAt",
-            ];
-
             if (req.query.pagination === "false") {
-                const result = (
-                    await this.chapterService.getPopulated(
-                        query,
-                        {
-                            createdAt: 0,
-                            createdBy: 0,
-                            lastUpdatedAt: 0,
-                            __v: 0,
-                        },
-                        ["subject"]
-                    )
-                ).map((chapter) => _.omit(chapter.toObject(), hiddenFields));
+                const result = await this.chapterService.getPopulated(
+                    query,
+                    {
+                        createdAt: 0,
+                        createdBy: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
+                    {
+                        path: "subject",
+                        select: "_id name",
+                    }
+                );
+
                 res.composer.success({
                     total: result.length,
                     result,
                 });
             } else {
-                const [total, unmappedResult] =
-                    await this.chapterService.getPaginated(
-                        query,
-                        {
-                            createdAt: 0,
-                            createdBy: 0,
-                            lastUpdatedAt: 0,
-                            __v: 0,
-                        },
-                        ["subject"],
-                        pageSize,
-                        pageNumber
-                    );
-
-                const result = unmappedResult.map((chapter) =>
-                    _.omit(chapter.toObject(), hiddenFields)
+                const [total, result] = await this.chapterService.getPaginated(
+                    query,
+                    {
+                        createdAt: 0,
+                        createdBy: 0,
+                        lastUpdatedAt: 0,
+                        __v: 0,
+                    },
+                    {
+                        path: "subject",
+                        select: "_id name",
+                    },
+                    pageSize,
+                    pageNumber
                 );
 
                 res.composer.success({

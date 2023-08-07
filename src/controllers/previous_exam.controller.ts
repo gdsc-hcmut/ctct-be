@@ -72,25 +72,14 @@ export class PreviousExamController extends Controller {
                         createdAt: 0,
                         lastUpdatedAt: 0,
                     },
-                    ["subject"]
+                    { path: "subject", select: "_id name" }
                 );
 
             if (!previousExam) {
                 throw new Error(`Previous exam not found`);
             }
 
-            const result = _.omit(previousExam.toObject(), [
-                "subject.__v",
-                "subject.createdAt",
-                "subject.createdBy",
-                "subject.lastUpdatedAt",
-                "chapter.__v",
-                "chapter.createdAt",
-                "chapter.createdBy",
-                "chapter.lastUpdatedAt",
-            ]);
-
-            res.composer.success(result);
+            res.composer.success(previousExam);
         } catch (error) {
             logger.error(error.message);
             console.log(error);
@@ -182,39 +171,25 @@ export class PreviousExamController extends Controller {
                 ? parseInt(req.query.pageNumber as string)
                 : 1;
 
-            const hiddenFields = [
-                "subject.__v",
-                "subject.createdAt",
-                "subject.createdBy",
-                "subject.lastUpdatedAt",
-                "chapter.__v",
-                "chapter.createdAt",
-                "chapter.createdBy",
-                "chapter.lastUpdatedAt",
-            ];
-
             if (req.query.pagination === "false") {
-                const result = (
-                    await this.previousExamService.getPopulated(
-                        query,
-                        {
-                            __v: 0,
-                            resource: 0,
-                            createdBy: 0,
-                            createdAt: 0,
-                            lastUpdatedAt: 0,
-                        },
-                        ["subject"]
-                    )
-                ).map((previousExam) =>
-                    _.omit(previousExam.toObject(), hiddenFields)
+                const result = await this.previousExamService.getPopulated(
+                    query,
+                    {
+                        __v: 0,
+                        resource: 0,
+                        createdBy: 0,
+                        createdAt: 0,
+                        lastUpdatedAt: 0,
+                    },
+                    { path: "subject", select: "_id name" }
                 );
+
                 res.composer.success({
                     total: result.length,
                     result,
                 });
             } else {
-                const [total, unmappedResult] =
+                const [total, result] =
                     await this.previousExamService.getPaginated(
                         query,
                         {
@@ -224,14 +199,10 @@ export class PreviousExamController extends Controller {
                             createdAt: 0,
                             lastUpdatedAt: 0,
                         },
-                        ["subject"],
+                        { path: "subject", select: "_id name" },
                         pageSize,
                         pageNumber
                     );
-
-                const result = unmappedResult.map((previousExam) =>
-                    _.omit(previousExam.toObject(), hiddenFields)
-                );
 
                 res.composer.success({
                     total,
