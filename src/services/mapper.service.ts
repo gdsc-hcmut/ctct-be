@@ -28,10 +28,12 @@ export class MapperService {
                             "userNote",
                         ])
                     ),
-                    timeLeft:
+                    timeLeft: Math.max(
                         quizSession.startedAt +
-                        quizSession.duration -
-                        Date.now(),
+                            quizSession.duration -
+                            Date.now(),
+                        0
+                    ),
                 };
             }
             case QuizStatus.ENDED: {
