@@ -42,7 +42,7 @@ const userSchema = new Schema<UserDocument>({
     dateOfBirth: Number,
     gender: { type: String, enum: Gender },
     email: { type: String, default: "" },
-    phoneNumber: { String, default: "" },
+    phoneNumber: { type: String, default: "" },
 });
 
 const User = mongoose.model<UserDocument>("User", userSchema);

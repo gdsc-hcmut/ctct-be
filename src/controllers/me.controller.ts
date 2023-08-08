@@ -96,7 +96,7 @@ export class MeController extends Controller {
             }
 
             const validPhoneNumber =
-                info.phoneNumber !== undefined &&
+                info.phoneNumber === undefined ||
                 /^[0-9]*$/.test(info.phoneNumber);
             if (!validPhoneNumber) {
                 throw new Error("Invalid phone number");
