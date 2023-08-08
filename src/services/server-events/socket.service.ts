@@ -20,11 +20,7 @@ export class SocketService {
         );
         SocketConnectionRegistry.instance().addConnection(socket);
 
-        // bind some events
-
-        // disconnect event
-        SocketConnectionRegistry.instance().removeConnection(socket);
-        this.socketServer.on(SocketEventType.DISCONNECT, (reason: string) => {
+        socket.on(SocketEventType.DISCONNECT, (reason: string) => {
             logger.debug(
                 `[Socket] ${SocketEventType.DISCONNECT}: ${socket.userId} has disconnected!`
             );
