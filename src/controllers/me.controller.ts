@@ -178,8 +178,34 @@ export class MeController extends Controller {
                     pageNumber
                 );
 
+            const [
+                countViewMaterial,
+                countViewPreviousExam,
+                countStartQuizSession,
+            ] = await Promise.all([
+                this.userActivityService.getTypeCountOfUser(
+                    userId,
+                    UserActivityType.VIEW_MATERIAL
+                ),
+                this.userActivityService.getTypeCountOfUser(
+                    userId,
+                    UserActivityType.VIEW_PREVIOUS_EXAM
+                ),
+                this.userActivityService.getTypeCountOfUser(
+                    userId,
+                    UserActivityType.START_QUIZ_SESSION
+                ),
+            ]);
+
             res.composer.success({
                 total,
+                count: {
+                    [UserActivityType.VIEW_MATERIAL]: countViewMaterial,
+                    [UserActivityType.VIEW_PREVIOUS_EXAM]:
+                        countViewPreviousExam,
+                    [UserActivityType.START_QUIZ_SESSION]:
+                        countStartQuizSession,
+                },
                 pageCount: Math.max(Math.ceil(total / pageSize), 1),
                 pageSize,
                 results: activities,
