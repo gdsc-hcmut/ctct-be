@@ -18,6 +18,7 @@ import {
     UserActivityType,
 } from "../models/user_activity.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
+import _ from "lodash";
 
 @injectable()
 export class MeController extends Controller {
@@ -178,8 +179,33 @@ export class MeController extends Controller {
                     pageNumber
                 );
 
+            const activityCount = await Promise.all(
+                Object.values(UserActivityType).map((type) =>
+                    (async () => {
+                        return {
+                            [type]: await this.userActivityService.getTypeCountOfUser(
+                                userId,
+                                type
+                            ),
+                        };
+                    })()
+                )
+            );
+
+            const count = _.reduce(
+                activityCount,
+                (result, value) => {
+                    return {
+                        ...result,
+                        ...value,
+                    };
+                },
+                {}
+            );
+
             res.composer.success({
                 total,
+                count,
                 pageCount: Math.max(Math.ceil(total / pageSize), 1),
                 pageSize,
                 results: activities,

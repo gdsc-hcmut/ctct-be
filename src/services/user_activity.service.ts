@@ -93,4 +93,15 @@ export class UserActivityService {
             projection
         );
     }
+
+    public async getTypeCountOfUser(
+        userId: Types.ObjectId,
+        type: UserActivityType
+    ) {
+        return await UserActivityModel.count({
+            userId,
+            type,
+            deletedAt: { $exists: false },
+        });
+    }
 }
