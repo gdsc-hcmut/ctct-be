@@ -24,7 +24,6 @@ import {
 } from "./GrammarParser";
 import GrammarVisitor from "./GrammarVisitor";
 import mathStdlib from "@stdlib/stdlib";
-import { permutations } from "mathjs";
 
 export type QuestionReturnType = number | string | boolean | void;
 const DEFAULT_EPS = 1e-9;
@@ -450,12 +449,6 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     throw new Error(`'from' is greater than 'to' in 'rrand'`);
                 }
                 return _.random(from, to, true);
-            }
-            case "nonzerorand": {
-                throw new Error(`Not implemented yet :P`);
-            }
-            case "nonzerorrand": {
-                throw new Error(`Not implemented yet :P`);
             }
             case "choice": {
                 if (exprList.length === 0) {
@@ -948,7 +941,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 const [nInt, kInt] = [Math.round(n), Math.round(k)];
                 if (!(nInt + kInt - 1 >= kInt)) {
                     throw new Error(
-                        `'combinationsWithRep' expects to receive n + k - 1 >= k, received (${nInt}, ${kInt})`
+                        `'combinationsWithRep' expects to receive n + k - 1 >= k. n = ${n}, k = ${k} does not satisfy this`
                     );
                 }
                 return mathStdlib.math.base.special.binomcoef(
@@ -988,7 +981,10 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'permutations' expects to receive n >= k, received (${nInt}, ${kInt})`
                     );
                 }
-                return permutations(n, k);
+                return (
+                    mathStdlib.math.base.special.binomcoef(nInt, kInt) *
+                    mathStdlib.math.base.special.factorial(kInt)
+                );
             }
             case "max": {
                 if (exprList.length === 0) {
@@ -1038,7 +1034,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 return mathStdlib.stats.base.dists.normal.cdf(x, mean, std);
             }
             case "normalQuantile": {
-                if (exprList.length !== 1) {
+                if (exprList.length !== 3) {
                     throw new Error(
                         `'normalQuantile' expects exactly one argument, received ${exprList.length}`
                     );
@@ -1053,16 +1049,16 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'normalQuantile' expects to receive a number argument, received ${typeof arg1}`
                     );
                 }
-                let [x] = [arg1 as number];
+                let p = arg1 as number;
                 const [mean, std] = [arg2 as number, arg3 as number];
-                if (x < -1 - DEFAULT_EPS || x > 1 + DEFAULT_EPS) {
+                if (p < -DEFAULT_EPS || p > 1 + DEFAULT_EPS) {
                     throw new Error(
-                        `'normalQuantile' expects to receive a number in range [-1, 1], received ${x}`
+                        `'normalQuantile' expects to receive a number in range [-1, 1], received ${p}`
                     );
                 }
-                x = _.clamp(x, -1, 1);
+                p = _.clamp(p, 0, 1);
                 return mathStdlib.stats.base.dists.normal.quantile(
-                    x,
+                    p,
                     mean,
                     std
                 );
@@ -1111,7 +1107,8 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'tQuantile' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
                     );
                 }
-                const [x, v] = [arg1 as number, arg2 as number];
+                let p = arg1 as number;
+                const v = arg2 as number;
                 if (!isInt(v)) {
                     throw new Error(
                         `'tQuantile' expects to receive an integer as second argument, received ${v}`
@@ -1123,8 +1120,14 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'tQuantile' expects to receive a positive integer as second argument, received ${degreeOfFreedom}`
                     );
                 }
+                if (p < -DEFAULT_EPS || p > 1 + DEFAULT_EPS) {
+                    throw new Error(
+                        `'tQuantile' expects to receive a number in range [0, 1], received ${p}`
+                    );
+                }
+                p = _.clamp(p, 0, 1);
                 return mathStdlib.stats.base.dists.t.quantile(
-                    x,
+                    p,
                     degreeOfFreedom
                 );
             }
@@ -1193,11 +1196,14 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'fQuantile' expects to receive three number arguments, received ${typeof arg1}, ${typeof arg2} and ${typeof arg3}`
                     );
                 }
-                const [x, v1, v2] = [
-                    arg1 as number,
-                    arg2 as number,
-                    arg3 as number,
-                ];
+                let p = arg1 as number;
+                const [v1, v2] = [arg2 as number, arg3 as number];
+                if (p < -DEFAULT_EPS || p > 1 + DEFAULT_EPS) {
+                    throw new Error(
+                        `'fQuantile' expects to receive a number between 0 and 1 as first argument, received ${p}`
+                    );
+                }
+                p = _.clamp(p, 0, 1);
                 if (!isInt(v1) || !isInt(v2)) {
                     throw new Error(
                         `'fQuantile' expects to receive two integers as second and third arguments, received ${v1} and ${v2}`
@@ -1213,12 +1219,69 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 return mathStdlib.stats.base.dists.f.quantile(
-                    x,
+                    p,
                     degreeOfFreedom1,
                     degreeOfFreedom2
                 );
             }
-            case "binomCdf": {
+            case "binomial": {
+                if (exprList.length !== 3) {
+                    throw new Error(
+                        `'binom' expects exactly three arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2, arg3] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                    this.visit(exprList[2]),
+                ];
+                if (
+                    typeof arg1 !== "number" ||
+                    typeof arg2 !== "number" ||
+                    typeof arg3 !== "number"
+                ) {
+                    throw new Error(
+                        `'binom' expects to receive three number arguments, received ${typeof arg1}, ${typeof arg2} and ${typeof arg3}`
+                    );
+                }
+                const [x, n, p] = [
+                    arg1 as number,
+                    arg2 as number,
+                    arg3 as number,
+                ];
+                if (!isInt(x) || !isInt(n)) {
+                    throw new Error(
+                        `'binom' expects to receive two integers as first and second arguments, received ${x} and ${n}`
+                    );
+                }
+                const [value, numTrials] = [Math.round(x), Math.round(n)];
+                let probSuccess = p;
+                if (!(value >= 0 && value <= numTrials)) {
+                    throw new Error(
+                        `'binomCdf' expects to receive value in range [0, ${numTrials}], received ${value} and ${numTrials}`
+                    );
+                }
+                if (numTrials < 0) {
+                    throw new Error(
+                        `'binomCdf' expects to receive a positive integer as second argument, received ${numTrials}`
+                    );
+                }
+                if (
+                    probSuccess < -DEFAULT_EPS ||
+                    probSuccess > 1 + DEFAULT_EPS
+                ) {
+                    throw new Error(
+                        `'binomCdf' expects to receive a number in range [0, 1], received ${probSuccess}`
+                    );
+                }
+                probSuccess = _.clamp(probSuccess, 0, 1);
+                return mathStdlib.stats.base.dists.binomial.pmf(
+                    value,
+                    numTrials,
+                    probSuccess
+                );
+            }
+            case "binomialCdf": {
                 if (exprList.length !== 3) {
                     throw new Error(
                         `'binomCdf' expects exactly three arguments, received ${exprList.length}`
@@ -1378,6 +1441,39 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 return mathStdlib.stats.base.dists.exponential.cdf(x, lambda);
+            }
+            case "exponentialQuantile": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'exponentialQuantile' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `'exponentialQuantile' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
+                    );
+                }
+                let p = arg1 as number;
+                const lambda = arg2 as number;
+                if (lambda <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'exponentialQuantile' expects to receive a positive number as second argument, received ${lambda}`
+                    );
+                }
+                if (p < -DEFAULT_EPS || p > 1 + DEFAULT_EPS) {
+                    throw new Error(
+                        `'exponentialQuantile' expects to receive a number between 0 and 1 as first argument, received ${p}`
+                    );
+                }
+                p = _.clamp(p, 0, 1);
+                return mathStdlib.stats.base.dists.exponential.quantile(
+                    p,
+                    lambda
+                );
             }
             default: {
                 throw new Error(`Unknown function name ${funcName}`);

@@ -49,7 +49,6 @@
         "leetcode-query": "^0.2.5",
         "lodash": "^4.17.11",
         "mailgun-js": "^0.22.0",
-        "mathjs": "^11.9.1",
         "moment": "^2.24.0",
         "mongoose": "^6.6.1",
         "mqtt": "^4.2.6",
