@@ -356,10 +356,10 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
         const funcName = ctx.ID().getText();
         const exprList = ctx.expr_list();
         switch (funcName) {
-            case "bool": {
+            case "boolean": {
                 if (exprList.length !== 1) {
                     throw new Error(
-                        `'bool' expects exactly one argument, received ${exprList.length}`
+                        `'boolean' expects exactly one argument, received ${exprList.length}`
                     );
                 }
                 const arg = this.visit(exprList[0]);
@@ -367,11 +367,11 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 else if (typeof arg === "number") return arg !== 0;
                 else if (typeof arg === "string")
                     throw new Error(
-                        `Conversion from 'string' to 'bool' is not allowed`
+                        `Conversion from 'string' to 'boolean' is not allowed`
                     );
                 else
                     throw new Error(
-                        `Unknown type ${typeof arg} used in function 'bool'`
+                        `Unknown type ${typeof arg} used in function 'boolean'`
                     );
             }
             case "number": {
