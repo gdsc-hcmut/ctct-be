@@ -1,3 +1,4 @@
+import _ from "lodash";
 import {
     AdditionContext,
     AssignmentContext,
@@ -5,7 +6,6 @@ import {
     DisjunctionContext,
     DivisionContext,
     EqualComparisonContext,
-    ExprContext,
     FunctionCallContext,
     GreaterComparisonContext,
     IdentifierContext,
@@ -23,6 +23,8 @@ import {
     SubtractionContext,
 } from "./GrammarParser";
 import GrammarVisitor from "./GrammarVisitor";
+import mathStdlib from "@stdlib/stdlib";
+import { permutations } from "mathjs";
 
 export type QuestionReturnType = number | string | boolean | void;
 const DEFAULT_EPS = 1e-9;
@@ -152,13 +154,6 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
             );
         }
         const expr = this.visit(exprCtx);
-        if (this.symbols.has(id)) {
-            throw new Error(
-                `Variables are immutable. '${id}' already has a value (${this.symbols.get(
-                    id
-                )})`
-            );
-        }
         this.symbols.set(id, expr);
         return expr;
     };
@@ -354,6 +349,11 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
         if (!ctx.RPAREN()) {
             throw new Error(`Expected ')' for function call`);
         }
+
+        const isInt = (value: number) => {
+            return Math.abs(value - Math.round(value)) <= DEFAULT_EPS;
+        };
+
         const funcName = ctx.ID().getText();
         const exprList = ctx.expr_list();
         switch (funcName) {
@@ -429,7 +429,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 if (f > t) {
                     throw new Error(`'from' is greater than 'to' in 'rand'`);
                 }
-                return Math.floor(Math.random() * (t - f + 1) + f);
+                return _.random(f, t, false);
             }
             case "rrand": {
                 if (exprList.length !== 2) {
@@ -449,10 +449,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                 if (from > to) {
                     throw new Error(`'from' is greater than 'to' in 'rrand'`);
                 }
-                return (
-                    Math.random() * ((to as number) - (from as number)) +
-                    (from as number)
-                );
+                return _.random(from, to, true);
             }
             case "nonzerorand": {
                 throw new Error(`Not implemented yet :P`);
@@ -618,7 +615,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `Argument to 'arcsin' should be in range [-1, 1] (received ${num})`
                     );
                 }
-                num = Math.max(-1, Math.min(1, x));
+                num = _.clamp(num, -1, 1);
                 return Math.asin(num);
             }
             case "arccos": {
@@ -639,7 +636,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `Argument to 'arccos' should be in range [-1, 1] (received ${num})`
                     );
                 }
-                num = Math.max(-1, Math.min(1, x));
+                num = _.clamp(num, -1, 1);
                 return Math.acos(num);
             }
             case "arctan": {
@@ -805,6 +802,582 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 return Math.log2(x);
+            }
+            case "pow": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'pow' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `Both arguments to 'pow' should be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
+                    );
+                }
+                const [x, y] = [arg1 as number, arg2 as number];
+                if (Math.abs(x) <= DEFAULT_EPS && Math.abs(y) <= DEFAULT_EPS) {
+                    throw new Error(
+                        `(0, 0) is undefined for 'pow'. Received (${x}, ${y})`
+                    );
+                }
+                return Math.pow(x, y);
+            }
+            case "sgn": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'sgn' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'sgn' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                if (Math.abs(x) <= DEFAULT_EPS) {
+                    return 0;
+                }
+                return Math.sign(x);
+            }
+            case "exp": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'exp' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'exp' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                return Math.exp(x);
+            }
+            case "factorial": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'factorial' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1] = [this.visit(exprList[0])];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'factorial' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                const [x] = [arg1 as number];
+                if (x < -DEFAULT_EPS) {
+                    throw new Error(
+                        `'factorial' expects to receive a non-negative number, received ${x}`
+                    );
+                }
+                if (!isInt(x)) {
+                    throw new Error(
+                        `'factorial' expects to receive an integer, received ${x}`
+                    );
+                }
+                const num = Math.round(x);
+                return mathStdlib.math.base.special.factorial(num);
+            }
+            case "combinations": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'combinations' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `Both arguments to 'combinations' should be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
+                    );
+                }
+                const [n, k] = [arg1 as number, arg2 as number];
+                if (n < -DEFAULT_EPS || k < -DEFAULT_EPS) {
+                    throw new Error(
+                        `'combinations' expects to receive non-negative numbers, received (${n}, ${k})`
+                    );
+                }
+                if (!isInt(n) || !isInt(k)) {
+                    throw new Error(
+                        `'combinations' expects to receive integers, received (${n}, ${k})`
+                    );
+                }
+                const [nInt, kInt] = [Math.round(n), Math.round(k)];
+                if (!(nInt >= kInt)) {
+                    throw new Error(
+                        `'combinations' expects to receive n >= k, received (${nInt}, ${kInt})`
+                    );
+                }
+                return mathStdlib.math.base.special.binomcoef(nInt, kInt);
+            }
+            case "combinationsWithRep": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'combinationsWithRep' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `Both arguments to 'combinationsWithRep' should be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
+                    );
+                }
+                const [n, k] = [arg1 as number, arg2 as number];
+                if (n < -DEFAULT_EPS || k < -DEFAULT_EPS) {
+                    throw new Error(
+                        `'combinationsWithRep' expects to receive non-negative numbers, received (${n}, ${k})`
+                    );
+                }
+                if (!isInt(n) || !isInt(k)) {
+                    throw new Error(
+                        `'combinationsWithRep' expects to receive integers, received (${n}, ${k})`
+                    );
+                }
+                const [nInt, kInt] = [Math.round(n), Math.round(k)];
+                if (!(nInt + kInt - 1 >= kInt)) {
+                    throw new Error(
+                        `'combinationsWithRep' expects to receive n + k - 1 >= k, received (${nInt}, ${kInt})`
+                    );
+                }
+                return mathStdlib.math.base.special.binomcoef(
+                    nInt + kInt - 1,
+                    kInt
+                );
+            }
+            case "permutations": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'permutations' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `Both arguments to 'permutations' should be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
+                    );
+                }
+                const [n, k] = [arg1 as number, arg2 as number];
+                if (n < -DEFAULT_EPS || k < -DEFAULT_EPS) {
+                    throw new Error(
+                        `'permutations' expects to receive non-negative numbers, received (${n}, ${k})`
+                    );
+                }
+                if (!isInt(n) || !isInt(k)) {
+                    throw new Error(
+                        `'permutations' expects to receive integers, received (${n}, ${k})`
+                    );
+                }
+                const [nInt, kInt] = [Math.round(n), Math.round(k)];
+                if (!(nInt >= kInt)) {
+                    throw new Error(
+                        `'permutations' expects to receive n >= k, received (${nInt}, ${kInt})`
+                    );
+                }
+                return permutations(n, k);
+            }
+            case "max": {
+                if (exprList.length === 0) {
+                    throw new Error(`'max' expects at least one argument`);
+                }
+                const items = _.map(exprList, (x) => this.visit(x));
+                if (_.some(items, (x) => typeof x !== "number")) {
+                    throw new Error(`'max' expects to receive only numbers`);
+                }
+                return _.max(items);
+            }
+            case "min": {
+                if (exprList.length === 0) {
+                    throw new Error(`'min' expects at least one argument`);
+                }
+                const items = _.map(exprList, (x) => this.visit(x));
+                if (_.some(items, (x) => typeof x !== "number")) {
+                    throw new Error(`'min' expects to receive only numbers`);
+                }
+                return _.min(items);
+            }
+            case "normalCdf": {
+                if (exprList.length !== 3) {
+                    throw new Error(
+                        `'normalCdf' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2, arg3] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                    this.visit(exprList[2]),
+                ];
+                if (
+                    typeof arg1 !== "number" ||
+                    typeof arg2 !== "number" ||
+                    typeof arg3 !== "number"
+                ) {
+                    throw new Error(
+                        `'normalCdf' expects to receive three number arguments, received ${typeof arg1}, ${typeof arg2} and ${typeof arg3}`
+                    );
+                }
+                const [x, mean, std] = [
+                    arg1 as number,
+                    arg2 as number,
+                    arg3 as number,
+                ];
+                return mathStdlib.stats.base.dists.normal.cdf(x, mean, std);
+            }
+            case "normalQuantile": {
+                if (exprList.length !== 1) {
+                    throw new Error(
+                        `'normalQuantile' expects exactly one argument, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2, arg3] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                    this.visit(exprList[2]),
+                ];
+                if (typeof arg1 !== "number") {
+                    throw new Error(
+                        `'normalQuantile' expects to receive a number argument, received ${typeof arg1}`
+                    );
+                }
+                let [x] = [arg1 as number];
+                const [mean, std] = [arg2 as number, arg3 as number];
+                if (x < -1 - DEFAULT_EPS || x > 1 + DEFAULT_EPS) {
+                    throw new Error(
+                        `'normalQuantile' expects to receive a number in range [-1, 1], received ${x}`
+                    );
+                }
+                x = _.clamp(x, -1, 1);
+                return mathStdlib.stats.base.dists.normal.quantile(
+                    x,
+                    mean,
+                    std
+                );
+            }
+            case "tCdf": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'tCdf' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `'tCdf' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
+                    );
+                }
+                const [x, v] = [arg1 as number, arg2 as number];
+                if (!isInt(v)) {
+                    throw new Error(
+                        `'tCdf' expects to receive an integer as second argument, received ${v}`
+                    );
+                }
+                const degreeOfFreedom = Math.round(v);
+                if (degreeOfFreedom < 1) {
+                    throw new Error(
+                        `'tCdf' expects to receive a positive integer as second argument, received ${degreeOfFreedom}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.t.cdf(x, degreeOfFreedom);
+            }
+            case "tQuantile": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'tQuantile' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `'tQuantile' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
+                    );
+                }
+                const [x, v] = [arg1 as number, arg2 as number];
+                if (!isInt(v)) {
+                    throw new Error(
+                        `'tQuantile' expects to receive an integer as second argument, received ${v}`
+                    );
+                }
+                const degreeOfFreedom = Math.round(v);
+                if (degreeOfFreedom < 1) {
+                    throw new Error(
+                        `'tQuantile' expects to receive a positive integer as second argument, received ${degreeOfFreedom}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.t.quantile(
+                    x,
+                    degreeOfFreedom
+                );
+            }
+            case "fCdf": {
+                if (exprList.length !== 3) {
+                    throw new Error(
+                        `'fCdf' expects exactly three arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2, arg3] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                    this.visit(exprList[2]),
+                ];
+                if (
+                    typeof arg1 !== "number" ||
+                    typeof arg2 !== "number" ||
+                    typeof arg3 !== "number"
+                ) {
+                    throw new Error(
+                        `'fCdf' expects to receive three number arguments, received ${typeof arg1}, ${typeof arg2} and ${typeof arg3}`
+                    );
+                }
+                const [x, v1, v2] = [
+                    arg1 as number,
+                    arg2 as number,
+                    arg3 as number,
+                ];
+                if (!isInt(v1) || !isInt(v2)) {
+                    throw new Error(
+                        `'fCdf' expects to receive two integers as second and third arguments, received ${v1} and ${v2}`
+                    );
+                }
+                const [degreeOfFreedom1, degreeOfFreedom2] = [
+                    Math.round(v1),
+                    Math.round(v2),
+                ];
+                if (degreeOfFreedom1 < 1 || degreeOfFreedom2 < 1) {
+                    throw new Error(
+                        `'fCdf' expects to receive two positive integers as second and third arguments, received ${degreeOfFreedom1} and ${degreeOfFreedom2}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.f.cdf(
+                    x,
+                    degreeOfFreedom1,
+                    degreeOfFreedom2
+                );
+            }
+            case "fQuantile": {
+                if (exprList.length !== 3) {
+                    throw new Error(
+                        `'fQuantile' expects exactly three arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2, arg3] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                    this.visit(exprList[2]),
+                ];
+                if (
+                    typeof arg1 !== "number" ||
+                    typeof arg2 !== "number" ||
+                    typeof arg3 !== "number"
+                ) {
+                    throw new Error(
+                        `'fQuantile' expects to receive three number arguments, received ${typeof arg1}, ${typeof arg2} and ${typeof arg3}`
+                    );
+                }
+                const [x, v1, v2] = [
+                    arg1 as number,
+                    arg2 as number,
+                    arg3 as number,
+                ];
+                if (!isInt(v1) || !isInt(v2)) {
+                    throw new Error(
+                        `'fQuantile' expects to receive two integers as second and third arguments, received ${v1} and ${v2}`
+                    );
+                }
+                const [degreeOfFreedom1, degreeOfFreedom2] = [
+                    Math.round(v1),
+                    Math.round(v2),
+                ];
+                if (degreeOfFreedom1 < 1 || degreeOfFreedom2 < 1) {
+                    throw new Error(
+                        `'fQuantile' expects to receive two positive integers as second and third arguments, received ${degreeOfFreedom1} and ${degreeOfFreedom2}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.f.quantile(
+                    x,
+                    degreeOfFreedom1,
+                    degreeOfFreedom2
+                );
+            }
+            case "binomCdf": {
+                if (exprList.length !== 3) {
+                    throw new Error(
+                        `'binomCdf' expects exactly three arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2, arg3] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                    this.visit(exprList[2]),
+                ];
+                if (
+                    typeof arg1 !== "number" ||
+                    typeof arg2 !== "number" ||
+                    typeof arg3 !== "number"
+                ) {
+                    throw new Error(
+                        `'binomCdf' expects to receive three number arguments, received ${typeof arg1}, ${typeof arg2} and ${typeof arg3}`
+                    );
+                }
+                const [x, n, p] = [
+                    arg1 as number,
+                    arg2 as number,
+                    arg3 as number,
+                ];
+                if (!isInt(x) || !isInt(n)) {
+                    throw new Error(
+                        `'binomCdf' expects to receive an integer as second argument, received ${n}`
+                    );
+                }
+                const [value, numTrials] = [Math.round(x), Math.round(n)];
+                let probSuccess = p;
+                if (!(value >= 0 && value <= numTrials)) {
+                    throw new Error(
+                        `'binomCdf' expects to receive value in range [0, ${numTrials}], received ${value} and ${numTrials}`
+                    );
+                }
+                if (numTrials < 0) {
+                    throw new Error(
+                        `'binomCdf' expects to receive a positive integer as second argument, received ${numTrials}`
+                    );
+                }
+                if (
+                    probSuccess < -DEFAULT_EPS ||
+                    probSuccess > 1 + DEFAULT_EPS
+                ) {
+                    throw new Error(
+                        `'binomCdf' expects to receive a number in range [0, 1], received ${probSuccess}`
+                    );
+                }
+                probSuccess = _.clamp(probSuccess, 0, 1);
+                return mathStdlib.stats.base.dists.binomial.cdf(
+                    value,
+                    numTrials,
+                    probSuccess
+                );
+            }
+            case "poisson": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'poisson' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `'poisson' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
+                    );
+                }
+                const [x, lambda] = [arg1 as number, arg2 as number];
+                if (!isInt(x)) {
+                    throw new Error(
+                        `'poisson' expects to receive an integer as first argument, received ${x}`
+                    );
+                }
+                const value = Math.round(x);
+                if (lambda <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'poisson' expects to receive a positive number as second argument, received ${lambda}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.poisson.pmf(value, lambda);
+            }
+            case "poissonCdf": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'poissonCdf' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `'poissonCdf' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
+                    );
+                }
+                const [x, lambda] = [arg1 as number, arg2 as number];
+                if (!isInt(x)) {
+                    throw new Error(
+                        `'poissonCdf' expects to receive an integer as first argument, received ${x}`
+                    );
+                }
+                const value = Math.round(x);
+                if (lambda <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'poissonCdf' expects to receive a positive number as second argument, received ${lambda}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.poisson.cdf(value, lambda);
+            }
+            case "exponential": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'exponential' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `'exponential' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
+                    );
+                }
+                const [x, lambda] = [arg1 as number, arg2 as number];
+                if (lambda <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'exponential' expects to receive a positive number as second argument, received ${lambda}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.exponential.pdf(x, lambda);
+            }
+            case "exponentialCdf": {
+                if (exprList.length !== 2) {
+                    throw new Error(
+                        `'exponentialCdf' expects exactly two arguments, received ${exprList.length}`
+                    );
+                }
+                const [arg1, arg2] = [
+                    this.visit(exprList[0]),
+                    this.visit(exprList[1]),
+                ];
+                if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+                    throw new Error(
+                        `'exponentialCdf' expects to receive two number arguments, received ${typeof arg1} and ${typeof arg2}`
+                    );
+                }
+                const [x, lambda] = [arg1 as number, arg2 as number];
+                if (lambda <= DEFAULT_EPS) {
+                    throw new Error(
+                        `'exponentialCdf' expects to receive a positive number as second argument, received ${lambda}`
+                    );
+                }
+                return mathStdlib.stats.base.dists.exponential.cdf(x, lambda);
             }
             default: {
                 throw new Error(`Unknown function name ${funcName}`);

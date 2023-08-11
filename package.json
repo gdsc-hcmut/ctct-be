@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "@google-cloud/storage": "^6.9.5",
+        "@stdlib/stdlib": "^0.0.96",
         "@types/cookie-session": "^2.0.44",
         "adm-zip": "^0.4.13",
         "agenda": "^5.0.0",
@@ -48,6 +49,7 @@
         "leetcode-query": "^0.2.5",
         "lodash": "^4.17.11",
         "mailgun-js": "^0.22.0",
+        "mathjs": "^11.9.1",
         "moment": "^2.24.0",
         "mongoose": "^6.6.1",
         "mqtt": "^4.2.6",
