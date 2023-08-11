@@ -362,16 +362,16 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'bool' expects exactly one argument, received ${exprList.length}`
                     );
                 }
-                if (typeof exprList[0] === "boolean") return exprList[0];
-                else if (typeof exprList[0] === "number")
-                    return Math.abs(exprList[0] as number) <= DEFAULT_EPS;
-                else if (typeof exprList[0] === "string")
+                const arg = this.visit(exprList[0]);
+                if (typeof arg === "boolean") return arg;
+                else if (typeof arg === "number") return arg !== 0;
+                else if (typeof arg === "string")
                     throw new Error(
                         `Conversion from 'string' to 'bool' is not allowed`
                     );
                 else
                     throw new Error(
-                        `Unknown type ${typeof exprList[0]} used in function 'bool'`
+                        `Unknown type ${typeof arg} used in function 'bool'`
                     );
             }
             case "number": {
@@ -380,14 +380,14 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'number' expects exactly one argument, received ${exprList.length}`
                     );
                 }
-                if (typeof exprList[0] === "boolean")
-                    return (exprList[0] as boolean) ? 1 : 0;
-                else if (typeof exprList[0] === "number") return exprList[0];
-                else if (typeof exprList[0] === "string")
-                    return parseFloat(exprList[0]);
+                const arg = this.visit(exprList[0]);
+                if (typeof arg === "boolean") return arg ? 1 : 0;
+                else if (typeof arg === "number") return arg;
+                else if (typeof arg === "string")
+                    return parseFloat(arg as string);
                 else
                     throw new Error(
-                        `Unknown type ${typeof exprList[0]} used in function 'number'`
+                        `Unknown type ${typeof arg} used in function 'number'`
                     );
             }
             case "string": {
@@ -396,14 +396,15 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'string' expects exactly one argument, received ${exprList.length}`
                     );
                 }
-                if (typeof exprList[0] === "boolean")
-                    return (exprList[0] as boolean) ? "true" : "false";
-                else if (typeof exprList[0] === "number")
-                    return (exprList[0] as number).toString();
-                else if (typeof exprList[0] === "string") return exprList[0];
+                const arg = this.visit(exprList[0]);
+                if (typeof arg === "boolean")
+                    return (arg as boolean) ? "true" : "false";
+                else if (typeof arg === "number")
+                    return (arg as number).toString();
+                else if (typeof arg === "string") return arg;
                 else
                     throw new Error(
-                        `Unknown type ${typeof exprList[0]} used in function 'string'`
+                        `Unknown type ${typeof arg} used in function 'string'`
                     );
             }
             case "rand": {
