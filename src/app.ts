@@ -9,7 +9,9 @@ import { Controller } from "./controllers";
 
 import cookieSession from "cookie-session";
 import passport from "passport";
-import path from "path";
+import compression from "compression";
+import { logger } from "./lib/logger";
+import * as socketio from "socket.io";
 
 class App {
     public app: Express;
@@ -23,19 +25,39 @@ class App {
 
         this.initializeMiddlewares(middlewares);
         this.initializeControllers(controllers);
+
+        this.io = new socketio.Server(this.server, {
+            cors: {
+                origin: "*",
+                methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+                preflightContinue: false,
+                optionsSuccessStatus: 204,
+            },
+        });
     }
 
     private initializeMiddlewares(middlewares: any[]) {
+        this.app.use(
+            compression({
+                threshold: 0,
+                filter: (req, res) => {
+                    if (req.headers["x-no-compression"]) {
+                        return false;
+                    }
+                    return compression.filter(req, res);
+                },
+            })
+        );
         this.app.disable("x-powered-by");
         this.app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
         this.app.use(bodyParser.json({ limit: "50mb" }));
         this.app.use(cors());
         this.app.use(useragent.express());
 
-        this.app.use(
-            "/static",
-            express.static(path.join(process.env.WORKING_DIR, "static"))
-        );
+        // this.app.use(
+        //     "/static",
+        //     express.static(path.join(process.env.WORKING_DIR, "static"))
+        // );
 
         middlewares.forEach((m) => this.app.use(m));
         this.app.use(passport.session());
@@ -69,8 +91,8 @@ class App {
         });
 
         this.server.listen(this.port, () => {
-            console.log(
-                `[${process.env.SERVICE_NAME}] listening on port ${this.port}`
+            logger.info(
+                `${process.env.SERVICE_NAME} listening on port ${this.port}`
             );
         });
     }

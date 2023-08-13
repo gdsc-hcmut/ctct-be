@@ -1,5 +1,4 @@
-import { injectable } from "inversify";
-import crypto from "crypto";
+import { inject, injectable } from "inversify";
 import passport from "passport";
 import {
     Strategy,
@@ -9,24 +8,28 @@ import {
 } from "passport-jwt";
 import jwt from "jwt-simple";
 import { NextFunction } from "express";
-import _ from "lodash";
-import bcrypt from "bcryptjs";
+import _, { toNumber } from "lodash";
 import moment from "moment";
+import passportGoogle from "passport-google-oauth20";
 import User, { UserDocument } from "../models/user.model";
 import { parseTokenMeta } from "../models/token.model";
-
+const GoogleStrategy = passportGoogle.Strategy;
 import { Request, Response, ServiceType } from "../types";
-
-import { UserService } from "./user.service";
+import { ErrorUserInvalid } from "../lib/errors";
 import Token from "../models/token.model";
 import { lazyInject } from "../container";
-import mongoose from "mongoose";
+import { logger } from "../lib/logger";
+import { Types } from "mongoose";
+import { UserService, AccessLevelService } from "../services/index";
 
 @injectable()
 export class AuthService {
     @lazyInject(ServiceType.User) private userService: UserService;
-    constructor() {
-        console.log("[Auth Service] Construct");
+    constructor(
+        @inject(ServiceType.AccessLevel)
+        private accessLevelService: AccessLevelService
+    ) {
+        logger.info("[Auth] Initializing...");
     }
 
     applyMiddleware() {
@@ -39,6 +42,55 @@ export class AuthService {
             this.verifyAccountCode.bind(this)
         );
         passport.use(strategyJwt);
+
+        const strategy = new GoogleStrategy(
+            {
+                clientID: process.env.GOOGLE_CLIENT_ID,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                callbackURL: "/auth/google/redirect",
+            },
+            async (accessToken, refreshToken, profile, done) => {
+                const user = await this.userService.findOne({
+                    googleId: profile.id,
+                });
+                // If user doesn't exist creates a new user. (similar to sign up)
+                if (!user) {
+                    let givenName = profile.name?.givenName;
+                    const familyName = profile.name?.familyName ?? "";
+                    const middleName = profile.name?.middleName;
+                    if (!profile.name) {
+                        // fallback to using display name for first name
+                        givenName = profile.displayName;
+                    }
+                    const newUser = await User.create({
+                        googleId: profile.id,
+                        accessLevels: [
+                            this.accessLevelService.getStudentAccessLevelId(),
+                        ],
+                        isManager: false,
+                        familyAndMiddleName:
+                            familyName + (middleName ? " " + middleName : ""),
+                        givenName: givenName,
+                        email: profile.emails?.[0].value,
+                        picture: profile._json.picture,
+                        // we are using optional chaining because profile.emails may be undefined.
+                    });
+                    if (newUser) {
+                        done(null, newUser);
+                    }
+                } else {
+                    if (user.picture !== profile._json.picture) {
+                        user.picture = profile._json.picture;
+                        await user.save();
+                    }
+                    done(null, user);
+                }
+                // console.log('Profile', profile);
+            }
+        );
+
+        passport.use(strategy);
+
         passport.serializeUser((user: UserDocument, done) => {
             done(null, user.id);
         });
@@ -52,11 +104,9 @@ export class AuthService {
     }
 
     async verifyAccountCode(payload: any, done: VerifiedCallback) {
-        console.log(payload, "Pay");
         const tokenMeta = parseTokenMeta(payload);
 
         try {
-            console.log("meta", tokenMeta);
             const token = await Token.findOne({
                 _id: tokenMeta._id,
             });
@@ -75,8 +125,6 @@ export class AuthService {
             try {
                 passport.authenticate("jwt", async (err, tokenMeta, info) => {
                     req.tokenMeta = tokenMeta;
-                    console.log(tokenMeta, "is");
-                    console.log("ERRR", err, info);
                     if (block && _.isEmpty(tokenMeta)) {
                         res.composer.unauthorized();
                         return;
@@ -91,23 +139,31 @@ export class AuthService {
     }
 
     private async createToken(
-        userId: mongoose.Types.ObjectId,
-        userAgent: string
+        userId: string,
+        googleId: string,
+        userAgent: string,
+        accessLevels: Types.ObjectId[],
+        isManager: boolean
     ) {
         const result = await Token.create({
-            userId: userId,
+            googleId,
+            userAgent,
+            userId,
             createdAt: moment().unix(),
-            expiredAt: moment().unix() + process.env.TOKEN_TTL,
-
-            userAgent: userAgent,
+            expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
+            accessLevels: accessLevels,
+            isManager: isManager,
         });
         const EncodeToken = jwt.encode(
             {
                 _id: result._id,
+                googleId,
                 userAgent,
                 userId,
                 createdAt: moment().unix(),
-                expiredAt: moment().unix() + process.env.TOKEN_TTL,
+                expiredAt: moment().unix() + toNumber(process.env.TOKEN_TTL),
+                accessLevels: accessLevels,
+                isManager: isManager,
             },
             process.env.JWT_SECRET
         );
@@ -117,61 +173,36 @@ export class AuthService {
     }
 
     async generateTokenUsingUsername(
-        username: string,
-        password: string,
-        userAgent: string
+        userId: string,
+        googleId: string,
+        email: string,
+        accessLevels: Types.ObjectId[],
+        isManager: boolean
     ) {
-        if (!username || !password) {
-            throw new Error("missing input field");
-        }
-        const user = await this.userService.findOne({ username: username });
-        if (!user) {
-            throw new Error(`No user matches the given username`);
-        }
-
-        if (!(await bcrypt.compare(password, user.password))) {
-            throw new Error(`Wrong password`);
-        }
-
-        return await this.createToken(user._id, userAgent);
+        return await this.createToken(
+            userId,
+            googleId,
+            email,
+            accessLevels,
+            isManager
+        );
     }
 
-    async recoverPasswordRequest(email: string) {
-        let user = null;
-        try {
-            user = await this.userService.findOne({ email }, true);
-        } catch (err) {
-            throw new Error(
-                `The email address that you've entered doesn't match any account.`
-            );
+    async generateTokenGoogle(
+        user: UserDocument,
+        accessLevels: Types.ObjectId[],
+        isManager: boolean
+    ) {
+        if (_.isEmpty(user)) {
+            throw new ErrorUserInvalid("User not exist");
         }
 
-        const recoverPasswordCode = crypto.randomBytes(20).toString("hex");
-
-        await this.userService.updateOne(user._id, {
-            recoverPasswordCode,
-            recoverPasswordExpires: moment().add(2, "hours").unix(),
-        });
-    }
-
-    async recoverPassword(recoverPasswordCode: string, newPassword: string) {
-        let user = null;
-        try {
-            user = await this.userService.findOne(
-                { recoverPasswordCode },
-                true
-            );
-        } catch (err) {
-            throw new Error(
-                `The email address that you've entered doesn't match any account.`
-            );
-        }
-        newPassword = await bcrypt.hash(newPassword, process.env.HASH_ROUNDS);
-
-        await this.userService.updateOne(user._id, {
-            password: newPassword,
-            recoverPasswordCode: null,
-            recoverPasswordExpires: 0,
-        });
+        return await this.createToken(
+            user._id,
+            user.googleId,
+            user.email,
+            accessLevels,
+            isManager
+        );
     }
 }

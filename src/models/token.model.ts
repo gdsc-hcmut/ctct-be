@@ -1,9 +1,11 @@
 import _ from "lodash";
-import mongoose, { Document } from "mongoose";
-const Schema = mongoose.Schema;
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 export type TokenDocument = Document & {
+    googleId: string;
     userId: mongoose.Types.ObjectId;
+    accessLevels: Types.ObjectId[];
+    isManager: boolean;
     createdAt: number;
     expiredAt: number;
 
@@ -11,7 +13,10 @@ export type TokenDocument = Document & {
 };
 
 const tokenSchema = new Schema<TokenDocument>({
-    userId: mongoose.Types.ObjectId,
+    googleId: String,
+    userId: Schema.Types.ObjectId,
+    accessLevels: [{ type: Schema.Types.ObjectId }],
+    isManager: Boolean,
     createdAt: Number,
     expiredAt: Number,
 
@@ -27,5 +32,4 @@ export function parseTokenMeta(tokenMeta: any): TokenDocument {
 }
 
 const Token = mongoose.model<TokenDocument>("token", tokenSchema);
-
 export default Token;

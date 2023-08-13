@@ -12,18 +12,22 @@ export interface Response extends EResponse {
 
 export const ServiceType = {
     Auth: Symbol.for("AuthService"),
-    // Bundle: Symbol.for('BundleService'),
     Database: Symbol.for("DatabaseService"),
-    // MQTT: Symbol.for('MQTTService'),
     User: Symbol.for("UserService"),
-    // Upload: Symbol.for('Upload'),
-    // Mail: Symbol.for('Mail'),
-    // Contact: Symbol.for('Contact'),
-    // Home: Symbol.for('Home'),
-    // Room: Symbol.for('Room'),
-    // Device: Symbol.for('Device'),
-    // Socket: Symbol.for('Socket'),
-    // DeviceStatus: Symbol.for('DeviceStatus'),
+    FileUpload: Symbol.for("FileUpload"),
+    PreviousExam: Symbol.for("PreviousExam"),
+    Subject: Symbol.for("Subject"),
+    Chapter: Symbol.for("Chapter"),
+    Material: Symbol.for("Material"),
+    Cache: Symbol.for("Cache"),
+    AccessLevel: Symbol.for("AccessLevel"),
+    Question: Symbol.for("Question"),
+    Quiz: Symbol.for("Quiz"),
+    QuizSession: Symbol.for("QuizSession"),
+    Mapper: Symbol.for("Mapper"),
+    TaskScheduling: Symbol.for("TaskScheduling"),
+    Socket: Symbol.for("Socket"),
+    UserActivity: Symbol.for("UserActivity"),
 };
 
 export enum PrivacyType {
@@ -39,3 +43,16 @@ export enum HttpMethod {
     PATCH = "PATCH",
     DELETE = "DELETE",
 }
+
+export type UploadFileInfo = {
+    originalName: string;
+    refName: string;
+    mimetype: string;
+};
+
+export type DownloadFileInfo = {
+    originalName: string;
+    refName: string;
+    mimetype: string;
+    buffer: Buffer;
+};
