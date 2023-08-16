@@ -7,7 +7,7 @@ yarn dev
 ```
 
 ## Build project
-hello hung
+hello 1
 ```
 yarn build
 ```
