@@ -7,7 +7,7 @@ yarn dev
 ```
 
 ## Build project
-Test Test Test Test Test Test Test Test Test tesst
+Test Test Test Test Test Test Test Test Test tesst test
 ```
 yarn build
 ```
