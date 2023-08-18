@@ -4,25 +4,21 @@ import { ParseTreeVisitor } from "antlr4";
 
 import { ProgContext } from "./GrammarParser";
 import { StatementContext } from "./GrammarParser";
+import { AssignmentStatementContext } from "./GrammarParser";
+import { IfStatementContext } from "./GrammarParser";
+import { BlockStatementContext } from "./GrammarParser";
 import { IdentifierContext } from "./GrammarParser";
 import { LogicalNotContext } from "./GrammarParser";
-import { MultilpyContext } from "./GrammarParser";
-import { DisjunctionContext } from "./GrammarParser";
-import { AssignmentContext } from "./GrammarParser";
-import { NotEqualComparisonContext } from "./GrammarParser";
-import { SubtractionContext } from "./GrammarParser";
-import { LessComparisonContext } from "./GrammarParser";
-import { ParenthesisContext } from "./GrammarParser";
-import { DivisionContext } from "./GrammarParser";
-import { StringValueContext } from "./GrammarParser";
-import { GreaterComparisonContext } from "./GrammarParser";
+import { MultiplyDivideModuloContext } from "./GrammarParser";
 import { ConjunctionContext } from "./GrammarParser";
+import { AddSubtractContext } from "./GrammarParser";
+import { DisjunctionContext } from "./GrammarParser";
 import { FunctionCallContext } from "./GrammarParser";
-import { NumberValueContext } from "./GrammarParser";
-import { IfExpressionContext } from "./GrammarParser";
-import { ModuloContext } from "./GrammarParser";
-import { EqualComparisonContext } from "./GrammarParser";
-import { AdditionContext } from "./GrammarParser";
+import { NonEqualityComparisonContext } from "./GrammarParser";
+import { UnaryPlusMinusContext } from "./GrammarParser";
+import { EqualityComparisonContext } from "./GrammarParser";
+import { ParenthesisContext } from "./GrammarParser";
+import { LiteralContext } from "./GrammarParser";
 
 /**
  * This interface defines a complete generic visitor for a parse tree produced
@@ -45,6 +41,24 @@ export default class GrammarVisitor<Result> extends ParseTreeVisitor<Result> {
      */
     visitStatement?: (ctx: StatementContext) => Result;
     /**
+     * Visit a parse tree produced by `GrammarParser.assignmentStatement`.
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    visitAssignmentStatement?: (ctx: AssignmentStatementContext) => Result;
+    /**
+     * Visit a parse tree produced by `GrammarParser.ifStatement`.
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    visitIfStatement?: (ctx: IfStatementContext) => Result;
+    /**
+     * Visit a parse tree produced by `GrammarParser.blockStatement`.
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    visitBlockStatement?: (ctx: BlockStatementContext) => Result;
+    /**
      * Visit a parse tree produced by the `identifier`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
@@ -59,75 +73,12 @@ export default class GrammarVisitor<Result> extends ParseTreeVisitor<Result> {
      */
     visitLogicalNot?: (ctx: LogicalNotContext) => Result;
     /**
-     * Visit a parse tree produced by the `multilpy`
+     * Visit a parse tree produced by the `multiplyDivideModulo`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
      * @return the visitor result
      */
-    visitMultilpy?: (ctx: MultilpyContext) => Result;
-    /**
-     * Visit a parse tree produced by the `disjunction`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitDisjunction?: (ctx: DisjunctionContext) => Result;
-    /**
-     * Visit a parse tree produced by the `assignment`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitAssignment?: (ctx: AssignmentContext) => Result;
-    /**
-     * Visit a parse tree produced by the `notEqualComparison`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitNotEqualComparison?: (ctx: NotEqualComparisonContext) => Result;
-    /**
-     * Visit a parse tree produced by the `subtraction`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitSubtraction?: (ctx: SubtractionContext) => Result;
-    /**
-     * Visit a parse tree produced by the `lessComparison`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitLessComparison?: (ctx: LessComparisonContext) => Result;
-    /**
-     * Visit a parse tree produced by the `parenthesis`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitParenthesis?: (ctx: ParenthesisContext) => Result;
-    /**
-     * Visit a parse tree produced by the `division`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitDivision?: (ctx: DivisionContext) => Result;
-    /**
-     * Visit a parse tree produced by the `stringValue`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitStringValue?: (ctx: StringValueContext) => Result;
-    /**
-     * Visit a parse tree produced by the `greaterComparison`
-     * labeled alternative in `GrammarParser.expr`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitGreaterComparison?: (ctx: GreaterComparisonContext) => Result;
+    visitMultiplyDivideModulo?: (ctx: MultiplyDivideModuloContext) => Result;
     /**
      * Visit a parse tree produced by the `conjunction`
      * labeled alternative in `GrammarParser.expr`.
@@ -136,6 +87,20 @@ export default class GrammarVisitor<Result> extends ParseTreeVisitor<Result> {
      */
     visitConjunction?: (ctx: ConjunctionContext) => Result;
     /**
+     * Visit a parse tree produced by the `addSubtract`
+     * labeled alternative in `GrammarParser.expr`.
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    visitAddSubtract?: (ctx: AddSubtractContext) => Result;
+    /**
+     * Visit a parse tree produced by the `disjunction`
+     * labeled alternative in `GrammarParser.expr`.
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    visitDisjunction?: (ctx: DisjunctionContext) => Result;
+    /**
      * Visit a parse tree produced by the `functionCall`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
@@ -143,38 +108,38 @@ export default class GrammarVisitor<Result> extends ParseTreeVisitor<Result> {
      */
     visitFunctionCall?: (ctx: FunctionCallContext) => Result;
     /**
-     * Visit a parse tree produced by the `numberValue`
+     * Visit a parse tree produced by the `nonEqualityComparison`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
      * @return the visitor result
      */
-    visitNumberValue?: (ctx: NumberValueContext) => Result;
+    visitNonEqualityComparison?: (ctx: NonEqualityComparisonContext) => Result;
     /**
-     * Visit a parse tree produced by the `ifExpression`
+     * Visit a parse tree produced by the `unaryPlusMinus`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
      * @return the visitor result
      */
-    visitIfExpression?: (ctx: IfExpressionContext) => Result;
+    visitUnaryPlusMinus?: (ctx: UnaryPlusMinusContext) => Result;
     /**
-     * Visit a parse tree produced by the `modulo`
+     * Visit a parse tree produced by the `equalityComparison`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
      * @return the visitor result
      */
-    visitModulo?: (ctx: ModuloContext) => Result;
+    visitEqualityComparison?: (ctx: EqualityComparisonContext) => Result;
     /**
-     * Visit a parse tree produced by the `equalComparison`
+     * Visit a parse tree produced by the `parenthesis`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
      * @return the visitor result
      */
-    visitEqualComparison?: (ctx: EqualComparisonContext) => Result;
+    visitParenthesis?: (ctx: ParenthesisContext) => Result;
     /**
-     * Visit a parse tree produced by the `addition`
+     * Visit a parse tree produced by the `literal`
      * labeled alternative in `GrammarParser.expr`.
      * @param ctx the parse tree
      * @return the visitor result
      */
-    visitAddition?: (ctx: AdditionContext) => Result;
+    visitLiteral?: (ctx: LiteralContext) => Result;
 }

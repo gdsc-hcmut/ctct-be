@@ -1,8 +1,9 @@
 grammar Grammar;
 
+BOOLEAN: 'true' | 'false';
 ID: [a-zA-Z_][a-zA-Z0-9_]*;
-WS: [ \t\r\n]+ -> skip;
-NUM: '-'? [0-9]+ ('.' [0-9]+)?;
+WS: [ \f\t\r\n]+ -> skip;
+NUM: [0-9]+ ('.' [0-9]+)?;
 COMMA: ',';
 LPAREN: '(';
 RPAREN: ')';
@@ -15,28 +16,37 @@ STRING: '"' (~["])* '"' | '\'' (~['])* '\'';
 EXCLAM: '!';
 NL: '\n';
 
+ASTERISK: '*';
+SLASH: '/';
+PERCENT: '%';
+
+PLUS: '+';
+MINUS: '-';
+
 prog: statement+;
 
-statement: expr NL*;
+statement: assignmentStatement NL*
+    | ifStatement NL*
+    | blockStatement NL*
+    ;
+
+assignmentStatement: ID EQUAL expr;
+
+ifStatement: 'if' expr statement 'else' statement;
+
+blockStatement: '{' statement* '}';
 
 expr: LPAREN expr RPAREN                     # parenthesis
     | EXCLAM expr                            # logicalNot
-    | expr '*' expr                          # multilpy
-    | expr '/' expr                          # division
-    | expr '%' expr                          # modulo
-    | expr '+' expr                          # addition
-    | expr '-' expr                          # subtraction
-    | expr EQUAL EQUAL expr                  # equalComparison
-    | expr EXCLAM EQUAL expr                 # notEqualComparison
-    | expr GREATER EQUAL? expr               # greaterComparison
-    | expr LESS EQUAL? expr                  # lessComparison
+    | (PLUS | MINUS) expr                    # unaryPlusMinus
+    | expr (ASTERISK | SLASH | PERCENT) expr # multiplyDivideModulo
+    | expr (PLUS | MINUS) expr               # addSubtract
+    | expr (GREATER | LESS) EQUAL? expr      # nonEqualityComparison
+    | expr (EXCLAM | EQUAL) EQUAL expr       # equalityComparison
     | expr AMPERSAND AMPERSAND expr          # conjunction
     | expr PIPE PIPE expr                    # disjunction
-    | ID EQUAL expr                          # assignment
-    | 'if' expr 'then' expr 'else' expr      # ifExpression
     | ID LPAREN (expr (COMMA expr)*)? RPAREN # functionCall
-    | STRING                                 # stringValue
     | ID                                     # identifier
-    | NUM                                    # numberValue
+    | (BOOLEAN | STRING | NUM)               # literal
     ;
 
