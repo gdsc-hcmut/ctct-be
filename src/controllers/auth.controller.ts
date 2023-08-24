@@ -26,6 +26,10 @@ export class AuthController extends Controller {
             }),
             async (req, res) => {
                 const user = req.user as UserDocument;
+                if (!user) {
+                    res.redirect(`${process.env.REDIRECT_URI}`);
+                    return;
+                }
                 const token = await this.authService.generateTokenUsingUsername(
                     user._id,
                     user.googleId,
