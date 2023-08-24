@@ -143,6 +143,7 @@ export class AdminMaterialController extends Controller {
                 "description",
                 "subject",
                 "chapter",
+                "isHidden",
             ]);
 
             if (info.subject) {

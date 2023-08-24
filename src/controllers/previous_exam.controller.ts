@@ -75,7 +75,7 @@ export class PreviousExamController extends Controller {
                     { path: "subject", select: "_id name" }
                 );
 
-            if (!previousExam) {
+            if (!previousExam || previousExam.isHidden) {
                 throw new Error(`Previous exam not found`);
             }
 
@@ -106,7 +106,7 @@ export class PreviousExamController extends Controller {
                 previousExamId
             );
 
-            if (!previousExam) {
+            if (!previousExam || previousExam.isHidden) {
                 throw new Error(`Previous exam doesn't exist`);
             }
 
@@ -147,7 +147,9 @@ export class PreviousExamController extends Controller {
                 );
             }
 
-            const query: FilterQuery<PreviousExamDocument> = {};
+            const query: FilterQuery<PreviousExamDocument> = {
+                isHidden: false,
+            };
 
             if (req.query.subject) {
                 query.subject = new Types.ObjectId(req.query.subject as string);

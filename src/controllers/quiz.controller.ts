@@ -50,7 +50,9 @@ export class QuizController extends Controller {
                 );
             }
 
-            const query: FilterQuery<QuizDocument> = {};
+            const query: FilterQuery<QuizDocument> = {
+                isHidden: false,
+            };
 
             if (req.query.name) {
                 query.name = {
