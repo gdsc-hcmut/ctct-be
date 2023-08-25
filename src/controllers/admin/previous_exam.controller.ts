@@ -148,6 +148,7 @@ export class AdminPreviousExamController extends Controller {
                 "subject",
                 "semester",
                 "type",
+                "isHidden",
             ]);
 
             if (info.subject) {

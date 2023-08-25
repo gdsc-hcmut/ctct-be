@@ -73,7 +73,7 @@ export class MaterialController extends Controller {
                 ]
             );
 
-            if (!material) {
+            if (!material || material.isHidden) {
                 throw new Error(`Material not found`);
             }
 
@@ -100,7 +100,7 @@ export class MaterialController extends Controller {
             const materialId = new Types.ObjectId(req.params.materialId);
             const material = await this.materialService.getById(materialId);
 
-            if (!material) {
+            if (!material || material.isHidden) {
                 throw new Error(`Material doesn't exist`);
             }
 
@@ -141,7 +141,9 @@ export class MaterialController extends Controller {
                 );
             }
 
-            const query: FilterQuery<MaterialDocument> = {};
+            const query: FilterQuery<MaterialDocument> = {
+                isHidden: false,
+            };
             if (req.query.subject) {
                 query.subject = new Types.ObjectId(req.query.subject as string);
             }

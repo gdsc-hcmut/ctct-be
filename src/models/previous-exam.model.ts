@@ -44,6 +44,8 @@ export type PreviousExamDocument = Document & {
     createdAt: number;
     lastUpdatedAt?: number;
 
+    isHidden: boolean;
+
     deletedAt: number;
 };
 
@@ -61,6 +63,9 @@ const previousExamSchema = new Schema<PreviousExamDocument>({
     },
     createdAt: Number,
     lastUpdatedAt: Number,
+
+    isHidden: { type: Boolean, default: false },
+
     deletedAt: Number,
 });
 

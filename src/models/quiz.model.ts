@@ -12,7 +12,9 @@ export type QuizDocument = Document & {
 
     createdBy: Types.ObjectId;
     createdAt: number;
+
     lastUpdatedAt?: number;
+    isHidden: boolean;
     deletedAt: number;
 };
 
@@ -31,6 +33,7 @@ const quizSchema = new Schema<QuizDocument>({
     createdBy: { type: Schema.Types.ObjectId, ref: "users" },
     createdAt: Number,
     lastUpdatedAt: Number,
+    isHidden: { type: Boolean, default: false },
     deletedAt: Number,
 });
 

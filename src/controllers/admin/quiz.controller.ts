@@ -331,6 +331,7 @@ export class AdminQuizController extends Controller {
                       )
                     : quiz.potentialQuestions,
                 sampleSize: req.body.sampleSize ?? quiz.sampleSize,
+                isHidden: req.body.isHidden ?? quiz.isHidden,
             };
 
             const chapterIsChildOfSubject =

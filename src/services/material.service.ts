@@ -87,19 +87,6 @@ export class MaterialService {
         );
     }
 
-    async materialWithSubjectChapterExists(
-        subject: Types.ObjectId,
-        chapter: Types.ObjectId
-    ) {
-        return (
-            (await MaterialModel.findOne({
-                subject: subject,
-                chapter: chapter,
-                deletedAt: { $exists: false },
-            })) != null
-        );
-    }
-
     async getById(
         id: Types.ObjectId,
         projection: ProjectionType<MaterialDocument> = {}

@@ -98,7 +98,7 @@ export class QuizSessionController extends Controller {
 
             const quiz = await this.quizService.getQuizById(quizId);
 
-            if (!quiz) {
+            if (!quiz || quiz.isHidden) {
                 throw new Error(`Quiz doesn't exist`);
             }
 

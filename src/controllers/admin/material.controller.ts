@@ -96,17 +96,6 @@ export class AdminMaterialController extends Controller {
                 );
             }
 
-            if (
-                await this.materialService.materialWithSubjectChapterExists(
-                    subject,
-                    chapter
-                )
-            ) {
-                throw new Error(
-                    `A material with this subject and chapter already exists`
-                );
-            }
-
             const fileValidator = new UploadValidator(
                 new MaterialUploadValidation()
             );
@@ -154,6 +143,7 @@ export class AdminMaterialController extends Controller {
                 "description",
                 "subject",
                 "chapter",
+                "isHidden",
             ]);
 
             if (info.subject) {
@@ -161,37 +151,6 @@ export class AdminMaterialController extends Controller {
             }
             if (info.chapter) {
                 info.chapter = new Types.ObjectId(info.chapter);
-            }
-            {
-                const oldSubject = material.subject,
-                    newSubject: Types.ObjectId = info.subject ?? oldSubject;
-                const oldChapter = material.chapter,
-                    newChapter: Types.ObjectId = info.chapter ?? oldChapter;
-                if (
-                    !(await this.chapterService.isChildOfSubject(
-                        newChapter,
-                        newSubject
-                    ))
-                ) {
-                    throw new Error(
-                        `The specified chapter doesn't belong to the specified subject`
-                    );
-                }
-                const changedLocation =
-                    !oldSubject.equals(newSubject) ||
-                    !oldChapter.equals(newChapter);
-                if (changedLocation) {
-                    if (
-                        await this.materialService.materialWithSubjectChapterExists(
-                            newSubject,
-                            newChapter
-                        )
-                    ) {
-                        throw new Error(
-                            `A material with the same subject and chapter already exists`
-                        );
-                    }
-                }
             }
 
             const result = await this.materialService.editOneMaterial(
