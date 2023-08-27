@@ -155,10 +155,18 @@ export class PreviousExamController extends Controller {
                 query.subject = new Types.ObjectId(req.query.subject as string);
             }
             if (req.query.semester) {
-                query.semester = req.query.semester as Semester;
+                query.semester = {
+                    $in: decodeURIComponent(req.query.semester as string).split(
+                        ","
+                    ) as Semester[],
+                };
             }
             if (req.query.type) {
-                query.type = req.query.type as PreviousExamType;
+                query.type = {
+                    $in: decodeURIComponent(req.query.type as string).split(
+                        ","
+                    ) as PreviousExamType[],
+                };
             }
             if (req.query.name) {
                 query.name = {
@@ -181,6 +189,7 @@ export class PreviousExamController extends Controller {
                         resource: 0,
                         createdBy: 0,
                         createdAt: 0,
+                        isHidden: 0,
                         lastUpdatedAt: 0,
                     },
                     { path: "subject", select: "_id name" }
@@ -199,6 +208,7 @@ export class PreviousExamController extends Controller {
                             resource: 0,
                             createdBy: 0,
                             createdAt: 0,
+                            isHidden: 0,
                             lastUpdatedAt: 0,
                         },
                         { path: "subject", select: "_id name" },

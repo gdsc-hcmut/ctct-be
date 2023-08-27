@@ -148,7 +148,11 @@ export class MaterialController extends Controller {
                 query.subject = new Types.ObjectId(req.query.subject as string);
             }
             if (req.query.chapter) {
-                query.chapter = new Types.ObjectId(req.query.chapter as string);
+                query.chapter = {
+                    $in: decodeURIComponent(req.query.chapter as string)
+                        .split(",")
+                        .map((id: string) => new Types.ObjectId(id)),
+                };
             }
             if (req.query.name) {
                 query.name = {
@@ -172,6 +176,7 @@ export class MaterialController extends Controller {
                         createdBy: 0,
                         createdAt: 0,
                         lastUpdatedAt: 0,
+                        isHidden: 0,
                     },
                     [
                         { path: "subject", select: "_id name" },
@@ -191,6 +196,7 @@ export class MaterialController extends Controller {
                         createdBy: 0,
                         createdAt: 0,
                         lastUpdatedAt: 0,
+                        isHidden: 0,
                     },
                     [
                         { path: "subject", select: "_id name" },
