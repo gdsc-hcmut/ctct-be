@@ -50,7 +50,9 @@ export class QuizController extends Controller {
                 );
             }
 
-            const query: FilterQuery<QuizDocument> = {};
+            const query: FilterQuery<QuizDocument> = {
+                isHidden: false,
+            };
 
             if (req.query.name) {
                 query.name = {
@@ -61,7 +63,11 @@ export class QuizController extends Controller {
                 query.subject = new Types.ObjectId(req.query.subject as string);
             }
             if (req.query.chapter) {
-                query.chapter = new Types.ObjectId(req.query.chapter as string);
+                query.chapter = {
+                    $in: decodeURIComponent(req.query.chapter as string)
+                        .split(",")
+                        .map((id: string) => new Types.ObjectId(id)),
+                };
             }
 
             const pageSize: number = req.query.pageSize
@@ -79,6 +85,7 @@ export class QuizController extends Controller {
                         createdAt: 0,
                         createdBy: 0,
                         lastUpdatedAt: 0,
+                        isHidden: 0,
                         __v: 0,
                     },
                     [
@@ -98,6 +105,7 @@ export class QuizController extends Controller {
                         createdAt: 0,
                         createdBy: 0,
                         lastUpdatedAt: 0,
+                        isHidden: 0,
                         __v: 0,
                     },
                     [

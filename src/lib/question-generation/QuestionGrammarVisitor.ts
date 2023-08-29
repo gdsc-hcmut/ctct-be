@@ -1,26 +1,22 @@
 import _ from "lodash";
 import {
-    AdditionContext,
-    AssignmentContext,
+    AddSubtractContext,
+    AssignmentStatementContext,
+    BlockStatementContext,
     ConjunctionContext,
     DisjunctionContext,
-    DivisionContext,
-    EqualComparisonContext,
+    EqualityComparisonContext,
     FunctionCallContext,
-    GreaterComparisonContext,
     IdentifierContext,
-    IfExpressionContext,
-    LessComparisonContext,
+    IfStatementContext,
+    LiteralContext,
     LogicalNotContext,
-    ModuloContext,
-    MultilpyContext,
-    NotEqualComparisonContext,
-    NumberValueContext,
+    MultiplyDivideModuloContext,
+    NonEqualityComparisonContext,
     ParenthesisContext,
     ProgContext,
     StatementContext,
-    StringValueContext,
-    SubtractionContext,
+    UnaryPlusMinusContext,
 } from "./GrammarParser";
 import GrammarVisitor from "./GrammarVisitor";
 import mathStdlib from "@stdlib/stdlib";
@@ -48,21 +44,51 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
     };
 
     visitStatement = (ctx: StatementContext): QuestionReturnType => {
-        const expr = ctx.expr();
-        if (expr != null) {
-            this.visit(expr);
+        if (ctx.assignmentStatement()) {
+            this.visit(ctx.assignmentStatement());
+        } else if (ctx.ifStatement()) {
+            this.visit(ctx.ifStatement());
+        } else if (ctx.blockStatement()) {
+            this.visit(ctx.blockStatement());
+        } else {
+            throw new Error(`Unknown statement type ${ctx.getText()}`);
+        }
+    };
+
+    visitBlockStatement = (ctx: BlockStatementContext): QuestionReturnType => {
+        const statementsContexts = ctx.statement_list();
+        for (const context of statementsContexts) {
+            this.visit(context);
+        }
+    };
+
+    visitUnaryPlusMinus = (ctx: UnaryPlusMinusContext): QuestionReturnType => {
+        const expr = this.visit(ctx.expr());
+        if (typeof expr !== "number") {
+            throw new Error(
+                `Unary plus/minus cannot be used with type '${typeof expr}'`
+            );
+        }
+        const value = expr as number;
+        return ctx.PLUS() ? value : -value;
+    };
+
+    visitLiteral = (ctx: LiteralContext): QuestionReturnType => {
+        if (ctx.STRING()) {
+            return ctx.STRING().getText().slice(1, -1); // remove first and last character
+        } else if (ctx.NUM()) {
+            return parseFloat(ctx.NUM().getText());
+        } else if (ctx.BOOLEAN()) {
+            return ctx.BOOLEAN().getText() === "true";
+        } else {
+            throw new Error(`Unknown token ${ctx.getText()}`);
         }
     };
 
     visitIdentifier = (ctx: IdentifierContext): QuestionReturnType => {
-        if (!ctx.ID()) {
-            throw new Error(
-                `Assignment without specifying a name or invalid name`
-            );
-        }
         const id = ctx.ID().getText();
-        if (!this.symbols.has(ctx.ID().getText())) {
-            throw new Error(`Symbol '${id} unknown'`);
+        if (!this.symbols.has(id)) {
+            throw new Error(`Unknown identifier '${id}'`);
         }
         return this.symbols.get(id);
     };
@@ -96,259 +122,130 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
         }
     };
 
-    visitMultilpy = (ctx: MultilpyContext): QuestionReturnType => {
+    visitMultiplyDivideModulo = (
+        ctx: MultiplyDivideModuloContext
+    ): QuestionReturnType => {
         const exprList = ctx.expr_list();
-        if (exprList.length != 2) {
+        const [arg1, arg2] = [this.visit(exprList[0]), this.visit(exprList[1])];
+        const operator =
+            ctx.ASTERISK()?.getText() ??
+            ctx.SLASH()?.getText() ??
+            ctx.PERCENT()?.getText();
+        if (typeof arg1 !== "number" || typeof arg2 !== "number") {
             throw new Error(
-                `'*' operator must be associated with exactly 2 expressions`
+                `Operands to '${operator}' must be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
             );
         }
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `Operands to '*' are of different types (${typeof lhs} and ${typeof rhs})`
-            );
+        const [lhs, rhs] = [arg1 as number, arg2 as number];
+        if (operator === ctx.ASTERISK()?.getText()) {
+            return lhs * rhs;
+        } else if (operator === ctx.SLASH()?.getText()) {
+            return lhs / rhs;
+        } else if (operator === ctx.PERCENT()?.getText()) {
+            return lhs % rhs;
+        } else {
+            throw new Error(`Unknown operator '${operator}'`);
         }
-        if (typeof lhs !== "number") {
-            throw new Error(
-                `Operands to '*' must be of type 'number'. Received ${typeof lhs}`
-            );
-        }
-        return (lhs as number) * (rhs as number);
     };
 
     visitDisjunction = (ctx: DisjunctionContext): QuestionReturnType => {
         const exprList = ctx.expr_list();
-        if (exprList.length != 2) {
-            throw new Error(
-                `'||' operator must be associated with exactly 2 expressions`
-            );
-        }
         const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (typeof lhs !== typeof rhs) {
+        if (typeof lhs !== "boolean" || typeof rhs !== "boolean") {
             throw new Error(
-                `Operands to '||' are of different types (${typeof lhs} and ${typeof rhs})`
-            );
-        }
-        if (typeof lhs !== "boolean") {
-            throw new Error(
-                `Operands to '||' must be of type 'boolean'. Received ${typeof lhs}`
+                `Operands to '||' must be of type 'boolean'. Received '${typeof lhs}' and '${typeof rhs}'`
             );
         }
         return (lhs as boolean) || (rhs as boolean);
     };
 
-    visitAssignment = (ctx: AssignmentContext): QuestionReturnType => {
+    visitAssignmentStatement = (
+        ctx: AssignmentStatementContext
+    ): QuestionReturnType => {
         const id = ctx.ID()?.getText();
-        if (!id) {
-            throw new Error(`Expected identifier name for assignment`);
-        }
-        if (!ctx.EQUAL()) {
-            throw new Error(`Expected '=' for assignment`);
-        }
-        const exprCtx = ctx.expr();
-        if (!exprCtx) {
-            throw new Error(
-                `Missing expression (right-hand side) in assignment`
-            );
-        }
-        const expr = this.visit(exprCtx);
+        const expr = this.visit(ctx.expr());
         this.symbols.set(id, expr);
         return expr;
     };
 
-    visitNotEqualComparison = (
-        ctx: NotEqualComparisonContext
+    visitEqualityComparison = (
+        ctx: EqualityComparisonContext
     ): QuestionReturnType => {
-        if (!ctx.EXCLAM()) {
-            throw new Error(`Mising '!' for not equal comparison`);
-        }
-        if (!ctx.EQUAL()) {
-            throw new Error(`Mising '=' for not equal comparison`);
-        }
         const exprList = ctx.expr_list();
         const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (!lhs) {
-            throw new Error(`Missing left-hand side for not equal comparison`);
-        }
-        if (!rhs) {
-            throw new Error(`Missing right-hand side for not equal comparison`);
-        }
+        const operator = ctx.EXCLAM() ? "!=" : "==";
         if (typeof lhs !== typeof rhs) {
             throw new Error(
-                `Not equal comparison between two different types, '${typeof lhs}' and '${typeof rhs}'`
+                `Operands to '${operator}' are of different types (${typeof lhs} and ${typeof rhs})`
             );
         }
-        return typeof lhs === "number"
-            ? Math.abs((lhs as number) - (rhs as number)) > DEFAULT_EPS
-            : lhs !== rhs;
-    };
-
-    visitSubtraction = (ctx: SubtractionContext): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (!lhs) {
-            throw new Error(`Missing left-hand side for subtraction`);
-        }
-        if (!rhs) {
-            throw new Error(`Missing right-hand side for subtraction`);
-        }
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `'-' between two different types, '${typeof lhs}' and '${typeof rhs}'`
-            );
-        }
-        if (typeof lhs !== "number") {
-            throw new Error(
-                `'-' can only be used with two numbers. Received ${typeof lhs}`
-            );
-        }
-        return (lhs as number) - (rhs as number);
-    };
-
-    visitLessComparison = (ctx: LessComparisonContext): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (!lhs) {
-            throw new Error(
-                `Missing left-hand side for less-than (or less-than-equal) comparison`
-            );
-        }
-        if (!rhs) {
-            throw new Error(
-                `Missing right-hand side for less-than (or less-than-equal) comparison`
-            );
-        }
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `less-than (or less-than-equal) between two different types, '${typeof lhs}' and '${typeof rhs}'`
-            );
-        }
-        if (typeof lhs === "boolean") {
-            throw new Error(
-                `less-than (or less-than-equal) cannot be used with type ${typeof lhs}`
-            );
-        }
-        if (ctx.EQUAL()) {
+        if (ctx.EXCLAM()) {
+            // not equal
             return typeof lhs === "number"
-                ? (lhs as number) - (rhs as number) <= DEFAULT_EPS
-                : lhs <= rhs;
+                ? Math.abs((lhs as number) - (rhs as number)) > DEFAULT_EPS
+                : lhs !== rhs;
         } else {
+            // equal
             return typeof lhs === "number"
-                ? (lhs as number) - (rhs as number) < -DEFAULT_EPS
-                : lhs < rhs;
+                ? Math.abs((lhs as number) - (rhs as number)) <= DEFAULT_EPS
+                : lhs === rhs;
+        }
+    };
+
+    visitAddSubtract = (ctx: AddSubtractContext): QuestionReturnType => {
+        const exprList = ctx.expr_list();
+        const [arg1, arg2] = [this.visit(exprList[0]), this.visit(exprList[1])];
+        const operator = ctx.PLUS()?.getText() ?? ctx.MINUS()?.getText();
+        if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+            throw new Error(
+                `Operands to '${operator}' must be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
+            );
+        }
+        const [lhs, rhs] = [arg1 as number, arg2 as number];
+        return operator === ctx.PLUS()?.getText() ? lhs + rhs : lhs - rhs;
+    };
+
+    visitNonEqualityComparison = (
+        ctx: NonEqualityComparisonContext
+    ): QuestionReturnType => {
+        const exprList = ctx.expr_list();
+        const [arg1, arg2] = [this.visit(exprList[0]), this.visit(exprList[1])];
+        const operator =
+            (ctx.GREATER()?.getText() ?? ctx.LESS()?.getText()) +
+            (ctx.EQUAL()?.getText() ?? "");
+        if (typeof arg1 !== "number" || typeof arg2 !== "number") {
+            throw new Error(
+                `Operands to '${operator}' must be of type 'number'. Received '${typeof arg1}' and '${typeof arg2}'`
+            );
+        }
+        const [lhs, rhs] = [arg1 as number, arg2 as number];
+        if (ctx.GREATER()) {
+            return ctx.EQUAL()
+                ? lhs - rhs >= -DEFAULT_EPS
+                : lhs - rhs > DEFAULT_EPS;
+        } else {
+            return ctx.EQUAL()
+                ? lhs - rhs <= DEFAULT_EPS
+                : lhs - rhs < -DEFAULT_EPS;
         }
     };
 
     visitParenthesis = (ctx: ParenthesisContext): QuestionReturnType => {
-        if (!ctx.LPAREN) {
-            throw new Error("Expected '('");
-        }
-        if (!ctx.RPAREN) {
-            throw new Error("Expected ')'");
-        }
-        if (!ctx.expr()) {
-            throw new Error(`Missing expression in parentheses`);
-        }
         return this.visit(ctx.expr());
-    };
-
-    visitDivision = (ctx: DivisionContext): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        if (exprList.length != 2) {
-            throw new Error(
-                `'/' operator must be associated with exactly 2 expressions`
-            );
-        }
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `Operands to '/' are of different types (${typeof lhs} and ${typeof rhs})`
-            );
-        }
-        if (typeof lhs !== "number") {
-            throw new Error(
-                `Operands to '/' must be of type 'number'. Received ${typeof lhs}`
-            );
-        }
-        if (Math.abs(rhs as number) <= DEFAULT_EPS) {
-            throw new Error(`Right-hand side of division is zero`);
-        }
-        return (lhs as number) / (rhs as number);
-    };
-
-    visitStringValue = (ctx: StringValueContext): QuestionReturnType => {
-        return ctx.STRING().getText().slice(1, -1); // remove first and last character
-    };
-
-    visitGreaterComparison = (
-        ctx: GreaterComparisonContext
-    ): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (!lhs) {
-            throw new Error(
-                `Missing left-hand side for greater-than (greater-than-equal) comparison`
-            );
-        }
-        if (!rhs) {
-            throw new Error(
-                `Missing right-hand side for greater-than (greater-than-equal) comparison`
-            );
-        }
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `greater-than (greater-than-equal) between two different types, '${typeof lhs}' and '${typeof rhs}'`
-            );
-        }
-        if (typeof lhs === "boolean") {
-            throw new Error(
-                `greater-than (greater-than-equal) cannot be used with type ${typeof lhs}`
-            );
-        }
-        if (ctx.EQUAL()) {
-            return typeof lhs === "number"
-                ? (lhs as number) - (rhs as number) >= -DEFAULT_EPS
-                : lhs >= rhs;
-        } else {
-            return typeof lhs === "number"
-                ? (lhs as number) - (rhs as number) > DEFAULT_EPS
-                : lhs > rhs;
-        }
     };
 
     visitConjunction = (ctx: ConjunctionContext): QuestionReturnType => {
         const exprList = ctx.expr_list();
-        if (exprList.length != 2) {
-            throw new Error(
-                `'&&' operator must be associated with exactly 2 expressions`
-            );
-        }
         const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (typeof lhs !== typeof rhs) {
+        if (typeof lhs !== "boolean" || typeof rhs !== "boolean") {
             throw new Error(
-                `Operands to '&&' are of different types (${typeof lhs} and ${typeof rhs})`
-            );
-        }
-        if (typeof lhs !== "boolean") {
-            throw new Error(
-                `Operands to '&&' must be of type 'boolean'. Received ${typeof lhs}`
+                `Operands to '&&' must be of type 'boolean'. Received '${typeof lhs}' and '${typeof rhs}'`
             );
         }
         return (lhs as boolean) && (rhs as boolean);
     };
 
     visitFunctionCall = (ctx: FunctionCallContext): QuestionReturnType => {
-        if (!ctx.ID()) {
-            throw new Error(`Expected function name`);
-        }
-        if (!ctx.LPAREN()) {
-            throw new Error(`Expected '(' for function call`);
-        }
-        if (!ctx.RPAREN()) {
-            throw new Error(`Expected ')' for function call`);
-        }
-
         const isInt = (value: number) => {
             return Math.abs(value - Math.round(value)) <= DEFAULT_EPS;
         };
@@ -1482,92 +1379,17 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
         }
     };
 
-    visitNumberValue = (ctx: NumberValueContext): QuestionReturnType => {
-        return parseFloat(ctx.NUM().getText());
-    };
-
-    visitIfExpression = (ctx: IfExpressionContext): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        if (exprList.length !== 3) {
-            throw new Error(
-                `if-statement must be associated with 3 expressions`
-            );
+    visitIfStatement = (ctx: IfStatementContext): QuestionReturnType => {
+        const expr = this.visit(ctx.expr());
+        if (typeof expr !== "boolean") {
+            throw new Error(`if-statement condition must resolve to a boolean`);
         }
-        const [cond, exprIf, exprElse] = [
-            this.visit(exprList[0]),
-            this.visit(exprList[1]),
-            this.visit(exprList[2]),
-        ];
-        if (typeof cond != "boolean") {
-            throw new Error(
-                `condition of if-statement does not resolve to a boolean`
-            );
+        const value = expr as boolean;
+        if (value) {
+            this.visit(ctx.statement(0));
+        } else {
+            this.visit(ctx.statement(1));
         }
-        return (cond as boolean) ? exprIf : exprElse;
-    };
-
-    visitModulo = (ctx: ModuloContext): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        if (exprList.length !== 2) {
-            throw new Error(
-                `'%' can only be associated with exactly 2 operands`
-            );
-        }
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `Operands to '%' are of different types (${typeof lhs} and ${typeof rhs})`
-            );
-        }
-        if (typeof lhs !== "number") {
-            throw new Error(
-                `Operands to '%' must be of type 'number'. Received ${typeof lhs}`
-            );
-        }
-        return (lhs as number) % (rhs as number);
-    };
-
-    visitEqualComparison = (
-        ctx: EqualComparisonContext
-    ): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (!lhs) {
-            throw new Error(`Missing left-hand side for equal comparison`);
-        }
-        if (!rhs) {
-            throw new Error(`Missing right-hand side for equal comparison`);
-        }
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `Equal comparison between two different types, '${typeof lhs}' and '${typeof rhs}'`
-            );
-        }
-        return typeof lhs === "number"
-            ? Math.abs((lhs as number) - (rhs as number)) <= DEFAULT_EPS
-            : lhs === rhs;
-    };
-
-    visitAddition = (ctx: AdditionContext): QuestionReturnType => {
-        const exprList = ctx.expr_list();
-        const [lhs, rhs] = [this.visit(exprList[0]), this.visit(exprList[1])];
-        if (!lhs) {
-            throw new Error(`Missing left-hand side for addition`);
-        }
-        if (!rhs) {
-            throw new Error(`Missing right-hand side for addition`);
-        }
-        if (typeof lhs !== typeof rhs) {
-            throw new Error(
-                `'+' between two different types, '${typeof lhs}' and '${typeof rhs}'`
-            );
-        }
-        if (typeof lhs !== "number") {
-            throw new Error(
-                `'+' can only be used with two numbers. Received ${typeof lhs}`
-            );
-        }
-        return (lhs as number) + (rhs as number);
     };
 
     public getSymbols(): Map<string, QuestionReturnType> {

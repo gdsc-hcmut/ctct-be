@@ -11,6 +11,8 @@ export type MaterialDocument = Document & {
     createdAt: number;
     lastUpdatedAt?: number;
 
+    isHidden: boolean;
+
     deletedAt: number;
 };
 
@@ -31,6 +33,8 @@ const materialSchema = new Schema<MaterialDocument>({
     },
     createdAt: Number,
     lastUpdatedAt: Number,
+
+    isHidden: { type: Boolean, default: false },
 
     deletedAt: Number,
 });

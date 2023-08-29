@@ -9,4 +9,5 @@ export type EditQuizDto = {
     duration: number;
     potentialQuestions: Types.ObjectId[];
     sampleSize: number;
+    isHidden: boolean;
 };
