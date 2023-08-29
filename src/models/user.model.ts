@@ -2,11 +2,6 @@ import mongoose, { Document, Types } from "mongoose";
 
 const Schema = mongoose.Schema;
 
-function validateEmail(email: string) {
-    const re = /.+@hcmut\.edu\.vn/;
-    return re.test(email);
-}
-
 export enum Gender {
     MALE = "MALE",
     FEMALE = "FEMALE",
@@ -46,14 +41,7 @@ const userSchema = new Schema<UserDocument>({
     major: { type: String, default: "" },
     dateOfBirth: Number,
     gender: { type: String, enum: Gender },
-    email: {
-        type: String,
-        default: "",
-        validate: [
-            validateEmail,
-            "Email is not valid, please use @hcmut.edu.vn email",
-        ],
-    },
+    email: String,
     phoneNumber: { type: String, default: "" },
 });
 

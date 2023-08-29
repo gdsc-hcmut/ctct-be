@@ -6,6 +6,7 @@ import { Controller } from "./controller";
 import { AuthService } from "../services";
 import passport from "passport";
 import { UserDocument } from "../models/user.model";
+import { logger } from "../lib/logger";
 @injectable()
 export class AuthController extends Controller {
     public readonly router = Router();
@@ -25,6 +26,13 @@ export class AuthController extends Controller {
                 scope: ["email", "profile"],
             }),
             async (req, res) => {
+                const errorRedirectUrl = req.session.errorRedirectUrl;
+                if (errorRedirectUrl) {
+                    logger.error(`Redirecting to ${errorRedirectUrl}`);
+                    delete req.session.errorRedirectUrl;
+                    return res.redirect(errorRedirectUrl);
+                }
+
                 const user = req.user as UserDocument;
                 const token = await this.authService.generateTokenUsingUsername(
                     user._id,
@@ -39,16 +47,6 @@ export class AuthController extends Controller {
                         `${process.env.REDIRECT_URI}/login?token=${token}`
                     );
                 }
-                // if (
-                //     _.includes(
-                //         USER_WHITE_LIST.map((e) => e.email),
-                //         user.email,
-                //     )
-                // ) {
-                //     res.redirect(
-                //         `https://dev.game.gdsc.app/login?token=${token}`,
-                //     );
-                // } else res.redirect(`https://fessior.com/notpermission`);
             }
         );
         this.router.all("*", this.authService.authenticate());
