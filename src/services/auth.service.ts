@@ -21,6 +21,7 @@ import { lazyInject } from "../container";
 import { logger } from "../lib/logger";
 import { Types } from "mongoose";
 import { UserService, AccessLevelService } from "../services/index";
+import { EMAIL_WHITE_LIST } from "../config";
 
 @injectable()
 export class AuthService {
@@ -48,50 +49,58 @@ export class AuthService {
                 clientID: process.env.GOOGLE_CLIENT_ID,
                 clientSecret: process.env.GOOGLE_CLIENT_SECRET,
                 callbackURL: "/auth/google/redirect",
+                passReqToCallback: true,
             },
-            async (accessToken, refreshToken, profile, done) => {
-                try {
-                    const user = await this.userService.findOne({
-                        googleId: profile.id,
-                    });
-                    // If user doesn't exist creates a new user. (similar to sign up)
-                    if (!user) {
-                        let givenName = profile.name?.givenName;
-                        const familyName = profile.name?.familyName ?? "";
-                        const middleName = profile.name?.middleName;
-                        if (!profile.name) {
-                            // fallback to using display name for first name
-                            givenName = profile.displayName;
+            async (req, accessToken, refreshToken, profile, done) => {
+                const user = await this.userService.findOne({
+                    googleId: profile.id,
+                });
+                // If user doesn't exist creates a new user. (similar to sign up)
+                if (!user) {
+                    const userIsInWhiteList = _.some(
+                        EMAIL_WHITE_LIST,
+                        (email) => email === profile.emails?.[0].value
+                    );
+
+                    if (!userIsInWhiteList) {
+                        const validEmail = /.+@hcmut\.edu\.vn/.test(
+                            profile.emails?.[0].value
+                        );
+                        if (!validEmail) {
+                            req.session.errorRedirectUrl = `${process.env.REDIRECT_URI}/error/bad-email`;
+                            return done(null, profile);
                         }
-                        const newUser = await User.create({
-                            googleId: profile.id,
-                            accessLevels: [
-                                this.accessLevelService.getStudentAccessLevelId(),
-                            ],
-                            isManager: false,
-                            familyAndMiddleName:
-                                familyName +
-                                (middleName ? " " + middleName : ""),
-                            givenName: givenName,
-                            email: profile.emails?.[0].value,
-                            picture: profile._json.picture,
-                            // we are using optional chaining because profile.emails may be undefined.
-                        });
-                        if (newUser) {
-                            done(null, newUser);
-                        }
-                    } else {
-                        if (user.picture !== profile._json.picture) {
-                            user.picture = profile._json.picture;
-                            await user.save();
-                        }
-                        done(null, user);
                     }
-                    // console.log('Profile', profile);
-                } catch (error) {
-                    logger.error(error.message);
-                    console.error(error);
-                    done(error.message, null);
+
+                    let givenName = profile.name?.givenName;
+                    const familyName = profile.name?.familyName ?? "";
+                    const middleName = profile.name?.middleName;
+                    if (!profile.name) {
+                        // fallback to using display name for first name
+                        givenName = profile.displayName;
+                    }
+                    const newUser = await User.create({
+                        googleId: profile.id,
+                        accessLevels: [
+                            this.accessLevelService.getStudentAccessLevelId(),
+                        ],
+                        isManager: false,
+                        familyAndMiddleName:
+                            familyName + (middleName ? " " + middleName : ""),
+                        givenName: givenName,
+                        email: profile.emails?.[0].value,
+                        picture: profile._json.picture,
+                        // we are using optional chaining because profile.emails may be undefined.
+                    });
+                    if (newUser) {
+                        return done(null, newUser);
+                    }
+                } else {
+                    if (user.picture !== profile._json.picture) {
+                        user.picture = profile._json.picture;
+                        await user.save();
+                    }
+                    return done(null, user);
                 }
             }
         );
