@@ -21,10 +21,12 @@ import { lazyInject } from "../container";
 import { logger } from "../lib/logger";
 import { Types } from "mongoose";
 import { UserService, AccessLevelService } from "../services/index";
-import { EMAIL_WHITE_LIST } from "../config";
+import { EMAIL_WHITE_LIST, GOOGLE_CLIENT_ID } from "../config";
+import { OAuth2Client } from "google-auth-library";
 
 @injectable()
 export class AuthService {
+    private googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
     @lazyInject(ServiceType.User) private userService: UserService;
     constructor(
         @inject(ServiceType.AccessLevel)
@@ -201,6 +203,53 @@ export class AuthService {
             email,
             accessLevels,
             isManager
+        );
+    }
+
+    async generateTokenGoogleSignin(idToken: string) {
+        if (_.isEmpty(idToken)) {
+            throw new ErrorUserInvalid("Missing IdToken");
+        }
+
+        const ticket = await this.googleClient.verifyIdToken({
+            idToken,
+            audience: GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        console.log(payload);
+
+        //check valid payload .... TODO
+        if (!payload.email) {
+            throw Error("Invalid email");
+        }
+        // Check env dev = whitelist, production
+        let user = await User.findOne({ googleId: payload.sub });
+        // If user doesn't exist creates a new user. (similar to sign up)
+        if (!user) {
+            const newUser = await User.create({
+                googleId: payload.sub,
+                name: payload.name,
+                email: payload.email,
+                picture: payload.picture,
+                accessLevels: [
+                    this.accessLevelService.getStudentAccessLevelId(),
+                ],
+                isManager: false,
+            });
+            user = newUser;
+        } else {
+            if (user.picture !== payload.picture) {
+                user.picture = payload.picture;
+                await user.save();
+            }
+        }
+
+        return await this.createToken(
+            user._id,
+            user.googleId,
+            null,
+            user.accessLevels,
+            user.isManager
         );
     }
 
