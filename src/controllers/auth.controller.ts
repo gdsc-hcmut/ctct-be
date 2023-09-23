@@ -7,6 +7,13 @@ import { AuthService } from "../services";
 import passport from "passport";
 import { UserDocument } from "../models/user.model";
 import { logger } from "../lib/logger";
+import { OAuth2Client } from "google-auth-library";
+
+const client = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+);
+
 @injectable()
 export class AuthController extends Controller {
     public readonly router = Router();
@@ -59,7 +66,12 @@ export class AuthController extends Controller {
 
     async login(req: Request, res: Response) {
         try {
-            res.composer.success({});
+            const { idToken } = req.body;
+
+            const token = await this.authService.generateTokenGoogleSignin(
+                idToken
+            );
+            res.composer.success({ token });
         } catch (error) {
             console.log(error);
             res.composer.badRequest(error.message);
