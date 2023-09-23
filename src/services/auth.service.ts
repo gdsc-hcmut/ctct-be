@@ -26,7 +26,10 @@ import { OAuth2Client } from "google-auth-library";
 
 @injectable()
 export class AuthService {
-    private googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+    private googleClient = new OAuth2Client(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET
+    );
     @lazyInject(ServiceType.User) private userService: UserService;
     constructor(
         @inject(ServiceType.AccessLevel)
