@@ -56,8 +56,8 @@ export class AuthController extends Controller {
                 }
             }
         );
-        this.router.all("*", this.authService.authenticate());
         this.router.post("/login", this.login.bind(this));
+        this.router.all("*", this.authService.authenticate());
         this.router.get("/ping", (req, res) => {
             res.send("Success");
         });
