@@ -12,12 +12,12 @@ import mongoose, {
 import PreviousExamModel, {
     PreviousExamDocument,
     PreviousExamType,
-    Semester,
 } from "../models/previous-exam.model";
 import { FileCompressionStrategy } from "../lib/file-compression/strategies";
 import { lazyInject } from "../container";
 import { logger } from "../lib/logger";
 import _ from "lodash";
+import { Semester } from "../config";
 
 @injectable()
 export class PreviousExamService {
