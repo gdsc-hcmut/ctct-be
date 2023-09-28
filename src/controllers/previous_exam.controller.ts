@@ -16,11 +16,11 @@ import { Permission } from "../models/access_level.model";
 import {
     PreviousExamDocument,
     PreviousExamType,
-    Semester,
 } from "../models/previous-exam.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import _ from "lodash";
 import { UserActivityType } from "../models/user_activity.model";
+import { Semester } from "../config";
 
 @injectable()
 export class PreviousExamController extends Controller {
