@@ -28,6 +28,7 @@ export const ServiceType = {
     TaskScheduling: Symbol.for("TaskScheduling"),
     Socket: Symbol.for("Socket"),
     UserActivity: Symbol.for("UserActivity"),
+    Exam: Symbol.for("Exam"),
 };
 
 export enum PrivacyType {

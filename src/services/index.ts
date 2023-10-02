@@ -14,6 +14,7 @@ import { TaskSchedulingService } from "./task-scheduling/task_scheduling.service
 import { SocketService } from "./server-events/socket.service";
 import { ChapterService } from "./chapter.service";
 import { UserActivityService } from "./user_activity.service";
+import { ExamService } from "./exam.service";
 
 export {
     AuthService,
@@ -32,4 +33,5 @@ export {
     SocketService,
     ChapterService,
     UserActivityService,
+    ExamService,
 };
