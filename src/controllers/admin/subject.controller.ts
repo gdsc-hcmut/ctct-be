@@ -6,6 +6,7 @@ import {
     AccessLevelService,
     AuthService,
     ChapterService,
+    ExamService,
     MaterialService,
     PreviousExamService,
     QuestionService,
@@ -34,7 +35,8 @@ export class AdminSubjectController extends Controller {
         private previousExamService: PreviousExamService,
         @inject(ServiceType.Question) private questionService: QuestionService,
         @inject(ServiceType.Quiz) private quizService: QuizService,
-        @inject(ServiceType.Chapter) private chapterService: ChapterService
+        @inject(ServiceType.Chapter) private chapterService: ChapterService,
+        @inject(ServiceType.Exam) private examService: ExamService
     ) {
         super();
 
@@ -242,6 +244,7 @@ export class AdminSubjectController extends Controller {
                 questionWithThisSubject,
                 quizWithThisSubject,
                 chapterWithThisSubject,
+                examWithThisSubject,
             ] = await Promise.all([
                 this.materialService.materialWithSubjectExists(subjectId),
                 this.previousExamService.previousExamWithSubjectExists(
@@ -250,6 +253,7 @@ export class AdminSubjectController extends Controller {
                 this.questionService.questionWithSubjectExists(subjectId),
                 this.quizService.quizWithSubjectExists(subjectId),
                 this.chapterService.chapterWithSubjectExists(subjectId),
+                this.examService.examWithSubjectExists(subjectId),
             ]);
             if (materialWithThisSubject) {
                 throw new Error(
@@ -274,6 +278,11 @@ export class AdminSubjectController extends Controller {
             if (chapterWithThisSubject) {
                 throw new Error(
                     `There are still chapters that belong to this subject. Please delete them first`
+                );
+            }
+            if (examWithThisSubject) {
+                throw new Error(
+                    `There are still exams that belong to this subject. Please delete them first`
                 );
             }
 

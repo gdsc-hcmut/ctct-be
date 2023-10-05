@@ -18,10 +18,12 @@ export type ExamDocument = Document & {
     registrationEndedAt: number;
 
     slots: {
+        slotId: number;
+
         name: string;
         registeredUsers: Types.ObjectId[];
         userLimit: number;
-        questions: Types.ObjectId;
+        questions: Types.ObjectId[];
 
         startedAt: number;
         endedAt: number;
@@ -31,6 +33,7 @@ export type ExamDocument = Document & {
     createdAt: number;
     lastUpdatedAt: number;
 
+    isHidden: boolean;
     deletedAt?: number;
 };
 
@@ -47,6 +50,8 @@ const examSchema = new Schema<ExamDocument>({
 
     slots: [
         {
+            slotId: Number,
+
             name: { type: String, required: true },
             registeredUsers: [
                 {
@@ -66,6 +71,7 @@ const examSchema = new Schema<ExamDocument>({
     createdAt: { type: Number, required: true },
     lastUpdatedAt: { type: Number, required: true },
 
+    isHidden: Boolean,
     deletedAt: { type: Number, required: false },
 });
 

@@ -9,6 +9,7 @@ import { AdminChapterController } from "./chapter.controller";
 import { AdminSubjectController } from "./subject.controller";
 import { AdminQuestionController } from "./question.controller";
 import { AdminQuizController } from "./quiz.controller";
+import { AdminExamController } from "./exam.controller";
 
 @injectable()
 export class AdminController extends Controller {
@@ -27,6 +28,7 @@ export class AdminController extends Controller {
         ),
         container.resolve<AdminQuestionController>(AdminQuestionController),
         container.resolve<AdminQuizController>(AdminQuizController),
+        container.resolve<AdminExamController>(AdminExamController),
     ];
 
     constructor() {

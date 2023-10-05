@@ -21,6 +21,7 @@ import {
     QuestionService,
     QuizSessionService,
     UserActivityService,
+    ExamService,
 } from "./services/index";
 
 import {
@@ -116,6 +117,10 @@ container
 container
     .bind<UserActivityService>(ServiceType.UserActivity)
     .to(UserActivityService)
+    .inSingletonScope();
+container
+    .bind<ExamService>(ServiceType.Exam)
+    .to(ExamService)
     .inSingletonScope();
 
 // Initialize service first
