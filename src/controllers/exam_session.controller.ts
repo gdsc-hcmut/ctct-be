@@ -68,6 +68,11 @@ export class ExamSessionController implements Controller {
             "/:examSessionId/question/:questionId/note",
             this.noteQuestion.bind(this)
         );
+
+        this.router.get(
+            "/:examSessionId/slot/summary",
+            this.getSlotSummaryOfSession.bind(this)
+        );
     }
 
     public async create(req: Request, res: Response) {
@@ -306,15 +311,6 @@ export class ExamSessionController implements Controller {
 
             logger.debug(postPopulateQuery);
 
-            const isValidPaginationOption =
-                req.query.pagination !== undefined &&
-                ["true", "false"].includes(req.query.pagination as string);
-            if (!isValidPaginationOption) {
-                throw new Error(
-                    `Invalid pagination option received '${req.query.pagination}'`
-                );
-            }
-
             const isUsePagination =
                 req.query.pagination === undefined ||
                 req.query.pagination === "true";
@@ -478,6 +474,60 @@ export class ExamSessionController implements Controller {
                 );
 
             res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    /**
+     * Get summary of the slot that contains this session
+     */
+    public async getSlotSummaryOfSession(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+
+            const examSessionId = new Types.ObjectId(req.params.examSessionId);
+            const examSession = await this.examSessionService.getById(
+                examSessionId
+            );
+
+            if (!examSession || !examSession.userId.equals(userId)) {
+                throw new Error(`Exam session does not exist or is not yours`);
+            }
+
+            if (examSession.status !== ExamSessionStatus.ENDED) {
+                throw new Error(
+                    `Can only view summary after exam session has ended`
+                );
+            }
+
+            const { slotId, fromExam: examId } = examSession;
+
+            const sessions = await this.examSessionService.getAllSessionOfSlot(
+                examId,
+                slotId
+            );
+            const completedSessions = _.filter(
+                sessions,
+                (session) => session.status === ExamSessionStatus.ENDED
+            );
+            const exam = await this.examService.getExamById(examId);
+            const slotIndex = _.findIndex(
+                exam.slots,
+                (slot) => slot.slotId === slotId
+            );
+
+            res.composer.success({
+                registeredCount: exam.slots[slotIndex].registeredUsers.length,
+                startedCount: sessions.length,
+                completedCount: completedSessions.length,
+                completedScores: _.map(
+                    completedSessions,
+                    (session) => session.standardizedScore
+                ),
+            });
         } catch (error) {
             logger.error(error.message);
             console.log(error);

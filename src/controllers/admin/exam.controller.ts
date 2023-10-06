@@ -238,7 +238,6 @@ export class AdminExamController implements Controller {
                 _.map(exam.slots, (slot) => slot.startedAt)
             );
             const validRegistrationTime =
-                Date.now() < info.registrationStartedAt &&
                 info.registrationStartedAt < info.registrationEndedAt &&
                 (minSlotStartTime === undefined ||
                     info.registrationEndedAt < minSlotStartTime);

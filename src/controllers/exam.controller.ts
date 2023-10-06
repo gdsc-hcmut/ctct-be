@@ -55,10 +55,12 @@ export class ExamController implements Controller {
             const { userId } = req.tokenMeta;
             const user = await this.userService.getUserById(userId);
 
-            if (
-                user.givenName.trim() === "" ||
-                user.familyAndMiddleName.trim() === ""
-            ) {
+            const givenNameInvalid =
+                _.isEmpty(user.givenName) || _.isNil(user.givenName);
+            const lastNameInvalid =
+                _.isEmpty(user.familyAndMiddleName) ||
+                _.isNil(user.familyAndMiddleName);
+            if (givenNameInvalid || lastNameInvalid) {
                 throw new Error(`Profile incomplete. Missing name`);
             }
 
@@ -101,6 +103,9 @@ export class ExamController implements Controller {
                 "description",
                 "registrationStartedAt",
                 "registrationEndedAt",
+                "semester",
+                "type",
+                "subject",
             ]),
             slots: _.map(examObject.slots, (slot) =>
                 _.pick(slot, [
@@ -108,6 +113,7 @@ export class ExamController implements Controller {
                     "slotId",
                     "userLimit",
                     "startedAt",
+                    "registeredUsers",
                     "endedAt",
                 ])
             ),
@@ -237,7 +243,16 @@ export class ExamController implements Controller {
             }
 
             const examId = new Types.ObjectId(req.params.examId);
-            const exam = await this.examService.getExamById(examId);
+            const exam = await this.examService.getByIdPopulated(
+                examId,
+                {
+                    __v: 0,
+                },
+                {
+                    path: "subject",
+                    select: "_id name",
+                }
+            );
 
             if (!exam || exam.isHidden) {
                 throw new Error(`Exam not found`);

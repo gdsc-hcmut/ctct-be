@@ -71,7 +71,7 @@ export class ExamSessionService {
         return await ExamSessionModel.findOneAndUpdate(query, update, options);
     }
 
-    async getByIdPopulated(
+    public async getByIdPopulated(
         id: Types.ObjectId,
         projection: ProjectionType<ExamSessionDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[]
@@ -81,15 +81,14 @@ export class ExamSessionService {
         );
     }
 
-    async getById(examSessionId: Types.ObjectId) {
+    public async getById(examSessionId: Types.ObjectId) {
         return await ExamSessionModel.findById(examSessionId);
     }
 
-    public getEndedSessionsOfSlot(examId: Types.ObjectId, slotId: number) {
-        return ExamSessionModel.find({
+    public async getAllSessionOfSlot(examId: Types.ObjectId, slotId: number) {
+        return await ExamSessionModel.find({
             fromExam: examId,
             slotId,
-            status: ExamSessionStatus.ENDED,
         });
     }
 
@@ -119,6 +118,12 @@ export class ExamSessionService {
             { $unwind: "$fromExam.subject" },
             { $project: { __v: 0, questions: 0 } },
             { $match: postPopulateQuery },
+            {
+                $unset: [
+                    "fromExam.slots.registeredUsers",
+                    "fromExam.slots.questions",
+                ],
+            },
         ];
     }
 
