@@ -9,6 +9,8 @@ import { SocketService } from "../server-events/socket.service";
 import { QuestionService } from "../question.service";
 import { QuizSessionService } from "../quiz_session.service";
 import { Filter, Document } from "mongodb";
+import { ExamSessionService } from "../exam_session.service";
+import { EndExamTask } from "./tasks/end_exam_task";
 
 @injectable()
 export class TaskSchedulingService {
@@ -18,7 +20,9 @@ export class TaskSchedulingService {
         @inject(ServiceType.QuizSession)
         private quizSessionService: QuizSessionService,
         @inject(ServiceType.Socket) private socketService: SocketService,
-        @inject(ServiceType.Question) private questionService: QuestionService
+        @inject(ServiceType.Question) private questionService: QuestionService,
+        @inject(ServiceType.ExamSession)
+        private examSessionService: ExamSessionService
     ) {
         this.initialize();
     }
@@ -35,6 +39,10 @@ export class TaskSchedulingService {
         this.agenda.define(
             ScheduledTaskType.END_QUIZ_SESSION,
             this.endQuizSession.bind(this)
+        );
+        this.agenda.define(
+            ScheduledTaskType.END_EXAM_SESSION,
+            this.endExamSession.bind(this)
         );
 
         await this.agenda.start();
@@ -88,6 +96,35 @@ export class TaskSchedulingService {
                 userId,
                 quizSessionId,
                 this.quizSessionService,
+                this.socketService,
+                this,
+                this.questionService
+            ).execute();
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+        }
+    }
+
+    async endExamSession(job: Job) {
+        try {
+            const userId = job.attrs.data.userId as Types.ObjectId;
+            const examSessionId = job.attrs.data
+                .examSessionId as Types.ObjectId;
+            if (!userId) {
+                throw new Error(
+                    `Trying to end exam session but missing ${userId.toString()}`
+                );
+            }
+            if (!examSessionId) {
+                throw new Error(
+                    `Trying to end exam session of user ${userId.toString()} but missing ${examSessionId.toString()}`
+                );
+            }
+            return await new EndExamTask(
+                userId,
+                examSessionId,
+                this.examSessionService,
                 this.socketService,
                 this,
                 this.questionService

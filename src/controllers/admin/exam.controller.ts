@@ -231,6 +231,7 @@ export class AdminExamController implements Controller {
                     exam.registrationStartedAt,
                 registrationEndedAt:
                     req.body.registrationEndedAt || exam.registrationEndedAt,
+                isHidden: req.body.isHidden || exam.isHidden,
             };
 
             const minSlotStartTime = _.min(

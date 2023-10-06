@@ -20,4 +20,6 @@ export type EditExamDto = {
 
     registrationStartedAt?: number;
     registrationEndedAt?: number;
+
+    isHidden?: boolean;
 };
