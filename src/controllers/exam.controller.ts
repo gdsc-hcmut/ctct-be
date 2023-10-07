@@ -93,12 +93,11 @@ export class ExamController implements Controller {
     }
 
     /**
-     * Hide sensitive information of exam from user
+     * Hide sensitive information of exam from user with userId
      */
-    private maskExam(exam: ExamDocument) {
-        const examObject = exam.toObject();
+    private maskExam(exam: ExamDocument, userId: Types.ObjectId) {
         return {
-            ..._.pick(examObject, [
+            ..._.pick(exam.toObject(), [
                 "name",
                 "description",
                 "registrationStartedAt",
@@ -107,22 +106,25 @@ export class ExamController implements Controller {
                 "type",
                 "subject",
             ]),
-            slots: _.map(examObject.slots, (slot) =>
-                _.pick(slot, [
+            slots: _.map(exam.slots, (slot) => ({
+                ..._.pick(slot, [
                     "name",
                     "slotId",
                     "userLimit",
                     "startedAt",
-                    "registeredUsers",
                     "endedAt",
-                ])
-            ),
+                ]),
+                registeredUsers: slot.registeredUsers.filter((user) =>
+                    user.userId.equals(userId)
+                ),
+            })),
         };
     }
 
     public async register(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
+            const myUser = await this.userService.getUserById(userId);
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
@@ -164,19 +166,28 @@ export class ExamController implements Controller {
             }
 
             const alreadyRegistered = _.some(exam.slots, (slot) =>
-                _.some(slot.registeredUsers, (studentId) =>
-                    studentId.equals(userId)
+                _.some(slot.registeredUsers, (user) =>
+                    user.userId.equals(userId)
                 )
             );
             if (alreadyRegistered) {
                 throw new Error(`You have already registered this exam`);
             }
 
-            exam.slots[index].registeredUsers.push(userId);
+            exam.slots[index].registeredUsers.push({
+                userId,
+                givenName: myUser.givenName,
+                familyAndMiddleName: myUser.familyAndMiddleName,
+                dateOfBirth: myUser.dateOfBirth,
+                studentId: myUser.studentId,
+                major: myUser.major,
+                gender: myUser.gender,
+                phoneNumber: myUser.phoneNumber,
+            });
             exam.markModified("slots");
             await exam.save();
 
-            const result = this.maskExam(exam);
+            const result = this.maskExam(exam, userId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -205,8 +216,8 @@ export class ExamController implements Controller {
             }
 
             const userRegistered = _.some(exam.slots, (slot) =>
-                _.some(slot.registeredUsers, (studentId) =>
-                    studentId.equals(userId)
+                _.some(slot.registeredUsers, (user) =>
+                    user.userId.equals(userId)
                 )
             );
             if (!userRegistered) {
@@ -216,13 +227,13 @@ export class ExamController implements Controller {
             for (let i = 0; i < exam.slots.length; i++) {
                 exam.slots[i].registeredUsers = _.filter(
                     exam.slots[i].registeredUsers,
-                    (user) => !user.equals(userId)
+                    (user) => !user.userId.equals(userId)
                 );
             }
             exam.markModified("slots");
             await exam.save();
 
-            const result = this.maskExam(exam);
+            const result = this.maskExam(exam, userId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -233,6 +244,7 @@ export class ExamController implements Controller {
 
     public async getById(req: Request, res: Response) {
         try {
+            const { userId } = req.tokenMeta;
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
@@ -258,7 +270,7 @@ export class ExamController implements Controller {
                 throw new Error(`Exam not found`);
             }
 
-            const result = this.maskExam(exam);
+            const result = this.maskExam(exam, userId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -269,6 +281,7 @@ export class ExamController implements Controller {
 
     public async getAll(req: Request, res: Response) {
         try {
+            const { userId } = req.tokenMeta;
             const canPerform = this.accessLevelService.permissionChecker(
                 req.tokenMeta
             );
@@ -319,7 +332,7 @@ export class ExamController implements Controller {
                     pageNumber
                 );
                 const maskedResult = _.map(result, (exam) =>
-                    this.maskExam(exam)
+                    this.maskExam(exam, userId)
                 );
                 res.composer.success({
                     total,
@@ -336,7 +349,7 @@ export class ExamController implements Controller {
                     [{ path: "subject", select: "_id name" }]
                 );
                 const maskedResult = _.map(result, (exam) =>
-                    this.maskExam(exam)
+                    this.maskExam(exam, userId)
                 );
                 res.composer.success({
                     total: result.length,

@@ -96,7 +96,9 @@ export class ExamSessionController implements Controller {
             }
 
             const slotIndex = _.findIndex(exam.slots, (slot) =>
-                _.some(slot.registeredUsers, (user) => user.equals(userId))
+                _.some(slot.registeredUsers, (user) =>
+                    user.userId.equals(userId)
+                )
             );
             if (slotIndex === -1) {
                 throw new Error(`You are not registered for this exam`);
