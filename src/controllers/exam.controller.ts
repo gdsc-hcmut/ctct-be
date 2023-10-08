@@ -92,35 +92,6 @@ export class ExamController implements Controller {
         }
     }
 
-    /**
-     * Hide sensitive information of exam from user with userId
-     */
-    private maskExam(exam: ExamDocument, userId: Types.ObjectId) {
-        return {
-            ..._.pick(exam.toObject(), [
-                "name",
-                "description",
-                "registrationStartedAt",
-                "registrationEndedAt",
-                "semester",
-                "type",
-                "subject",
-            ]),
-            slots: _.map(exam.slots, (slot) => ({
-                ..._.pick(slot, [
-                    "name",
-                    "slotId",
-                    "userLimit",
-                    "startedAt",
-                    "endedAt",
-                ]),
-                registeredUsers: slot.registeredUsers.filter((user) =>
-                    user.userId.equals(userId)
-                ),
-            })),
-        };
-    }
-
     public async register(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
@@ -187,7 +158,7 @@ export class ExamController implements Controller {
             exam.markModified("slots");
             await exam.save();
 
-            const result = this.maskExam(exam, userId);
+            const result = this.examService.maskExam(exam, userId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -233,7 +204,7 @@ export class ExamController implements Controller {
             exam.markModified("slots");
             await exam.save();
 
-            const result = this.maskExam(exam, userId);
+            const result = this.examService.maskExam(exam, userId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -270,7 +241,7 @@ export class ExamController implements Controller {
                 throw new Error(`Exam not found`);
             }
 
-            const result = this.maskExam(exam, userId);
+            const result = this.examService.maskExam(exam, userId);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -332,7 +303,7 @@ export class ExamController implements Controller {
                     pageNumber
                 );
                 const maskedResult = _.map(result, (exam) =>
-                    this.maskExam(exam, userId)
+                    this.examService.maskExam(exam, userId)
                 );
                 res.composer.success({
                     total,
@@ -349,7 +320,7 @@ export class ExamController implements Controller {
                     [{ path: "subject", select: "_id name" }]
                 );
                 const maskedResult = _.map(result, (exam) =>
-                    this.maskExam(exam, userId)
+                    this.examService.maskExam(exam, userId)
                 );
                 res.composer.success({
                     total: result.length,
