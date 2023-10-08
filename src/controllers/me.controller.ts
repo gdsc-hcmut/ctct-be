@@ -174,6 +174,18 @@ export class MeController extends Controller {
                                 ],
                             },
                         },
+                        {
+                            // case type = UserActivityType.START_EXAM_SESSION
+                            path: "examSessionId",
+                            select: "_id status fromExam",
+                            populate: {
+                                path: "fromExam",
+                                select: "_id name subject",
+                                populate: [
+                                    { path: "subject", select: "_id name" },
+                                ],
+                            },
+                        },
                     ],
                     pageSize,
                     pageNumber

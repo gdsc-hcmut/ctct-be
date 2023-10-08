@@ -22,6 +22,7 @@ import {
     QuizSessionService,
     UserActivityService,
     ExamService,
+    ExamSessionService,
 } from "./services/index";
 
 import {
@@ -37,6 +38,8 @@ import {
     QuizSessionController,
     AdminController,
     AccessLevelController,
+    ExamController,
+    ExamSessionController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -122,6 +125,10 @@ container
     .bind<ExamService>(ServiceType.Exam)
     .to(ExamService)
     .inSingletonScope();
+container
+    .bind<ExamSessionService>(ServiceType.ExamSession)
+    .to(ExamSessionService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -140,6 +147,8 @@ Promise.all([
             container.resolve<QuestionController>(QuestionController),
             container.resolve<QuizController>(QuizController),
             container.resolve<QuizSessionController>(QuizSessionController),
+            container.resolve<ExamController>(ExamController),
+            container.resolve<ExamSessionController>(ExamSessionController),
             container.resolve<AdminController>(AdminController),
         ],
         toNumber(process.env.PORT),

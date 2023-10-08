@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { Semester } from "../config";
+import { Gender } from "./user.model";
 
 export enum ExamType {
     MIDTERM_EXAM = "MIDTERM_EXAM",
@@ -21,7 +22,16 @@ export type ExamDocument = Document & {
         slotId: number;
 
         name: string;
-        registeredUsers: Types.ObjectId[];
+        registeredUsers: {
+            userId: Types.ObjectId;
+            givenName: string;
+            familyAndMiddleName: string;
+            dateOfBirth: number;
+            studentId: string;
+            major: string;
+            gender: Gender;
+            phoneNumber: string;
+        }[];
         userLimit: number;
         questions: Types.ObjectId[];
 
@@ -55,8 +65,14 @@ const examSchema = new Schema<ExamDocument>({
             name: { type: String, required: true },
             registeredUsers: [
                 {
-                    type: Schema.Types.ObjectId,
-                    ref: "users",
+                    userId: { type: Schema.Types.ObjectId, ref: "users" },
+                    givenName: String,
+                    familyAndMiddleName: String,
+                    dateOfBirth: Number,
+                    studentId: String,
+                    major: String,
+                    gender: { type: String, enum: Gender },
+                    phoneNumber: String,
                 },
             ],
             userLimit: { type: Number, required: true },

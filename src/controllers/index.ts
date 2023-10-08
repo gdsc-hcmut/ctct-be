@@ -11,6 +11,8 @@ import { ChapterController } from "./chapter.controller";
 import { QuizSessionController } from "./quiz_session.controller";
 import { AdminController } from "./admin";
 import { AccessLevelController } from "./access_level.controller";
+import { ExamController } from "./exam.controller";
+import { ExamSessionController } from "./exam_session.controller";
 
 export {
     Controller,
@@ -26,4 +28,6 @@ export {
     QuizSessionController,
     AdminController,
     AccessLevelController,
+    ExamController,
+    ExamSessionController,
 };

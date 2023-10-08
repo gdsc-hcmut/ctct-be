@@ -1,4 +1,4 @@
-import mongoose, { Schema, Types } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 import { ConcreteQuestion } from "./question.model";
 
 export enum ExamSessionStatus {
@@ -6,7 +6,7 @@ export enum ExamSessionStatus {
     ENDED = "ENDED",
 }
 
-export type ExamSessionDocument = {
+export type ExamSessionDocument = Document & {
     userId: Types.ObjectId;
     status: ExamSessionStatus;
 
@@ -16,7 +16,7 @@ export type ExamSessionDocument = {
 
     standardizedScore: number;
     fromExam: Types.ObjectId;
-    examSlot: number;
+    slotId: number;
 
     questions: ConcreteQuestion[];
 };
@@ -31,7 +31,7 @@ const examSessionSchema = new Schema<ExamSessionDocument>({
 
     standardizedScore: { type: Number, required: false, default: 0 },
     fromExam: { type: Schema.Types.ObjectId, ref: "exams" },
-    examSlot: Number,
+    slotId: Number,
 
     questions: Array<ConcreteQuestion>,
 });

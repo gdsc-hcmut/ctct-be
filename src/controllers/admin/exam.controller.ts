@@ -231,13 +231,13 @@ export class AdminExamController implements Controller {
                     exam.registrationStartedAt,
                 registrationEndedAt:
                     req.body.registrationEndedAt || exam.registrationEndedAt,
+                isHidden: req.body.isHidden || exam.isHidden,
             };
 
             const minSlotStartTime = _.min(
                 _.map(exam.slots, (slot) => slot.startedAt)
             );
             const validRegistrationTime =
-                Date.now() < info.registrationStartedAt &&
                 info.registrationStartedAt < info.registrationEndedAt &&
                 (minSlotStartTime === undefined ||
                     info.registrationEndedAt < minSlotStartTime);

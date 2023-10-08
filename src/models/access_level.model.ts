@@ -8,6 +8,8 @@ export enum Permission {
     VIEW_PREVIOUS_EXAM = "VIEW_PREVIOUS_EXAM",
     VIEW_QUIZ = "VIEW_QUIZ",
     TAKE_QUIZ = "TAKE_QUIZ",
+    VIEW_EXAM = "VIEW_EXAM",
+    REGISTER_EXAM = "REGISTER_EXAM",
 
     // Admin permissions, UI should display admin tab if user has any of these permissions
     ADMIN_VIEW_MATERIAL = "ADMIN_VIEW_MATERIAL",

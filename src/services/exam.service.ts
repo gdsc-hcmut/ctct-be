@@ -135,4 +135,33 @@ export class ExamService {
             projection
         ).populate(populateOptions);
     }
+
+    /**
+     * Hide sensitive information of exam from user with userId
+     */
+    public maskExam(exam: ExamDocument, userId: Types.ObjectId) {
+        return {
+            ..._.pick(exam.toObject(), [
+                "name",
+                "description",
+                "registrationStartedAt",
+                "registrationEndedAt",
+                "semester",
+                "type",
+                "subject",
+            ]),
+            slots: _.map(exam.slots, (slot) => ({
+                ..._.pick(slot, [
+                    "name",
+                    "slotId",
+                    "userLimit",
+                    "startedAt",
+                    "endedAt",
+                ]),
+                registeredUsers: slot.registeredUsers.filter((user) =>
+                    user.userId.equals(userId)
+                ),
+            })),
+        };
+    }
 }
