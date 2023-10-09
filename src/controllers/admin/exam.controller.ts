@@ -166,6 +166,18 @@ export class AdminExamController implements Controller {
                 throw new Error(`Invalid exam type: ${examInfo.type}`);
             }
 
+            const sameExamAlreadyExists =
+                await this.examService.examWithSameSubjectSemesterTypeExists(
+                    examInfo.subject,
+                    examInfo.semester,
+                    examInfo.type
+                );
+            if (sameExamAlreadyExists) {
+                throw new Error(
+                    `Exam with same subject, semester, type already exists`
+                );
+            }
+
             await Promise.all(
                 examInfo.slots.map((slot, index) =>
                     (async () => {
@@ -220,12 +232,6 @@ export class AdminExamController implements Controller {
                 name: req.body.name || exam.name,
                 description: req.body.description || exam.description,
 
-                subject: req.body.subject
-                    ? new Types.ObjectId(req.body.subject)
-                    : exam.subject,
-                semester: req.body.semester || exam.semester,
-                type: req.body.type || exam.type,
-
                 registrationStartedAt:
                     req.body.registrationStartedAt ||
                     exam.registrationStartedAt,
@@ -243,26 +249,6 @@ export class AdminExamController implements Controller {
                     info.registrationEndedAt < minSlotStartTime);
             if (!validRegistrationTime) {
                 throw new Error(`Invalid registration time`);
-            }
-
-            // valid subject, semester, type
-            const validSubject = await this.subjectService.subjectExists(
-                info.subject
-            );
-            if (!validSubject) {
-                throw new Error(`Subject does not exist`);
-            }
-
-            const validSemester = Object.values(Semester).includes(
-                info.semester
-            );
-            if (!validSemester) {
-                throw new Error(`Invalid semester: ${info.semester}`);
-            }
-
-            const validExamType = Object.values(ExamType).includes(info.type);
-            if (!validExamType) {
-                throw new Error(`Invalid exam type: ${info.type}`);
             }
 
             const editedExam = await this.examService.editOneExam(examId, info);
