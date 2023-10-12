@@ -158,7 +158,7 @@ export class ExamController implements Controller {
             exam.markModified("slots");
             await exam.save();
 
-            const result = this.examService.maskExam(exam, userId);
+            const result = this.examService.maskExam(exam);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -204,7 +204,7 @@ export class ExamController implements Controller {
             exam.markModified("slots");
             await exam.save();
 
-            const result = this.examService.maskExam(exam, userId);
+            const result = this.examService.maskExam(exam);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -241,7 +241,7 @@ export class ExamController implements Controller {
                 throw new Error(`Exam not found`);
             }
 
-            const result = this.examService.maskExam(exam, userId);
+            const result = this.examService.maskExam(exam);
             res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
@@ -303,7 +303,7 @@ export class ExamController implements Controller {
                     pageNumber
                 );
                 const maskedResult = _.map(result, (exam) =>
-                    this.examService.maskExam(exam, userId)
+                    this.examService.maskExam(exam)
                 );
                 res.composer.success({
                     total,
@@ -320,7 +320,7 @@ export class ExamController implements Controller {
                     [{ path: "subject", select: "_id name" }]
                 );
                 const maskedResult = _.map(result, (exam) =>
-                    this.examService.maskExam(exam, userId)
+                    this.examService.maskExam(exam)
                 );
                 res.composer.success({
                     total: result.length,

@@ -9,8 +9,9 @@ import {
     UpdateQuery,
 } from "mongoose";
 import { CreateExamDto } from "../lib/dto/create_exam.dto";
-import ExamModel, { ExamDocument } from "../models/exam.model";
+import ExamModel, { ExamDocument, ExamType } from "../models/exam.model";
 import _ from "lodash";
+import { Semester } from "../config";
 
 @injectable()
 export class ExamService {
@@ -136,10 +137,25 @@ export class ExamService {
         ).populate(populateOptions);
     }
 
+    public async examWithSameSubjectSemesterTypeExists(
+        subjectId: Types.ObjectId,
+        semester: Semester,
+        type: ExamType
+    ) {
+        return (
+            (await ExamModel.findOne({
+                subject: subjectId,
+                semester: semester,
+                type: type,
+                deletedAt: { $exists: false },
+            })) != null
+        );
+    }
+
     /**
-     * Hide sensitive information of exam from user with userId
+     * Hide all registration information from the exam
      */
-    public maskExam(exam: ExamDocument, userId: Types.ObjectId) {
+    public maskExam(exam: ExamDocument) {
         return {
             ..._.pick(exam.toObject(), [
                 "name",
@@ -158,8 +174,8 @@ export class ExamService {
                     "startedAt",
                     "endedAt",
                 ]),
-                registeredUsers: slot.registeredUsers.filter((user) =>
-                    user.userId.equals(userId)
+                registeredUsers: slot.registeredUsers.map((user) =>
+                    _.pick(user, "userId")
                 ),
             })),
         };

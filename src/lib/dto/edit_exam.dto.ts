@@ -14,10 +14,6 @@ export type EditExamDto = {
     name?: string;
     description?: string;
 
-    subject?: Types.ObjectId;
-    semester?: Semester;
-    type?: ExamType;
-
     registrationStartedAt?: number;
     registrationEndedAt?: number;
 
