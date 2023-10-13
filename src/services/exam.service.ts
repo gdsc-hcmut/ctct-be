@@ -158,6 +158,7 @@ export class ExamService {
     public maskExam(exam: ExamDocument) {
         return {
             ..._.pick(exam.toObject(), [
+                "_id",
                 "name",
                 "description",
                 "registrationStartedAt",
