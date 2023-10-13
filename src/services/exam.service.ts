@@ -177,6 +177,7 @@ export class ExamService {
                 registeredUsers: slot.registeredUsers.map((user) =>
                     _.pick(user, "userId")
                 ),
+                questionCount: slot.questions.length,
             })),
         };
     }
