@@ -80,13 +80,13 @@ export class ExamSessionController implements Controller {
             const { userId } = req.tokenMeta;
             const examId = new Types.ObjectId(req.params.examId);
 
-            const ongoingSessionOfSameExam =
-                await this.examSessionService.getOngoingSessionOfExam(
+            const hasDoneExam =
+                await this.examSessionService.userHasDoneThisExam(
                     userId,
                     examId
                 );
-            if (ongoingSessionOfSameExam) {
-                throw new Error(`You are currently doing this exam`);
+            if (hasDoneExam) {
+                throw new Error(`You have already taken this exam`);
             }
 
             const exam = await this.examService.getExamById(examId);
