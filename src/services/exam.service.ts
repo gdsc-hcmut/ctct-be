@@ -158,6 +158,7 @@ export class ExamService {
     public maskExam(exam: ExamDocument) {
         return {
             ..._.pick(exam.toObject(), [
+                "_id",
                 "name",
                 "description",
                 "registrationStartedAt",
@@ -177,6 +178,7 @@ export class ExamService {
                 registeredUsers: slot.registeredUsers.map((user) =>
                     _.pick(user, "userId")
                 ),
+                questionCount: slot.questions.length,
             })),
         };
     }
