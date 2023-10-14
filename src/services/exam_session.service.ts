@@ -183,4 +183,24 @@ export class ExamSessionService {
             { $project: { metadata: 0 } },
         ]);
     }
+
+    public async userHasDoneThisExam(
+        userId: Types.ObjectId,
+        examId: Types.ObjectId
+    ) {
+        return await ExamSessionModel.exists({
+            userId,
+            fromExam: examId,
+        });
+    }
+
+    public async getUserSessionOfExam(
+        userId: Types.ObjectId,
+        examId: Types.ObjectId
+    ) {
+        return await ExamSessionModel.findOne({
+            userId,
+            fromExam: examId,
+        });
+    }
 }

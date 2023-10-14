@@ -81,9 +81,9 @@ export class MapperService {
             case ExamSessionStatus.ENDED: {
                 return {
                     ..._.omit(data, ["questions"]),
-                    questions: _.map(data.questions, (question) => {
-                        _.omit(question, ["explanation", "userNote"]);
-                    }),
+                    questions: _.map(data.questions, (question) =>
+                        _.omit(question, ["explanation", "userNote"])
+                    ),
                 };
             }
             default: {

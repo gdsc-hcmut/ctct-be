@@ -50,10 +50,7 @@ export class ExamSessionController implements Controller {
         this.router.all("*", authService.authenticate());
         this.router.post("/:examId", this.create.bind(this));
 
-        this.router.get(
-            "/exam/:examId",
-            this.getOngoingSessionOfExam.bind(this)
-        );
+        this.router.get("/exam/:examId", this.getSessionOfExam.bind(this));
         this.router.get("/:examSessionId", this.getById.bind(this));
         this.router.get("/", this.getMy.bind(this));
         this.router.post(
@@ -80,13 +77,13 @@ export class ExamSessionController implements Controller {
             const { userId } = req.tokenMeta;
             const examId = new Types.ObjectId(req.params.examId);
 
-            const ongoingSessionOfSameExam =
-                await this.examSessionService.getOngoingSessionOfExam(
+            const hasDoneExam =
+                await this.examSessionService.userHasDoneThisExam(
                     userId,
                     examId
                 );
-            if (ongoingSessionOfSameExam) {
-                throw new Error(`You are currently doing this exam`);
+            if (hasDoneExam) {
+                throw new Error(`You have already taken this exam`);
             }
 
             const exam = await this.examService.getExamById(examId);
@@ -174,13 +171,13 @@ export class ExamSessionController implements Controller {
         }
     }
 
-    public async getOngoingSessionOfExam(req: Request, res: Response) {
+    public async getSessionOfExam(req: Request, res: Response) {
         try {
             const { userId } = req.tokenMeta;
             const examId = new Types.ObjectId(req.params.examId);
 
             const examSession =
-                await this.examSessionService.getOngoingSessionOfExam(
+                await this.examSessionService.getUserSessionOfExam(
                     userId,
                     examId
                 );
