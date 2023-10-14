@@ -193,4 +193,14 @@ export class ExamSessionService {
             fromExam: examId,
         });
     }
+
+    public async getUserSessionOfExam(
+        userId: Types.ObjectId,
+        examId: Types.ObjectId
+    ) {
+        return await ExamSessionModel.findOne({
+            userId,
+            fromExam: examId,
+        });
+    }
 }
