@@ -4,7 +4,7 @@ import { Gender } from "./user.model";
 
 export enum ExamType {
     MIDTERM_EXAM = "MIDTERM_EXAM",
-    FINAL_TERM = "FINAL_TERM",
+    FINAL_EXAM = "FINAL_EXAM",
 }
 
 export type ExamDocument = Document & {
