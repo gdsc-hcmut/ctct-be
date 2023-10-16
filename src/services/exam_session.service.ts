@@ -203,4 +203,53 @@ export class ExamSessionService {
             fromExam: examId,
         });
     }
+
+    public async getStatisticsGroupedBySubject(userId: Types.ObjectId) {
+        return await ExamSessionModel.aggregate([
+            {
+                $match: {
+                    userId: userId,
+                    status: ExamSessionStatus.ENDED,
+                },
+            },
+            {
+                $lookup: {
+                    from: "exams",
+                    localField: "fromExam",
+                    foreignField: "_id",
+                    as: "fromExam",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$fromExam",
+                    includeArrayIndex: "string",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $lookup: {
+                    from: "subjects",
+                    localField: "fromExam.subject",
+                    foreignField: "_id",
+                    as: "fromExam.subject",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$fromExam.subject",
+                    includeArrayIndex: "string",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $group: {
+                    _id: "$fromExam.subject._id",
+                    name: { $first: "$fromExam.subject.name" },
+                    total: { $count: {} },
+                    score: { $avg: "$standardizedScore" },
+                },
+            },
+        ]);
+    }
 }
