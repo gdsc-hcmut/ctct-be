@@ -7,6 +7,7 @@ import {
     AuthService,
     UserActivityService,
     QuizSessionService,
+    ExamSessionService,
 } from "../services/index";
 import { ErrorNotFound } from "../lib/errors";
 import { logger } from "../lib/logger";
@@ -31,7 +32,9 @@ export class MeController extends Controller {
         @inject(ServiceType.UserActivity)
         private userActivityService: UserActivityService,
         @inject(ServiceType.QuizSession)
-        private quizSessionService: QuizSessionService
+        private quizSessionService: QuizSessionService,
+        @inject(ServiceType.ExamSession)
+        private examSessionService: ExamSessionService
     ) {
         super();
         this.router.all("*", this.authService.authenticate());
@@ -45,6 +48,7 @@ export class MeController extends Controller {
             this.deleteActivity.bind(this)
         );
         this.router.get("/statistics/quiz", this.getQuizStatistics.bind(this));
+        this.router.get("/statistics/exam", this.getExamStatistics.bind(this));
     }
 
     async getMyProfile(req: Request, res: Response) {
@@ -262,6 +266,23 @@ export class MeController extends Controller {
 
             const result =
                 await this.quizSessionService.getStatisticsGroupedBySubject(
+                    userId
+                );
+
+            res.composer.success(result);
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    public async getExamStatistics(req: Request, res: Response) {
+        try {
+            const { userId } = req.tokenMeta;
+
+            const result =
+                await this.examSessionService.getStatisticsGroupedBySubject(
                     userId
                 );
 
