@@ -45,6 +45,20 @@ export class SocketService {
             });
     }
 
+    async endExamSession(userId: string, examSessionId: string) {
+        logger.debug(
+            `[Socket] ${SocketEventType.END_EXAM_SESSION}: Session ${examSessionId} by user ${userId} has ended`
+        );
+        SocketConnectionRegistry.instance()
+            .getConnectionsOfUser(userId)
+            .forEach((connection) => {
+                connection.socket.emit(SocketEventType.END_EXAM_SESSION, {
+                    userId,
+                    examSessionId,
+                });
+            });
+    }
+
     initialize = (socketServer: Server) => {
         this.socketServer = socketServer;
         const wrapMiddlewareForSocketIo =

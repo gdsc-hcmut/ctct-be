@@ -5,7 +5,6 @@ import { Request, Response, ServiceType } from "../../types";
 import {
     PreviousExamDocument,
     PreviousExamType,
-    Semester,
 } from "../../models/previous-exam.model";
 import {
     AccessLevelService,
@@ -23,6 +22,7 @@ import { AgressiveFileCompression } from "../../lib/file-compression/strategies"
 import { logger } from "../../lib/logger";
 import _ from "lodash";
 import { DEFAULT_PAGINATION_SIZE } from "../../config";
+import { Semester } from "../../config";
 
 @injectable()
 export class AdminPreviousExamController extends Controller {

@@ -5,6 +5,7 @@ import {
     AccessLevelService,
     AuthService,
     ChapterService,
+    ExamService,
     QuestionService,
     QuizService,
     SubjectService,
@@ -35,7 +36,8 @@ export class AdminQuestionController extends Controller {
         private accessLevelService: AccessLevelService,
         @inject(ServiceType.Subject) private subjectService: SubjectService,
         @inject(ServiceType.Chapter) private chapterService: ChapterService,
-        @inject(ServiceType.Quiz) private quizService: QuizService
+        @inject(ServiceType.Quiz) private quizService: QuizService,
+        @inject(ServiceType.Exam) private examService: ExamService
     ) {
         super();
 
@@ -559,13 +561,20 @@ export class AdminQuestionController extends Controller {
             }
 
             // check if any quiz or exam that use this question
-            const [quizWithThisQuestion] = await Promise.all([
-                this.quizService.checkQuizWithQuestion(questionId),
-            ]);
+            const [quizWithThisQuestion, examWithThisQuestion] =
+                await Promise.all([
+                    this.quizService.checkQuizWithQuestion(questionId),
+                    this.examService.examWithQuestionExists(questionId),
+                ]);
 
             if (quizWithThisQuestion) {
                 throw new Error(
                     `There are quiz that contain this question. Please delete them first`
+                );
+            }
+            if (examWithThisQuestion) {
+                throw new Error(
+                    `There are exam that contain this question. Please delete them first`
                 );
             }
 

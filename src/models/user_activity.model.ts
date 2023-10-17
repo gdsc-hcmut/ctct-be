@@ -4,6 +4,7 @@ export enum UserActivityType {
     VIEW_MATERIAL = "VIEW_MATERIAL",
     VIEW_PREVIOUS_EXAM = "VIEW_PREVIOUS_EXAM",
     START_QUIZ_SESSION = "START_QUIZ_SESSION",
+    START_EXAM_SESSION = "START_EXAM_SESSION",
 }
 
 export type UserActivityDocument = Document & {
@@ -13,6 +14,7 @@ export type UserActivityDocument = Document & {
     materialId?: Types.ObjectId;
     previousExamId?: Types.ObjectId;
     quizSessionId?: Types.ObjectId;
+    examSessionId?: Types.ObjectId;
 
     createdAt: number;
     deletedAt: number;
@@ -36,6 +38,11 @@ const userActivitySchema = new Schema<UserActivityDocument>({
         type: Schema.Types.ObjectId,
         required: false,
         ref: "quiz_sessions",
+    },
+    examSessionId: {
+        type: Schema.Types.ObjectId,
+        required: false,
+        ref: "exam_sessions",
     },
 
     createdAt: { type: Number, required: true },
