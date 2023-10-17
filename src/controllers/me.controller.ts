@@ -184,7 +184,7 @@ export class MeController extends Controller {
                             select: "_id status fromExam",
                             populate: {
                                 path: "fromExam",
-                                select: "_id name subject",
+                                select: "_id name subject semester type",
                                 populate: [
                                     { path: "subject", select: "_id name" },
                                 ],

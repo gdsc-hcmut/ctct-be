@@ -39,6 +39,10 @@ export class UserActivityService {
                 type === UserActivityType.START_QUIZ_SESSION
                     ? entityId
                     : undefined,
+            examSessionId:
+                type === UserActivityType.START_EXAM_SESSION
+                    ? entityId
+                    : undefined,
             createdAt: Date.now(),
         });
     }
