@@ -1,4 +1,5 @@
 import mongoose, { Schema, Types } from "mongoose";
+import { logger } from "../lib/logger";
 
 export enum UserActivityType {
     VIEW_MATERIAL = "VIEW_MATERIAL",
@@ -22,7 +23,11 @@ export type UserActivityDocument = Document & {
 
 const userActivitySchema = new Schema<UserActivityDocument>({
     type: { type: String, required: true, enum: UserActivityType },
-    userId: { type: Schema.Types.ObjectId, required: true, ref: "users" },
+    userId: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: "users",
+    },
 
     materialId: {
         type: Schema.Types.ObjectId,
@@ -49,9 +54,19 @@ const userActivitySchema = new Schema<UserActivityDocument>({
     deletedAt: { type: Number, required: false },
 });
 
+userActivitySchema.index({ userId: "hashed" });
+
 const UserActivityModel = mongoose.model<UserActivityDocument>(
     "user_activities",
     userActivitySchema
 );
+
+UserActivityModel.on("index", (err) => {
+    if (err) {
+        logger.error("User activity index error: %s", err);
+    } else {
+        logger.info("Created index for user actitivity");
+    }
+});
 
 export default UserActivityModel;
