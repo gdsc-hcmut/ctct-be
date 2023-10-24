@@ -55,6 +55,11 @@ export class ExamController implements Controller {
             const { userId } = req.tokenMeta;
             const user = await this.userService.getUserById(userId);
 
+            const isHcmutEmail = /.+@hcmut\.edu\.vn/.test(user.email);
+            if (!isHcmutEmail) {
+                throw new Error(`Please register with @hcmut.edu.vn email`);
+            }
+
             const givenNameInvalid =
                 _.isEmpty(user.givenName) || _.isNil(user.givenName);
             const lastNameInvalid =
