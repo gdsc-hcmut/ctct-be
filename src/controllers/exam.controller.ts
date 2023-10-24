@@ -34,6 +34,7 @@ export class ExamController implements Controller {
         this.router.all("*", authService.authenticate());
         this.router.post(
             "/:examId/slot/:slotId",
+            this.checkHcmutEmail.bind(this),
             this.hasFilledProfile.bind(this),
             this.register.bind(this)
         );
@@ -41,6 +42,28 @@ export class ExamController implements Controller {
 
         this.router.get("/:examId", this.getById.bind(this));
         this.router.get("/", this.getAll.bind(this));
+    }
+
+    private async checkHcmutEmail(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        try {
+            const { userId } = req.tokenMeta;
+            const user = await this.userService.getUserById(userId);
+
+            const isHcmutEmail = /.+@hcmut\.edu\.vn/.test(user.email);
+            if (!isHcmutEmail) {
+                throw new Error(`Please register with @hcmut.edu.vn email`);
+            }
+
+            next();
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
     }
 
     /**
