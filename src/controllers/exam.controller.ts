@@ -41,7 +41,10 @@ export class ExamController implements Controller {
         this.router.post("/:examId/unregister", this.unregister.bind(this));
 
         this.router.get("/:examId", this.getById.bind(this));
+        this.router.get("/:examId/summary");
         this.router.get("/", this.getAll.bind(this));
+
+        this.router.get("/:examId/summary", this.getExamSummary.bind(this));
     }
 
     private async checkHcmutEmail(
@@ -350,6 +353,27 @@ export class ExamController implements Controller {
                     result: maskedResult,
                 });
             }
+        } catch (error) {
+            logger.error(error.message);
+            console.log(error);
+            res.composer.badRequest(error.message);
+        }
+    }
+
+    public async getExamSummary(req: Request, res: Response) {
+        try {
+            const examId = new Types.ObjectId(req.params.examId);
+            const sessions =
+                await this.examSessionService.getCompletedSessionsOfExam(
+                    examId
+                );
+
+            const result = _.map(
+                sessions,
+                (session) => session.standardizedScore
+            );
+
+            res.composer.success(result);
         } catch (error) {
             logger.error(error.message);
             console.log(error);
