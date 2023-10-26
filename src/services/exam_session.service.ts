@@ -252,4 +252,11 @@ export class ExamSessionService {
             },
         ]);
     }
+
+    public async getCompletedSessionsOfExam(examId: Types.ObjectId) {
+        return await ExamSessionModel.find({
+            status: ExamSessionStatus.ENDED,
+            fromExam: examId,
+        });
+    }
 }
