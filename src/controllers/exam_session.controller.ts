@@ -101,10 +101,10 @@ export class ExamSessionController implements Controller {
                 throw new Error(`You are not registered for this exam`);
             }
 
-            const currentTime = Date.now();
+            const now = Date.now();
             const inSlotTime =
-                exam.slots[slotIndex].startedAt <= currentTime &&
-                currentTime <= exam.slots[slotIndex].endedAt;
+                exam.slots[slotIndex].startedAt <= now &&
+                now <= exam.slots[slotIndex].endedAt;
             if (!inSlotTime) {
                 throw new Error(`Slot time hasn't started`);
             }
@@ -131,14 +131,14 @@ export class ExamSessionController implements Controller {
                 userId,
                 examId,
                 exam.slots[slotIndex].slotId,
-                currentTime,
+                exam.slots[slotIndex].startedAt,
                 sessionDuration,
                 questions
             );
             // schedule a task to end this exam
             logger.debug(
                 `Scheduling exam ${exam._id} to start at ${new Date(
-                    currentTime
+                    now
                 ).toString()} and end at ${new Date(
                     examSessionDeadline
                 ).toString()}`
