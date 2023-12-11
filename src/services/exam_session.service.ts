@@ -1,4 +1,4 @@
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { logger } from "../lib/logger";
 import {
     FilterQuery,
@@ -14,10 +14,15 @@ import ExamSessionModel, {
     ExamSessionDocument,
     ExamSessionStatus,
 } from "../models/exam_session.model";
+import { ServiceType } from "../types";
+import { CacheService } from "./cache.service";
 
 @injectable()
 export class ExamSessionService {
-    constructor() {
+    private EXAM_HISTOGRAM_CACHE_TIME: number = 60 * 10; // 5 minutes
+    private EXAM_SLOT_SUMMARY_CACHE_TIME: number = 60 * 10; // 5 minutes
+
+    constructor(@inject(ServiceType.Cache) private cacheService: CacheService) {
         logger.info(`[ExamSession] Initializing...`);
     }
 
@@ -85,11 +90,25 @@ export class ExamSessionService {
         return await ExamSessionModel.findById(examSessionId);
     }
 
-    public async getAllSessionOfSlot(examId: Types.ObjectId, slotId: number) {
-        return await ExamSessionModel.find({
-            fromExam: examId,
-            slotId,
-        });
+    public async getAllSessionOfSlot(
+        examId: Types.ObjectId,
+        slotId: number
+    ): Promise<ExamSessionDocument[]> {
+        return JSON.parse(
+            await this.cacheService.getWithPopulate(
+                `exam_slot_summary ${examId.toString()} ${slotId.toString()}`,
+                async () => {
+                    const sessions = await ExamSessionModel.find({
+                        fromExam: examId,
+                        slotId,
+                    });
+                    return JSON.stringify(sessions);
+                },
+                {
+                    EX: this.EXAM_SLOT_SUMMARY_CACHE_TIME,
+                }
+            )
+        ) as ExamSessionDocument[];
     }
 
     private preparePipelineForGetAll(
@@ -254,9 +273,21 @@ export class ExamSessionService {
     }
 
     public async getCompletedSessionsOfExam(examId: Types.ObjectId) {
-        return await ExamSessionModel.find({
-            status: ExamSessionStatus.ENDED,
-            fromExam: examId,
-        });
+        const result = JSON.parse(
+            await this.cacheService.getWithPopulate(
+                `exam_histogram ${examId.toString()}`,
+                async () => {
+                    const sessions = await ExamSessionModel.find({
+                        status: ExamSessionStatus.ENDED,
+                        fromExam: examId,
+                    });
+                    return JSON.stringify(sessions);
+                },
+                {
+                    EX: this.EXAM_HISTOGRAM_CACHE_TIME,
+                }
+            )
+        );
+        return result as ExamSessionDocument[];
     }
 }

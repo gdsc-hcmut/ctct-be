@@ -80,9 +80,6 @@ export class AdminExamController implements Controller {
                 semester: req.body.semester,
                 type: req.body.type,
 
-                registrationStartedAt: req.body.registrationStartedAt,
-                registrationEndedAt: req.body.registrationEndedAt,
-
                 slots: req.body.slots.map((slot: CreateExamSlotDto) => ({
                     name: slot.name,
                     userLimit: slot.userLimit,
@@ -127,18 +124,9 @@ export class AdminExamController implements Controller {
             }
 
             // check if all timestamps are valid
-            const validRegistrationTime =
-                Date.now() < examInfo.registrationStartedAt &&
-                examInfo.registrationStartedAt < examInfo.registrationEndedAt;
-            if (!validRegistrationTime) {
-                throw new Error(`Invalid registration time`);
-            }
-
             const validSlotTime = _.every(
                 examInfo.slots,
-                (slot) =>
-                    slot.startedAt < slot.endedAt &&
-                    examInfo.registrationEndedAt < slot.startedAt
+                (slot) => slot.startedAt < slot.endedAt
             );
             if (!validSlotTime) {
                 throw new Error(`Invalid slot time`);
@@ -232,24 +220,8 @@ export class AdminExamController implements Controller {
                 name: req.body.name || exam.name,
                 description: req.body.description || exam.description,
 
-                registrationStartedAt:
-                    req.body.registrationStartedAt ||
-                    exam.registrationStartedAt,
-                registrationEndedAt:
-                    req.body.registrationEndedAt || exam.registrationEndedAt,
                 isHidden: req.body.isHidden || exam.isHidden,
             };
-
-            const minSlotStartTime = _.min(
-                _.map(exam.slots, (slot) => slot.startedAt)
-            );
-            const validRegistrationTime =
-                info.registrationStartedAt < info.registrationEndedAt &&
-                (minSlotStartTime === undefined ||
-                    info.registrationEndedAt < minSlotStartTime);
-            if (!validRegistrationTime) {
-                throw new Error(`Invalid registration time`);
-            }
 
             const editedExam = await this.examService.editOneExam(examId, info);
             res.composer.success(editedExam);
@@ -310,10 +282,6 @@ export class AdminExamController implements Controller {
                 throw new Error(`Exam does not exist`);
             }
 
-            if (Date.now() > exam.registrationEndedAt) {
-                throw new Error(`Cannot add slot after registration ended`);
-            }
-
             const slotInfo: CreateExamSlotDto = {
                 name: req.body.name,
                 userLimit: req.body.userLimit,
@@ -331,9 +299,8 @@ export class AdminExamController implements Controller {
                 throw new Error(`Invalid user limit`);
             }
             if (
-                slotInfo.startedAt === undefined ||
-                slotInfo.endedAt === undefined ||
-                exam.registrationEndedAt >= slotInfo.startedAt ||
+                _.isNil(slotInfo.startedAt) ||
+                _.isNil(slotInfo.endedAt) ||
                 slotInfo.startedAt >= slotInfo.endedAt
             ) {
                 throw new Error(`Invalid slot time`);
@@ -455,8 +422,7 @@ export class AdminExamController implements Controller {
 
             const validSlotTime =
                 Date.now() < editSlotInfo.startedAt &&
-                editSlotInfo.startedAt < editSlotInfo.endedAt &&
-                exam.registrationEndedAt < editSlotInfo.startedAt;
+                editSlotInfo.startedAt < editSlotInfo.endedAt;
             if (!validSlotTime) {
                 throw new Error(`Invalid slot time`);
             }
