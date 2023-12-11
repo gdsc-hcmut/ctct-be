@@ -139,20 +139,19 @@ export class ExamController implements Controller {
                 throw new Error(`Exam not found`);
             }
 
-            const currentTime = Date.now();
-            const allowRegistration =
-                exam.registrationStartedAt <= currentTime &&
-                currentTime <= exam.registrationEndedAt;
-            if (!allowRegistration) {
-                throw new Error(`Registration is not open`);
-            }
-
             const index = _.findIndex(
                 exam.slots,
                 (slot) => slot.slotId === slotId
             );
             if (index === -1) {
                 throw new Error(`Slot with ID ${slotId} not found`);
+            }
+
+            const now = Date.now();
+
+            const validRegistrationTime = now < exam.slots[index].startedAt;
+            if (!validRegistrationTime) {
+                throw new Error(`Can only register before slot starts`);
             }
 
             const slotAtLimit =
@@ -205,28 +204,26 @@ export class ExamController implements Controller {
             }
 
             const currentTime = Date.now();
-            const allowRegistration =
-                exam.registrationStartedAt <= currentTime &&
-                currentTime <= exam.registrationEndedAt;
-            if (!allowRegistration) {
-                throw new Error(`Registration is not open`);
-            }
 
-            const userRegistered = _.some(exam.slots, (slot) =>
+            const slotIndex = _.findIndex(exam.slots, (slot) =>
                 _.some(slot.registeredUsers, (user) =>
                     user.userId.equals(userId)
                 )
             );
-            if (!userRegistered) {
-                throw new Error(`You have not registered this exam`);
+            if (slotIndex === -1) {
+                throw new Error(`You are not registered for this exam`);
             }
 
-            for (let i = 0; i < exam.slots.length; i++) {
-                exam.slots[i].registeredUsers = _.filter(
-                    exam.slots[i].registeredUsers,
-                    (user) => !user.userId.equals(userId)
-                );
+            const allowUnregister =
+                currentTime < exam.slots[slotIndex].startedAt;
+            if (!allowUnregister) {
+                throw new Error(`Can only unregister before slot starts`);
             }
+            exam.slots[slotIndex].registeredUsers = _.filter(
+                exam.slots[slotIndex].registeredUsers,
+                (user) => !user.userId.equals(userId)
+            );
+
             exam.markModified("slots");
             await exam.save();
 

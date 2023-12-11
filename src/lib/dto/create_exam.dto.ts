@@ -18,8 +18,5 @@ export type CreateExamDto = {
     semester: Semester;
     type: ExamType;
 
-    registrationStartedAt: number;
-    registrationEndedAt: number;
-
     slots: CreateExamSlotDto[];
 };
