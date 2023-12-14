@@ -15,9 +15,6 @@ export type ExamDocument = Document & {
     semester: Semester;
     type: ExamType;
 
-    registrationStartedAt: number;
-    registrationEndedAt: number;
-
     slots: {
         slotId: number;
 
@@ -54,9 +51,6 @@ const examSchema = new Schema<ExamDocument>({
     subject: { type: Schema.Types.ObjectId, ref: "subjects" },
     semester: { type: String, enum: Semester },
     type: { type: String, enum: ExamType },
-
-    registrationStartedAt: { type: Number, required: true },
-    registrationEndedAt: { type: Number, required: true },
 
     slots: [
         {
