@@ -12,6 +12,7 @@ import passport from "passport";
 import compression from "compression";
 import { logger } from "./lib/logger";
 import * as socketio from "socket.io";
+import { setupMetrics } from "./lib/metrics/metrics";
 
 class App {
     public app: Express;
@@ -53,6 +54,7 @@ class App {
         this.app.use(bodyParser.json({ limit: "50mb" }));
         this.app.use(cors());
         this.app.use(useragent.express());
+        setupMetrics(this.app);
 
         // this.app.use(
         //     "/static",
