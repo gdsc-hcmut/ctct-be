@@ -1,5 +1,7 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction } from "express";
 import { addHttpRequestMetric } from "./metrics";
+import { Request, Response } from "../../types";
+import { logger } from "../logger";
 
 export default function apiMetricsMiddleware(
     req: Request,
@@ -9,13 +11,20 @@ export default function apiMetricsMiddleware(
     const startTime = Date.now();
 
     res.on("finish", () => {
-        const responseTimeMilliseconds = Date.now() - startTime;
-        addHttpRequestMetric({
-            method: req.method,
-            route: req.originalUrl,
-            status: res.statusCode,
-            responseTimeMilliseconds,
-        });
+        try {
+            const responseTimeMilliseconds = Date.now() - startTime;
+            const routePrefix = req.routePrefix || "";
+            const route = routePrefix + req.route.path;
+
+            addHttpRequestMetric({
+                method: req.method,
+                route,
+                status: res.statusCode,
+                responseTimeMilliseconds,
+            });
+        } catch (error) {
+            logger.error(`Failed to record API metrics (${error})`);
+        }
     });
 
     next();

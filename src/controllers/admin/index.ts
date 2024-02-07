@@ -10,6 +10,7 @@ import { AdminSubjectController } from "./subject.controller";
 import { AdminQuestionController } from "./question.controller";
 import { AdminQuizController } from "./quiz.controller";
 import { AdminExamController } from "./exam.controller";
+import recordRoutePrefix from "../../lib/record-route-prefix";
 
 @injectable()
 export class AdminController extends Controller {
@@ -35,7 +36,11 @@ export class AdminController extends Controller {
         super();
 
         this.SUBROUTES.forEach((controller) => {
-            this.router.use(controller.path, controller.router);
+            this.router.use(
+                controller.path,
+                recordRoutePrefix(controller.path),
+                controller.router
+            );
         });
     }
 }

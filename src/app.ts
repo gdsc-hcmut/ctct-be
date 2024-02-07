@@ -13,6 +13,7 @@ import compression from "compression";
 import { logger } from "./lib/logger";
 import * as socketio from "socket.io";
 import { setupMetrics } from "./lib/metrics/metrics";
+import recordRoutePrefix from "./lib/record-route-prefix";
 
 class App {
     public app: Express;
@@ -77,7 +78,11 @@ class App {
 
     private initializeControllers(controllers: Controller[]) {
         controllers.forEach((controller) => {
-            this.app.use(controller.path, controller.router);
+            this.app.use(
+                controller.path,
+                recordRoutePrefix(controller.path),
+                controller.router
+            );
         });
     }
 
