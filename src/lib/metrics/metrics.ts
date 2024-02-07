@@ -89,7 +89,7 @@ export function setupMetrics(app: Express): Express {
 
     app.use("*", apiMetricsMiddleware);
 
-    app.use("/metrics", async (_req: Request, res: Response) => {
+    app.get("/metrics", async (_req: Request, res: Response) => {
         try {
             res.set("Content-Type", client.register.contentType);
 
