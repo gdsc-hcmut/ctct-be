@@ -4,6 +4,7 @@ import { TokenDocument } from "./models/token.model";
 
 export interface Request extends ERequest {
     tokenMeta?: TokenDocument;
+    routePrefix?: string;
 }
 
 export interface Response extends EResponse {
