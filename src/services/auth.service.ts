@@ -12,7 +12,7 @@ import _, { toNumber } from "lodash";
 import moment from "moment";
 import passportGoogle from "passport-google-oauth20";
 import User, { UserDocument } from "../models/user.model";
-import { parseTokenMeta } from "../models/token.model";
+import { TokenDocument, parseTokenMeta } from "../models/token.model";
 const GoogleStrategy = passportGoogle.Strategy;
 import { Request, Response, ServiceType } from "../types";
 import { ErrorUserInvalid } from "../lib/errors";
@@ -144,15 +144,18 @@ export class AuthService {
     authenticate(block = true) {
         return (req: Request, res: Response, next: NextFunction) => {
             try {
-                passport.authenticate("jwt", async (err, tokenMeta, info) => {
-                    req.tokenMeta = tokenMeta;
-                    if (block && _.isEmpty(tokenMeta)) {
-                        res.composer.unauthorized();
-                        return;
-                    }
+                passport.authenticate(
+                    "jwt",
+                    async (err: any, tokenMeta: TokenDocument, info: any) => {
+                        req.tokenMeta = tokenMeta;
+                        if (block && _.isEmpty(tokenMeta)) {
+                            res.composer.unauthorized();
+                            return;
+                        }
 
-                    next();
-                })(req, res, next);
+                        next();
+                    }
+                )(req, res, next);
             } catch (err: any) {
                 console.log(err);
             }
