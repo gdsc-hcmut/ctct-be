@@ -1,6 +1,5 @@
 import { injectable, inject } from "inversify";
 import admin from "firebase-admin";
-import serviceAccount from "../../googleServiceAccountKey.json";
 import { DownloadFileInfo } from "../types";
 import { Bucket } from "@google-cloud/storage";
 import { randomUUID } from "crypto";
@@ -24,10 +23,16 @@ export class FileUploadService {
     CACHE_EXPIRATION_TIME: number = 60 * 15; // 15 minutes
 
     constructor(@inject(ServiceType.Cache) private cacheService: CacheService) {
+        this.initialize();
+    }
+
+    async initialize() {
+        const mountPath = "../../googleServiceAccountKey.json";
         logger.info("Constructing File Upload service");
+
         admin.initializeApp({
             credential: admin.credential.cert(
-                serviceAccount as admin.ServiceAccount
+                (await import(mountPath)).default as admin.ServiceAccount
             ),
             storageBucket: process.env.STORAGE_BUCKET,
         });

@@ -88,7 +88,7 @@ jobs:
 
                       if [ "${RUNNING}" -ne 0 ]; then
                           # Start new
-                        pm2 start dist/src/index.js --name ${{ inputs.project_name }} -i 1
+                        pm2 start dist/index.js --name ${{ inputs.project_name }} -i 1
                       else
                         pm2 reload ${{ inputs.project_name }} --wait-ready --listen-timeout ${{ inputs.listen_timeout }} --update-env
                       fi
