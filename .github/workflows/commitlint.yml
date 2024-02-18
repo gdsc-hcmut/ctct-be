@@ -2,15 +2,15 @@ name: Commit lint
 on: workflow_call
 
 jobs:
-  commitlint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    commitlint:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - name: Check commit message convention
-        run: |
-          yarn add @commitlint/cli @commitlint/config-conventional -D
-          yarn commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
+            - name: Check commit message convention
+              run: |
+                  yarn add @commitlint/cli @commitlint/config-conventional -D
+                  yarn commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
