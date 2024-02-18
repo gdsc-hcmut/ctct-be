@@ -1,0 +1,23 @@
+name: Lint code
+on: workflow_call
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node environment
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 18
+                  cache: "yarn"
+
+            - name: Install dependencies
+              run: yarn add eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-config-prettier -D
+
+            - name: Lint code
+              run: yarn eslint src --ext .ts

@@ -19,7 +19,7 @@ import {
     UnaryPlusMinusContext,
 } from "./GrammarParser";
 import GrammarVisitor from "./GrammarVisitor";
-import mathStdlib from "@stdlib/stdlib";
+import jstat from "jstat";
 
 export type QuestionReturnType = number | string | boolean | void;
 const DEFAULT_EPS = 1e-9;
@@ -774,7 +774,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 const num = Math.round(x);
-                return mathStdlib.math.base.special.factorial(num);
+                return jstat.factorial(num);
             }
             case "combinations": {
                 if (exprList.length !== 2) {
@@ -808,7 +808,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'combinations' expects to receive n >= k, received (${nInt}, ${kInt})`
                     );
                 }
-                return mathStdlib.math.base.special.binomcoef(nInt, kInt);
+                return jstat.combination(nInt, kInt);
             }
             case "combinationsWithRep": {
                 if (exprList.length !== 2) {
@@ -842,10 +842,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'combinationsWithRep' expects to receive n + k - 1 >= k. n = ${n}, k = ${k} does not satisfy this`
                     );
                 }
-                return mathStdlib.math.base.special.binomcoef(
-                    nInt + kInt - 1,
-                    kInt
-                );
+                return jstat.combination(nInt + kInt - 1, kInt);
             }
             case "permutations": {
                 if (exprList.length !== 2) {
@@ -879,10 +876,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'permutations' expects to receive n >= k, received (${nInt}, ${kInt})`
                     );
                 }
-                return (
-                    mathStdlib.math.base.special.binomcoef(nInt, kInt) *
-                    mathStdlib.math.base.special.factorial(kInt)
-                );
+                return jstat.permutation(nInt, kInt);
             }
             case "max": {
                 if (exprList.length === 0) {
@@ -929,7 +923,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     arg2 as number,
                     arg3 as number,
                 ];
-                return mathStdlib.stats.base.dists.normal.cdf(x, mean, std);
+                return jstat.normal.cdf(x, mean, std);
             }
             case "normalQuantile": {
                 if (exprList.length !== 3) {
@@ -955,11 +949,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 p = _.clamp(p, 0, 1);
-                return mathStdlib.stats.base.dists.normal.quantile(
-                    p,
-                    mean,
-                    std
-                );
+                return jstat.normal.inv(p, mean, std);
             }
             case "tCdf": {
                 if (exprList.length !== 2) {
@@ -988,7 +978,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'tCdf' expects to receive a positive integer as second argument, received ${degreeOfFreedom}`
                     );
                 }
-                return mathStdlib.stats.base.dists.t.cdf(x, degreeOfFreedom);
+                return jstat.studentt.cdf(x, degreeOfFreedom);
             }
             case "tQuantile": {
                 if (exprList.length !== 2) {
@@ -1024,10 +1014,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 p = _.clamp(p, 0, 1);
-                return mathStdlib.stats.base.dists.t.quantile(
-                    p,
-                    degreeOfFreedom
-                );
+                return jstat.studentt.inv(p, degreeOfFreedom);
             }
             case "fCdf": {
                 if (exprList.length !== 3) {
@@ -1068,7 +1055,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'fCdf' expects to receive two positive integers as second and third arguments, received ${degreeOfFreedom1} and ${degreeOfFreedom2}`
                     );
                 }
-                return mathStdlib.stats.base.dists.f.cdf(
+                return jstat.centralF.cdf(
                     x,
                     degreeOfFreedom1,
                     degreeOfFreedom2
@@ -1116,7 +1103,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'fQuantile' expects to receive two positive integers as second and third arguments, received ${degreeOfFreedom1} and ${degreeOfFreedom2}`
                     );
                 }
-                return mathStdlib.stats.base.dists.f.quantile(
+                return jstat.centralF.inv(
                     p,
                     degreeOfFreedom1,
                     degreeOfFreedom2
@@ -1173,11 +1160,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 probSuccess = _.clamp(probSuccess, 0, 1);
-                return mathStdlib.stats.base.dists.binomial.pmf(
-                    value,
-                    numTrials,
-                    probSuccess
-                );
+                return jstat.binomial.pdf(value, numTrials, probSuccess);
             }
             case "binomialCdf": {
                 if (exprList.length !== 3) {
@@ -1230,11 +1213,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 probSuccess = _.clamp(probSuccess, 0, 1);
-                return mathStdlib.stats.base.dists.binomial.cdf(
-                    value,
-                    numTrials,
-                    probSuccess
-                );
+                return jstat.binomial.cdf(value, numTrials, probSuccess);
             }
             case "poisson": {
                 if (exprList.length !== 2) {
@@ -1263,7 +1242,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'poisson' expects to receive a positive number as second argument, received ${lambda}`
                     );
                 }
-                return mathStdlib.stats.base.dists.poisson.pmf(value, lambda);
+                return jstat.poisson.pdf(value, lambda);
             }
             case "poissonCdf": {
                 if (exprList.length !== 2) {
@@ -1292,7 +1271,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'poissonCdf' expects to receive a positive number as second argument, received ${lambda}`
                     );
                 }
-                return mathStdlib.stats.base.dists.poisson.cdf(value, lambda);
+                return jstat.poisson.cdf(value, lambda);
             }
             case "exponential": {
                 if (exprList.length !== 2) {
@@ -1315,7 +1294,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'exponential' expects to receive a positive number as second argument, received ${lambda}`
                     );
                 }
-                return mathStdlib.stats.base.dists.exponential.pdf(x, lambda);
+                return jstat.exponential.pdf(x, lambda);
             }
             case "exponentialCdf": {
                 if (exprList.length !== 2) {
@@ -1338,7 +1317,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                         `'exponentialCdf' expects to receive a positive number as second argument, received ${lambda}`
                     );
                 }
-                return mathStdlib.stats.base.dists.exponential.cdf(x, lambda);
+                return jstat.exponential.cdf(x, lambda);
             }
             case "exponentialQuantile": {
                 if (exprList.length !== 2) {
@@ -1368,10 +1347,7 @@ export default class QuestionGrammarVisitor extends GrammarVisitor<QuestionRetur
                     );
                 }
                 p = _.clamp(p, 0, 1);
-                return mathStdlib.stats.base.dists.exponential.quantile(
-                    p,
-                    lambda
-                );
+                return jstat.exponential.inv(p, lambda);
             }
             default: {
                 throw new Error(`Unknown function name ${funcName}`);
