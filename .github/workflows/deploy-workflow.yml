@@ -81,6 +81,7 @@ jobs:
                       source ~/.nvm/nvm.sh
                       cd ${{ inputs.project_path }}
                       git pull
+                      yarn install
 
                       # Check if PM2 is already running the app
                       pm2 describe ${{ inputs.project_name }} > /dev/null 2>&1
