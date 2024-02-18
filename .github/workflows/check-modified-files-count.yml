@@ -1,0 +1,38 @@
+name: Check modified files count
+
+on:
+  workflow_call:
+    inputs:
+      limit:
+        description: 'The maximum number of modified files allowed'
+        type: number
+        required: true
+        default: 15
+      files_ignored:
+        type: string
+        description: 'A list of files to ignore when counting modified files'
+        required: false
+
+jobs:
+  check-modified-files-count:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed file count
+        id: changed-files
+        uses: tj-actions/changed-files@v39
+        with:
+          files_ignore: ${{ inputs.files_ignored }}
+
+      - name: Check modified files count
+        run: |
+          echo "Total modified files: ${{ steps.changed-files.outputs.all_modified_files_count }}"
+
+          if [ ${{ steps.changed-files.outputs.all_modified_files_count }} -gt ${{ inputs.limit }} ]; then
+            echo "Too many files changed. One PR should only change <= ${{ inputs.limit }} files."
+            exit 1
+          fi

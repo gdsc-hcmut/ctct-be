@@ -160,4 +160,8 @@ Promise.all([
 
     app.listen();
     container.get<SocketService>(ServiceType.Socket).initialize(app.io);
+
+    if (process.send) {
+        process.send("ready");
+    }
 });
