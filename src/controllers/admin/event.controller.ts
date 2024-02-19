@@ -54,7 +54,7 @@ export class AdminEventController implements Controller {
             );
 
             const canCreateEvent = await canPerform(
-                Permission.ADMIN_VIEW_EVENT
+                Permission.ADMIN_CREATE_EVENT
             );
             if (!canCreateEvent) {
                 throw new Error(
@@ -292,7 +292,7 @@ export class AdminEventController implements Controller {
                 request.tokenMeta
             );
 
-            const canViewEvent = await canPerform(Permission.ADMIN_VIEW_EXAM);
+            const canViewEvent = await canPerform(Permission.ADMIN_VIEW_EVENT);
             if (!canViewEvent) {
                 throw new Error(
                     `Your role(s) does not have the permission to perform this action`
