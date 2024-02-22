@@ -15,6 +15,7 @@ import {
     UpdateQuery,
 } from "mongoose";
 import { aes256Encrypt, aes256Decrypt } from "../lib/aes256/aes256";
+import _ from "lodash";
 
 @injectable()
 export class EventService {
@@ -60,7 +61,7 @@ export class EventService {
         return await EventModel.findOne(
             { ...query, deletedAt: { $exists: false } },
             projection,
-            options
+            { ...options, sort: { startedAt: -1 } }
         );
     }
 
@@ -80,11 +81,11 @@ export class EventService {
         return await EventModel.find(
             { ...query, deletedAt: { $exists: false } },
             projection,
-            options
+            { ...options, sort: { startedAt: -1 } }
         );
     }
 
-    async getPaginated(
+    public async getPaginated(
         query: FilterQuery<EventDocument>,
         projection: ProjectionType<EventDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[],
@@ -101,7 +102,8 @@ export class EventService {
                     ...query,
                     deletedAt: { $exists: false },
                 },
-                projection
+                projection,
+                { sort: { startedAt: -1 } }
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
@@ -129,5 +131,26 @@ export class EventService {
 
     public decodeUserQrCode(qrCode: string): EventCheckInQRCodeData {
         return JSON.parse(aes256Decrypt(qrCode, this.EVENT_QR_ENCRYPTION_KEY));
+    }
+
+    public censorEventInformationForUser(event: EventDocument) {
+        return {
+            ..._.pick(event, [
+                "_id",
+                "name",
+                "description",
+                "eventType",
+                "venue",
+                "hasRegistrationTime",
+                "registrationStartedAt",
+                "registrationEndedAt",
+                "startedAt",
+                "endedAt",
+                "lhotMetadata",
+            ]),
+            registeredUsers: _.map(event.registeredUsers, (user) =>
+                _.pick(user, ["userId", "checkedInAt"])
+            ),
+        };
     }
 }

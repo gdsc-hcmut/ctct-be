@@ -13,6 +13,7 @@ import { AdminController } from "./admin";
 import { AccessLevelController } from "./access_level.controller";
 import { ExamController } from "./exam.controller";
 import { ExamSessionController } from "./exam_session.controller";
+import { EventController } from "./event.controller";
 
 export {
     Controller,
@@ -30,4 +31,5 @@ export {
     AccessLevelController,
     ExamController,
     ExamSessionController,
+    EventController,
 };
