@@ -1,6 +1,10 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { Gender } from "./user.model";
 
+export interface EventCheckInQRCodeData {
+    userId: string;
+}
+
 export enum EventType {
     LHOT = "LOP_HOC_ON_TAP",
     OTHER = "OTHER",
@@ -17,13 +21,16 @@ export type EventDocument = Document & {
     registrationStartedAt?: number;
     registrationEndedAt?: number;
 
-    lhotMetadata: {
+    startedAt: number;
+    endedAt: number;
+
+    lhotMetadata?: {
         subject: Types.ObjectId;
     };
 
     registeredUsers: {
         userId: Types.ObjectId;
-        hasCheckedIn: boolean;
+        checkedInAt: number;
 
         givenName: string;
         familyAndMiddleName: string;
@@ -43,41 +50,45 @@ export type EventDocument = Document & {
 };
 
 const eventSchema = new Schema<EventDocument>({
-    name: { Type: String, required: true },
-    description: { Type: String, required: false },
+    name: { type: String, required: true },
+    description: { type: String, required: false },
 
-    eventType: { Type: String, required: true, enum: EventType },
-    venue: { Type: String, required: true },
+    eventType: { type: String, required: true, enum: EventType },
+    venue: { type: String, required: true },
 
-    hasRegistrationTime: { Type: Boolean },
-    registrationStartedAt: { Type: Number, required: false },
-    registrationEndedAt: { Type: Number, required: false },
+    hasRegistrationTime: { type: Boolean },
+    registrationStartedAt: { type: Number, required: false },
+    registrationEndedAt: { type: Number, required: false },
+
+    startedAt: { type: Number, required: true },
+    endedAt: { type: Number, required: true },
 
     lhotMetadata: {
-        subject: { Type: Schema.Types.ObjectId, ref: "subjects" },
+        subject: { type: Schema.Types.ObjectId, ref: "subjects" },
+        required: false,
     },
 
     registeredUsers: [
         {
-            userId: { Type: Schema.Types.ObjectId, required: true },
-            hasCheckedIn: { Type: Boolean },
+            userId: { type: Schema.Types.ObjectId, required: true },
+            checkedInAt: { type: Number, required: false },
 
-            givenName: { Type: String, required: true },
-            familyAndMiddleName: { Type: String, required: true },
-            dateOfBirth: { Type: Number, required: true },
-            studentId: { Type: String, required: true },
-            major: { Type: String, required: true },
-            gender: { Type: String, required: true, enum: Gender },
-            phoneNumber: { Type: String, required: true },
+            givenName: { type: String, required: true },
+            familyAndMiddleName: { type: String, required: true },
+            dateOfBirth: { type: Number, required: true },
+            studentId: { type: String, required: true },
+            major: { type: String, required: true },
+            gender: { type: String, required: true, enum: Gender },
+            phoneNumber: { type: String, required: true },
 
-            registeredAt: { Type: Number, required: true },
+            registeredAt: { type: Number, required: true },
         },
     ],
 
-    createdAt: { Type: Number, required: true },
-    createdBy: { Type: Schema.Types.ObjectId, required: true, ref: "users" },
-    lastUpdatedAt: { Type: Number, required: true },
-    deletedAt: { Type: Number, required: false },
+    createdAt: { type: Number, required: true },
+    createdBy: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+    lastUpdatedAt: { type: Number, required: true },
+    deletedAt: { type: Number, required: false },
 });
 
 const EventModel = mongoose.model<EventDocument>("events", eventSchema);
