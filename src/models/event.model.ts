@@ -30,7 +30,7 @@ export type EventDocument = Document & {
 
     registeredUsers: {
         userId: Types.ObjectId;
-        checkedInAt: number;
+        checkedInAt?: number;
 
         givenName: string;
         familyAndMiddleName: string;

@@ -41,6 +41,7 @@ import {
     AccessLevelController,
     ExamController,
     ExamSessionController,
+    EventController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -154,6 +155,7 @@ Promise.all([
             container.resolve<QuizSessionController>(QuizSessionController),
             container.resolve<ExamController>(ExamController),
             container.resolve<ExamSessionController>(ExamSessionController),
+            container.resolve<EventController>(EventController),
             container.resolve<AdminController>(AdminController),
         ],
         toNumber(process.env.PORT),
