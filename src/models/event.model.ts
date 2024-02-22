@@ -1,6 +1,10 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { Gender } from "./user.model";
 
+export interface EventCheckInQRCodeData {
+    userId: string;
+}
+
 export enum EventType {
     LHOT = "LOP_HOC_ON_TAP",
     OTHER = "OTHER",
@@ -26,7 +30,7 @@ export type EventDocument = Document & {
 
     registeredUsers: {
         userId: Types.ObjectId;
-        hasCheckedIn: boolean;
+        checkedInAt: number;
 
         givenName: string;
         familyAndMiddleName: string;
@@ -67,7 +71,7 @@ const eventSchema = new Schema<EventDocument>({
     registeredUsers: [
         {
             userId: { type: Schema.Types.ObjectId, required: true },
-            hasCheckedIn: { type: Boolean },
+            checkedInAt: { type: Number, required: false },
 
             givenName: { type: String, required: true },
             familyAndMiddleName: { type: String, required: true },

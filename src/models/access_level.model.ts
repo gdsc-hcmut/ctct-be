@@ -51,6 +51,7 @@ export enum Permission {
     ADMIN_CREATE_EVENT = "ADMIN_CREATE_EVENT",
     ADMIN_EDIT_EVENT = "ADMIN_EDIT_EVENT",
     ADMIN_DELETE_EVENT = "ADMIN_DELETE_EVENT",
+    ADMIN_CHECKIN_EVENT = "ADMIN_CHECKIN_EVENT",
 }
 
 export type AccessLevelDocument = Document & {

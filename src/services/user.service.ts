@@ -56,8 +56,20 @@ export class UserService {
         return await User.findById(id).populate(populateOptions);
     }
 
-    async findOne(query: FilterQuery<UserDocument>) {
-        return await User.findOne(query);
+    public async getByEmail(
+        email: string,
+        projection: ProjectionType<UserDocument> = {},
+        options: QueryOptions<UserDocument> = {}
+    ) {
+        return await this.findOne({ email }, projection, options);
+    }
+
+    async findOne(
+        query: FilterQuery<UserDocument>,
+        projection: ProjectionType<UserDocument> = {},
+        options: QueryOptions<UserDocument> = {}
+    ) {
+        return await User.findOne(query, projection, options);
     }
 
     async setUserAccessLevel(

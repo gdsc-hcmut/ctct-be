@@ -1,7 +1,11 @@
 import { injectable } from "inversify";
 import { logger } from "../lib/logger";
 import { CreateEventDto } from "../lib/dto/create_event.dto";
-import EventModel, { EventDocument, EventType } from "../models/event.model";
+import EventModel, {
+    EventCheckInQRCodeData,
+    EventDocument,
+    EventType,
+} from "../models/event.model";
 import {
     FilterQuery,
     PopulateOptions,
@@ -10,9 +14,13 @@ import {
     Types,
     UpdateQuery,
 } from "mongoose";
+import { aes256Encrypt, aes256Decrypt } from "../lib/aes256/aes256";
 
 @injectable()
 export class EventService {
+    private readonly EVENT_QR_ENCRYPTION_KEY =
+        process.env.AES256_ENCRYPTION_KEY;
+
     constructor() {
         logger.info(`[Event] Initializing...`);
     }
@@ -110,5 +118,16 @@ export class EventService {
             { deletedAt: Date.now() },
             { ...options, new: true }
         );
+    }
+
+    public getUserQrCode(data: EventCheckInQRCodeData): string {
+        return aes256Encrypt(
+            JSON.stringify(data),
+            this.EVENT_QR_ENCRYPTION_KEY
+        );
+    }
+
+    public decodeUserQrCode(qrCode: string): EventCheckInQRCodeData {
+        return JSON.parse(aes256Decrypt(qrCode, this.EVENT_QR_ENCRYPTION_KEY));
     }
 }

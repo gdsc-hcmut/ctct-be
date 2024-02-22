@@ -2,7 +2,12 @@ import { inject, injectable } from "inversify";
 import { Controller } from "../controller";
 import { Router } from "express";
 import { Request, Response, ServiceType } from "../../types";
-import { AccessLevelService, AuthService, EventService } from "../../services";
+import {
+    AccessLevelService,
+    AuthService,
+    EventService,
+    UserService,
+} from "../../services";
 import { logger } from "../../lib/logger";
 import { Permission } from "../../models/access_level.model";
 import { CreateEventDto } from "../../lib/dto/create_event.dto";
@@ -21,7 +26,8 @@ export class AdminEventController implements Controller {
         @inject(ServiceType.Auth) private authService: AuthService,
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
-        @inject(ServiceType.Event) private eventService: EventService
+        @inject(ServiceType.Event) private eventService: EventService,
+        @inject(ServiceType.User) private userService: UserService
     ) {
         this.router.all("*", authService.authenticate());
 
@@ -33,6 +39,13 @@ export class AdminEventController implements Controller {
         this.router.get("/", this.getAll.bind(this));
 
         this.router.delete("/:eventId", this.deleteOne.bind(this));
+
+        // check-in an event
+        this.router.post("/:eventId/checkin", this.checkIn.bind(this));
+        this.router.post(
+            "/:eventId/checkin/email",
+            this.checkInEmail.bind(this)
+        );
     }
 
     private getHasRegistrationTime(
@@ -451,6 +464,104 @@ export class AdminEventController implements Controller {
             const deletedEvent = await this.eventService.markAsDeleted(eventId);
 
             response.composer.success(deletedEvent);
+        } catch (error) {
+            logger.error(error.message);
+            console.error(error);
+            response.composer.badRequest(error.message);
+        }
+    }
+
+    public async checkIn(request: Request, response: Response) {
+        try {
+            const canPerform = this.accessLevelService.permissionChecker(
+                request.tokenMeta
+            );
+            const canCheckin = await canPerform(Permission.ADMIN_CHECKIN_EVENT);
+            if (!canCheckin) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const eventId = new Types.ObjectId(request.params.eventId);
+            const event = await this.eventService.getById(eventId);
+
+            if (!event) {
+                throw new Error(`Event not found`);
+            }
+
+            const now = Date.now();
+            if (now < event.startedAt || now > event.endedAt) {
+                throw new Error(`Event is not happening now`);
+            }
+
+            const { qrCode } = request.body;
+            const qrCodeData = this.eventService.decodeUserQrCode(qrCode);
+            const userId = new Types.ObjectId(qrCodeData.userId);
+
+            const userIndex = event.registeredUsers.findIndex(
+                (registeredUsers) => registeredUsers.userId.equals(userId)
+            );
+            if (userIndex === -1) {
+                throw new Error(`User not registered for this event`);
+            }
+
+            event.registeredUsers[userIndex].checkedInAt = now;
+            event.markModified("registeredUsers");
+            await event.save();
+
+            response.composer.success(event);
+        } catch (error) {
+            logger.error(error.message);
+            console.error(error);
+            response.composer.badRequest(error.message);
+        }
+    }
+
+    public async checkInEmail(request: Request, response: Response) {
+        try {
+            const canPerform = this.accessLevelService.permissionChecker(
+                request.tokenMeta
+            );
+            const canCheckin = await canPerform(Permission.ADMIN_CHECKIN_EVENT);
+            if (!canCheckin) {
+                throw new Error(
+                    `Your role(s) does not have the permission to perform this action`
+                );
+            }
+
+            const eventId = new Types.ObjectId(request.params.eventId);
+            const event = await this.eventService.getById(eventId);
+
+            if (!event) {
+                throw new Error(`Event not found`);
+            }
+
+            const now = Date.now();
+            if (now < event.startedAt || now > event.endedAt) {
+                throw new Error(`Event is not happening now`);
+            }
+
+            const { email } = request.body;
+            const user = await this.userService.getByEmail(email);
+
+            if (!user) {
+                throw new Error(`User not found`);
+            }
+
+            const userIndex = event.registeredUsers.findIndex(
+                (registeredUsers) => registeredUsers.userId.equals(user._id)
+            );
+
+            if (userIndex === -1) {
+                throw new Error(`User not registered for this event`);
+            }
+
+            event.registeredUsers[userIndex].checkedInAt = now;
+            event.markModified("registeredUsers");
+            await event.save();
+
+            response.composer.success(event);
         } catch (error) {
             logger.error(error.message);
             console.error(error);
