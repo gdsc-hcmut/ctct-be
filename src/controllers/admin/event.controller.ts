@@ -347,6 +347,27 @@ export class AdminEventController implements Controller {
                 query.eventType = request.query.eventType as EventType;
             }
 
+            if (request.query.startedAtMin) {
+                query.startedAt = {
+                    $gte: parseInt(request.query.startedAtMin as string),
+                };
+            }
+            if (request.query.startedAtMax) {
+                query.startedAt = {
+                    $lte: parseInt(request.query.startedAtMax as string),
+                };
+            }
+            if (request.query.endedAtMin) {
+                query.endedAt = {
+                    $gte: parseInt(request.query.endedAtMin as string),
+                };
+            }
+            if (request.query.endedAtMax) {
+                query.endedAt = {
+                    $lte: parseInt(request.query.endedAtMax as string),
+                };
+            }
+
             // querying event-type-specific metadata only works if type is specified
             if (request.query.eventType === EventType.LHOT) {
                 if (request.query.subject) {
