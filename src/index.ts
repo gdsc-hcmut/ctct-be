@@ -23,6 +23,7 @@ import {
     UserActivityService,
     ExamService,
     ExamSessionService,
+    EventService,
 } from "./services/index";
 
 import {
@@ -40,6 +41,7 @@ import {
     AccessLevelController,
     ExamController,
     ExamSessionController,
+    EventController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -129,6 +131,10 @@ container
     .bind<ExamSessionService>(ServiceType.ExamSession)
     .to(ExamSessionService)
     .inSingletonScope();
+container
+    .bind<EventService>(ServiceType.Event)
+    .to(EventService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -149,6 +155,7 @@ Promise.all([
             container.resolve<QuizSessionController>(QuizSessionController),
             container.resolve<ExamController>(ExamController),
             container.resolve<ExamSessionController>(ExamSessionController),
+            container.resolve<EventController>(EventController),
             container.resolve<AdminController>(AdminController),
         ],
         toNumber(process.env.PORT),
@@ -160,4 +167,8 @@ Promise.all([
 
     app.listen();
     container.get<SocketService>(ServiceType.Socket).initialize(app.io);
+
+    if (process.send) {
+        process.send("ready");
+    }
 });

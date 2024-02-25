@@ -1,0 +1,19 @@
+name: Deploy to Dev
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - dev
+
+jobs:
+    deploy-dev:
+        uses: ./.github/workflows/deploy-workflow.yml
+        with:
+            project_name: ${{ vars.PROJECT_NAME_DEV }}
+            listen_timeout: ${{ vars.LISTEN_TIMEOUT_DEV }}
+            ssh_port: ${{ vars.SSH_PORT_DEV }}
+            server_user: ${{ vars.SERVER_USER_DEV }}
+            server_ip: ${{ vars.SERVER_IP_DEV }}
+            project_path: ${{ vars.PROJECT_PATH_DEV }}
+        secrets:
+            ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
