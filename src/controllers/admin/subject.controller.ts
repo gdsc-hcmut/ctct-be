@@ -6,6 +6,7 @@ import {
     AccessLevelService,
     AuthService,
     ChapterService,
+    EventService,
     ExamService,
     MaterialService,
     PreviousExamService,
@@ -36,7 +37,8 @@ export class AdminSubjectController extends Controller {
         @inject(ServiceType.Question) private questionService: QuestionService,
         @inject(ServiceType.Quiz) private quizService: QuizService,
         @inject(ServiceType.Chapter) private chapterService: ChapterService,
-        @inject(ServiceType.Exam) private examService: ExamService
+        @inject(ServiceType.Exam) private examService: ExamService,
+        @inject(ServiceType.Event) private eventService: EventService
     ) {
         super();
 
@@ -245,6 +247,7 @@ export class AdminSubjectController extends Controller {
                 quizWithThisSubject,
                 chapterWithThisSubject,
                 examWithThisSubject,
+                eventWithThisSubject,
             ] = await Promise.all([
                 this.materialService.materialWithSubjectExists(subjectId),
                 this.previousExamService.previousExamWithSubjectExists(
@@ -254,6 +257,7 @@ export class AdminSubjectController extends Controller {
                 this.quizService.quizWithSubjectExists(subjectId),
                 this.chapterService.chapterWithSubjectExists(subjectId),
                 this.examService.examWithSubjectExists(subjectId),
+                this.eventService.eventWithSubjectExists(subjectId),
             ]);
             if (materialWithThisSubject) {
                 throw new Error(
@@ -283,6 +287,11 @@ export class AdminSubjectController extends Controller {
             if (examWithThisSubject) {
                 throw new Error(
                     `There are still exams that belong to this subject. Please delete them first`
+                );
+            }
+            if (eventWithThisSubject) {
+                throw new Error(
+                    `There are still events that belong to this subject. Please delete them first`
                 );
             }
 
