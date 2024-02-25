@@ -6,6 +6,7 @@ import {
     AccessLevelService,
     AuthService,
     EventService,
+    SubjectService,
     UserService,
 } from "../../services";
 import { logger } from "../../lib/logger";
@@ -27,7 +28,8 @@ export class AdminEventController implements Controller {
         @inject(ServiceType.AccessLevel)
         private accessLevelService: AccessLevelService,
         @inject(ServiceType.Event) private eventService: EventService,
-        @inject(ServiceType.User) private userService: UserService
+        @inject(ServiceType.User) private userService: UserService,
+        @inject(ServiceType.Subject) private subjectService: SubjectService
     ) {
         this.router.all("*", authService.authenticate());
 
@@ -163,6 +165,17 @@ export class AdminEventController implements Controller {
                 );
             }
 
+            // check valid metadata
+            if (eventInfo.eventType === EventType.LHOT) {
+                const { subject: subjectId } = eventInfo.lhotMetadata;
+                const subjectExists = await this.subjectService.subjectExists(
+                    subjectId
+                );
+                if (!subjectExists) {
+                    throw new Error(`Subject for Lop Hoc On Tap not found`);
+                }
+            }
+
             const { userId: createdBy } = request.tokenMeta;
             const event = await this.eventService.create(eventInfo, createdBy);
 
@@ -287,6 +300,17 @@ export class AdminEventController implements Controller {
                 throw new Error(
                     "Registration time and event time cannot overlap"
                 );
+            }
+
+            // check valid metadata
+            if (info.eventType === EventType.LHOT) {
+                const { subject: subjectId } = info.lhotMetadata;
+                const subjectExists = await this.subjectService.subjectExists(
+                    subjectId
+                );
+                if (!subjectExists) {
+                    throw new Error(`Subject for Lop Hoc On Tap not found`);
+                }
             }
 
             const updatedEvent = await this.eventService.editOne(eventId, info);

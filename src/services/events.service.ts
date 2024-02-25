@@ -153,4 +153,12 @@ export class EventService {
             ),
         };
     }
+
+    public async eventWithSubjectExists(subjectId: Types.ObjectId) {
+        return !_.isNil(
+            await this.getOne({
+                $or: [{ "lhotMetadata.subject": subjectId }],
+            })
+        );
+    }
 }

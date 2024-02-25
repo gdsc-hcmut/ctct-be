@@ -80,6 +80,7 @@ jobs:
                   script: |
                       source ~/.nvm/nvm.sh
                       cd ${{ inputs.project_path }}
+                      git reset --hard HEAD
                       git pull
                       yarn install
 
