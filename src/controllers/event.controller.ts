@@ -180,8 +180,9 @@ export class EventController implements Controller {
 
             event.registeredUsers = _.filter(
                 event.registeredUsers,
-                (registeredUser) => registeredUser.userId.equals(userId)
+                (registeredUser) => !registeredUser.userId.equals(userId)
             );
+            console.log(event.registeredUsers);
             event.markModified("registeredUsers");
             await event.save();
 
