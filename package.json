@@ -70,6 +70,8 @@
         "winston": "^3.9.0"
     },
     "devDependencies": {
+        "@commitlint/cli": "^19.0.0",
+        "@commitlint/config-conventional": "^19.0.0",
         "@types/adm-zip": "^0.4.32",
         "@types/async-lock": "^1.4.0",
         "@types/bcryptjs": "^2.4.2",
