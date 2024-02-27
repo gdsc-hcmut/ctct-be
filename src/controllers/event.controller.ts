@@ -182,6 +182,8 @@ export class EventController implements Controller {
                 event.registeredUsers,
                 (registeredUser) => registeredUser.userId.equals(userId)
             );
+            event.markModified("registeredUsers");
+            await event.save();
 
             response.composer.success(
                 this.eventService.censorEventInformationForUser(event)
