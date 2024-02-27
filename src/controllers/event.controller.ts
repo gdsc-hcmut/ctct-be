@@ -182,7 +182,6 @@ export class EventController implements Controller {
                 event.registeredUsers,
                 (registeredUser) => !registeredUser.userId.equals(userId)
             );
-            console.log(event.registeredUsers);
             event.markModified("registeredUsers");
             await event.save();
 
