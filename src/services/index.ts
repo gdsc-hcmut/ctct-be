@@ -17,6 +17,7 @@ import { UserActivityService } from "./user_activity.service";
 import { ExamService } from "./exam.service";
 import { ExamSessionService } from "./exam_session.service";
 import { EventService } from "./events.service";
+import { NewsService } from "./news.service";
 
 export {
     AuthService,
@@ -38,4 +39,5 @@ export {
     ExamService,
     ExamSessionService,
     EventService,
+    NewsService,
 };
