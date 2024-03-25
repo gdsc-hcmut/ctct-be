@@ -26,12 +26,12 @@ export class AdminNewsController implements Controller {
         this.router.all("*", authService.authenticate());
         this.router.post("/", this.create.bind(this));
 
-        this.router.get("/:id", this.getById.bind(this));
+        this.router.get("/:newsId", this.getById.bind(this));
         this.router.get("/", this.getAll.bind(this));
 
-        this.router.patch("/:id", this.editOne.bind(this));
+        this.router.patch("/:newsId", this.editOne.bind(this));
 
-        this.router.delete("/:id", this.deleteOne.bind(this));
+        this.router.delete("/:newsId", this.deleteOne.bind(this));
     }
 
     public async create(request: Request, response: Response) {
@@ -98,7 +98,7 @@ export class AdminNewsController implements Controller {
                 );
             }
 
-            const newsId = new Types.ObjectId(request.params.id);
+            const newsId = new Types.ObjectId(request.params.newsId);
             const news = await this.newsService.getById(newsId);
 
             if (!news) {
@@ -154,7 +154,7 @@ export class AdminNewsController implements Controller {
                 );
             }
 
-            const newsId = new Types.ObjectId(request.params.id);
+            const newsId = new Types.ObjectId(request.params.newsId);
             const news = await this.newsService.getById(
                 newsId,
                 {},
@@ -192,7 +192,7 @@ export class AdminNewsController implements Controller {
 
             if (request.query.title) {
                 query.title = {
-                    $regex: decodeURIComponent(request.query.name as string),
+                    $regex: decodeURIComponent(request.query.title as string),
                 };
             }
 
@@ -268,7 +268,7 @@ export class AdminNewsController implements Controller {
                 );
             }
 
-            const newsId = new Types.ObjectId(request.params.id);
+            const newsId = new Types.ObjectId(request.params.newsId);
             const news = await this.newsService.getById(newsId);
 
             if (!news) {

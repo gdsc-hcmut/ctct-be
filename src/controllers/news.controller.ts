@@ -12,7 +12,7 @@ import _ from "lodash";
 @injectable()
 export class NewsController implements Controller {
     public readonly router = Router();
-    public readonly path = "/event";
+    public readonly path = "/news";
 
     constructor(
         @inject(ServiceType.Auth) private authService: AuthService,
@@ -27,10 +27,10 @@ export class NewsController implements Controller {
 
     public async getById(request: Request, response: Response) {
         try {
-            const eventId = new Types.ObjectId(request.params.id);
+            const newsId = new Types.ObjectId(request.params.newsId);
 
             const news = await this.newsService.getById(
-                eventId,
+                newsId,
                 {},
                 {
                     populate: [{ path: "createdBy" }],
