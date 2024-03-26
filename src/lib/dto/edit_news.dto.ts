@@ -1,5 +1,3 @@
-import { Types } from "mongoose";
-
 export type EditNewsDto = {
     title: string;
     content: string;

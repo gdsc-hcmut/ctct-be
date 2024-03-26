@@ -94,7 +94,7 @@ export class NewsService {
             NewsModel.find(
                 { ...query, deletedAt: { $exists: false } },
                 projection,
-                { ort: { startedAt: -1 } }
+                { ort: { createdAt: -1 } }
             )
                 .skip(Math.max(pageSize * (pageNumber - 1), 0))
                 .limit(pageSize)
