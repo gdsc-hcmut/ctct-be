@@ -24,6 +24,7 @@ import {
     ExamService,
     ExamSessionService,
     EventService,
+    NewsService,
 } from "./services/index";
 
 import {
@@ -42,6 +43,7 @@ import {
     ExamController,
     ExamSessionController,
     EventController,
+    NewsController,
 } from "./controllers/index";
 
 import { ServiceType } from "./types";
@@ -135,6 +137,10 @@ container
     .bind<EventService>(ServiceType.Event)
     .to(EventService)
     .inSingletonScope();
+container
+    .bind<NewsService>(ServiceType.News)
+    .to(NewsService)
+    .inSingletonScope();
 
 // Initialize service first
 Promise.all([
@@ -157,6 +163,7 @@ Promise.all([
             container.resolve<ExamSessionController>(ExamSessionController),
             container.resolve<EventController>(EventController),
             container.resolve<AdminController>(AdminController),
+            container.resolve<NewsController>(NewsController),
         ],
         toNumber(process.env.PORT),
         [
