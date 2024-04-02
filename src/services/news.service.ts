@@ -63,7 +63,11 @@ export class NewsService {
         projection: ProjectionType<NewsDocument> = {},
         options: QueryOptions<NewsDocument> = {}
     ): Promise<NewsDocument> {
-        return await NewsModel.findOne(query, projection, options);
+        return await NewsModel.findOne(
+            { ...query, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
     }
 
     public async getById(
@@ -79,7 +83,11 @@ export class NewsService {
         projection: ProjectionType<NewsDocument>,
         options: QueryOptions<NewsDocument>
     ) {
-        return await NewsModel.find(query, projection, options);
+        return await NewsModel.find(
+            { ...query, deletedAt: { $exists: false } },
+            projection,
+            options
+        );
     }
 
     public async getPaginated(
