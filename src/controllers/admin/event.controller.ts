@@ -62,6 +62,18 @@ export class AdminEventController implements Controller {
         }
     }
 
+    private getHasThumbnailAndBanner(
+        eventType: EventType,
+        defaultValue: boolean
+    ) {
+        switch (eventType) {
+            case EventType.LHOT:
+                return false;
+            default:
+                return defaultValue;
+        }
+    }
+
     public async create(request: Request, response: Response) {
         try {
             const canPerform = this.accessLevelService.permissionChecker(
@@ -80,6 +92,11 @@ export class AdminEventController implements Controller {
             const hasRegistrationTime = this.getHasRegistrationTime(
                 request.body.eventType,
                 request.body.hasRegistrationTime
+            );
+
+            const getHasThumbnailAndBanner = this.getHasThumbnailAndBanner(
+                request.body.eventType,
+                request.body.hasThumbnailAndBanner
             );
 
             const eventInfo: CreateEventDto = {
@@ -107,6 +124,16 @@ export class AdminEventController implements Controller {
                                   request.body.lhotMetadata.subject
                               ),
                           }
+                        : undefined,
+
+                hasThumbnailAndBanner: getHasThumbnailAndBanner,
+                thumbnailUrl:
+                    request.body.eventType === EventType.OTHER
+                        ? request.body.thumbnailUrl
+                        : undefined,
+                bannerUrl:
+                    request.body.eventType === EventType.OTHER
+                        ? request.body.bannerUrl
                         : undefined,
             };
 
@@ -176,6 +203,20 @@ export class AdminEventController implements Controller {
                 }
             }
 
+            if (_.isNil(eventInfo.hasThumbnailAndBanner)) {
+                throw new Error(
+                    "Missing whether event has thumbnail and banner"
+                );
+            }
+
+            if (
+                eventInfo.hasThumbnailAndBanner &&
+                (_.isNil(eventInfo.thumbnailUrl) ||
+                    _.isNil(eventInfo.bannerUrl))
+            ) {
+                throw new Error("Thumbnail and banner URLs are required");
+            }
+
             const { userId: createdBy } = request.tokenMeta;
             const event = await this.eventService.create(eventInfo, createdBy);
 
@@ -234,6 +275,14 @@ export class AdminEventController implements Controller {
                               request.body.lhotMetadata.subject
                           ),
                       },
+
+                hasThumbnailAndBanner: _.isNil(
+                    request.body.hasThumbnailAndBanner
+                )
+                    ? event.hasThumbnailAndBanner
+                    : request.body.hasThumbnailAndBanner,
+                thumbnailUrl: request.body.thumbnailUrl || event.thumbnailUrl,
+                bannerUrl: request.body.bannerUrl || event.bannerUrl,
             };
 
             info.hasRegistrationTime = this.getHasRegistrationTime(
@@ -311,6 +360,30 @@ export class AdminEventController implements Controller {
                 if (!subjectExists) {
                     throw new Error(`Subject for Lop Hoc On Tap not found`);
                 }
+            }
+
+            info.hasThumbnailAndBanner = this.getHasThumbnailAndBanner(
+                info.eventType,
+                info.hasThumbnailAndBanner
+            );
+            info.thumbnailUrl = info.hasThumbnailAndBanner
+                ? info.thumbnailUrl
+                : undefined;
+            info.bannerUrl = info.hasThumbnailAndBanner
+                ? info.bannerUrl
+                : undefined;
+
+            if (_.isNil(info.hasThumbnailAndBanner)) {
+                throw new Error(
+                    "Missing whether event has thumbnail and banner"
+                );
+            }
+
+            if (
+                info.hasThumbnailAndBanner &&
+                (_.isNil(info.thumbnailUrl) || _.isNil(info.bannerUrl))
+            ) {
+                throw new Error("Thumbnail and banner URLs are required");
             }
 
             const updatedEvent = await this.eventService.editOne(eventId, info);

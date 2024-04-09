@@ -43,6 +43,10 @@ export type EventDocument = Document & {
         registeredAt: number;
     }[];
 
+    hasThumbnailAndBanner: boolean;
+    thumbnailUrl?: string;
+    bannerUrl?: string;
+
     createdAt: number;
     createdBy: Types.ObjectId;
     lastUpdatedAt: number;
@@ -84,6 +88,10 @@ const eventSchema = new Schema<EventDocument>({
             registeredAt: { type: Number, required: true },
         },
     ],
+
+    hasThumbnailAndBanner: { type: Boolean },
+    thumbnailUrl: { type: String, required: false },
+    bannerUrl: { type: String, required: false },
 
     createdAt: { type: Number, required: true },
     createdBy: { type: Schema.Types.ObjectId, required: true, ref: "User" },

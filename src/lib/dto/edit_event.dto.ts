@@ -18,4 +18,8 @@ export type EditEventDto = {
     lhotMetadata: {
         subject: Types.ObjectId;
     };
+
+    hasThumbnailAndBanner: boolean;
+    thumbnailUrl?: string;
+    bannerUrl?: string;
 };
