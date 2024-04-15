@@ -27,7 +27,7 @@ export class NewsService {
                 "_id",
                 "title",
                 "content",
-                "thumbnail",
+                "thumbnailUrl",
                 "author",
                 "createdAt",
                 "lastUpdatedAt",
