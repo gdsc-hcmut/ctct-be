@@ -1,6 +1,6 @@
 export type EditNewsDto = {
     title: string;
     content: string;
-    thumbnailURL: string;
+    thumbnail: string;
     author: string;
 };

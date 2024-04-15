@@ -3,7 +3,7 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 export type NewsDocument = Document & {
     title: string;
     content: string;
-    thumbnailURL: string;
+    thumbnail: string;
     author: string;
 
     createdAt: number;
@@ -15,7 +15,7 @@ export type NewsDocument = Document & {
 const newsSchema = new Schema<NewsDocument>({
     title: { type: String, required: true },
     content: { type: String, required: true },
-    thumbnailURL: { type: String, required: false },
+    thumbnail: { type: String, required: false },
     author: { type: String, required: true },
 
     createdAt: { type: Number, required: true },
