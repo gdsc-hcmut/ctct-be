@@ -53,7 +53,7 @@ export class AdminNewsController implements Controller {
             const newsInfo: CreateNewsDto = {
                 title: request.body.title,
                 content: request.body.content,
-                thumbnailUrl: request.body.thumbnailUrl,
+                thumbnailURL: request.body.thumbnailURL,
                 author: request.body.author,
             };
 
@@ -65,8 +65,8 @@ export class AdminNewsController implements Controller {
                 throw new Error("News content is required");
             }
 
-            if (_.isEmpty(newsInfo.thumbnailUrl)) {
-                throw new Error("News thumbnailUrl is required");
+            if (_.isEmpty(newsInfo.thumbnailURL)) {
+                throw new Error("News thumbnailURL is required");
             }
 
             if (_.isEmpty(newsInfo.author)) {
@@ -108,7 +108,7 @@ export class AdminNewsController implements Controller {
             const newsInfo: EditNewsDto = {
                 title: request.body.title,
                 content: request.body.content,
-                thumbnailUrl: request.body.thumbnailUrl,
+                thumbnailURL: request.body.thumbnailURL,
                 author: request.body.author,
             };
 
@@ -120,8 +120,8 @@ export class AdminNewsController implements Controller {
                 throw new Error("News content is required");
             }
 
-            if (_.isEmpty(newsInfo.thumbnailUrl)) {
-                throw new Error("News thumbnailUrl is required");
+            if (_.isEmpty(newsInfo.thumbnailURL)) {
+                throw new Error("News thumbnailURL is required");
             }
 
             if (_.isEmpty(newsInfo.author)) {

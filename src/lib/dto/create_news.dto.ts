@@ -1,6 +1,6 @@
 export type CreateNewsDto = {
     title: string;
     content: string;
-    thumbnailUrl: string;
+    thumbnailURL: string;
     author: string;
 };
