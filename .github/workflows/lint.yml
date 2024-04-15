@@ -20,4 +20,4 @@ jobs:
               run: yarn add eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-config-prettier -D
 
             - name: Lint code
-              run: yarn eslint src --ext .ts
+              run: ESLINT_USE_FLAT_CONFIG=false yarn eslint src --ext .ts
