@@ -8,6 +8,23 @@ export enum Gender {
     OTHER = "OTHER",
 }
 
+export enum Faculty {
+    FME = "FME",
+    DEE = "DEE",
+    FCE = "FCE",
+    FChE = "FChE",
+    CSE = "CSE",
+    GEOPET = "GEOPET",
+    FAS = "FAS",
+    FMT = "FMT",
+    FTE = "FTE",
+    SIM = "SIM",
+    FENR = "FENR",
+    IMTC = "IMTC",
+    PFIEV = "PFIEV",
+    OISP = "OISP",
+}
+
 export type UserDocument = Document & {
     googleId: string;
     accessLevels: Types.ObjectId[];
@@ -17,7 +34,7 @@ export type UserDocument = Document & {
     familyAndMiddleName: string;
     givenName: string;
     studentId: string;
-    major: string;
+    major: Faculty;
     dateOfBirth: number;
     gender: Gender;
     email: string;
@@ -38,7 +55,7 @@ const userSchema = new Schema<UserDocument>({
     familyAndMiddleName: { type: String, default: "" },
     givenName: { type: String, default: "" },
     studentId: { type: String, default: "" },
-    major: { type: String, default: "" },
+    major: { type: String, enum: Faculty },
     dateOfBirth: Number,
     gender: { type: String, enum: Gender },
     email: String,
