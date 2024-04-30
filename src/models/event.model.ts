@@ -12,7 +12,7 @@ export enum EventType {
 
 export type EventDocument = Document & {
     name: string;
-    description: string;
+    description?: string;
 
     eventType: EventType;
     venue: string;
