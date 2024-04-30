@@ -108,7 +108,7 @@ export class EventController implements Controller {
                     canRegister = false;
                 }
             } else {
-                if (now > event.startedAt) {
+                if (now > event.endedAt) {
                     canRegister = false;
                 }
             }
