@@ -142,10 +142,6 @@ export class AdminEventController implements Controller {
                 throw new Error("Event name is required");
             }
 
-            if (_.isEmpty(eventInfo.description)) {
-                throw new Error("Event description is required");
-            }
-
             if (!Object.values(EventType).includes(eventInfo.eventType)) {
                 throw new Error(`Invalid event type: ${eventInfo.eventType}`);
             }
@@ -299,10 +295,6 @@ export class AdminEventController implements Controller {
             // check validity of eventInfo
             if (_.isEmpty(info.name)) {
                 throw new Error("Event name is required");
-            }
-
-            if (_.isEmpty(info.description)) {
-                throw new Error("Event description is required");
             }
 
             if (!Object.values(EventType).includes(info.eventType)) {
