@@ -12,7 +12,7 @@ import {
 import { ErrorNotFound } from "../lib/errors";
 import { logger } from "../lib/logger";
 import { EditProfileDto } from "../lib/dto/edit_profile.dto";
-import { Gender } from "../models/user.model";
+import { Gender, Faculty } from "../models/user.model";
 import { FilterQuery, Types } from "mongoose";
 import {
     UserActivityDocument,
@@ -80,7 +80,7 @@ export class MeController extends Controller {
                     req.body.familyAndMiddleName ?? user.familyAndMiddleName,
                 givenName: req.body.givenName ?? user.givenName,
                 studentId: req.body.studentId ?? user.studentId,
-                major: req.body.major ?? user.major,
+                major: (req.body.major as Faculty) ?? user.major,
                 dateOfBirth: req.body.dateOfBirth ?? user.dateOfBirth,
                 gender: (req.body.gender as Gender) ?? user.gender,
                 phoneNumber: req.body.phoneNumber ?? user.phoneNumber,
@@ -98,6 +98,13 @@ export class MeController extends Controller {
                 Object.values(Gender).includes(info.gender);
             if (!validGender) {
                 throw new Error(`Gender ${info.gender} is invalid`);
+            }
+
+            const validMajor =
+                info.major === undefined ||
+                Object.values(Faculty).includes(info.major);
+            if (!validMajor) {
+                throw new Error(`Major ${info.major} is invalid`);
             }
 
             const validPhoneNumber =
