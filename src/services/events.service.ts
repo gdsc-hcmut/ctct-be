@@ -147,6 +147,9 @@ export class EventService {
                 "startedAt",
                 "endedAt",
                 "lhotMetadata",
+                "hasThumbnailAndBanner",
+                "thumbnailUrl",
+                "bannerUrl",
             ]),
             registeredUsers: _.map(event.registeredUsers, (user) =>
                 _.pick(user, ["userId", "checkedInAt"])

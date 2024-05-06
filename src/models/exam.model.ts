@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { Semester } from "../config";
-import { Gender } from "./user.model";
+import { Gender, Faculty } from "./user.model";
 
 export enum ExamType {
     MIDTERM_EXAM = "MIDTERM_EXAM",
@@ -25,7 +25,7 @@ export type ExamDocument = Document & {
             familyAndMiddleName: string;
             dateOfBirth: number;
             studentId: string;
-            major: string;
+            major: Faculty;
             gender: Gender;
             phoneNumber: string;
         }[];
@@ -64,7 +64,7 @@ const examSchema = new Schema<ExamDocument>({
                     familyAndMiddleName: String,
                     dateOfBirth: Number,
                     studentId: String,
-                    major: String,
+                    major: { type: String, enum: Faculty },
                     gender: { type: String, enum: Gender },
                     phoneNumber: String,
                 },

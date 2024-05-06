@@ -108,7 +108,7 @@ export class EventController implements Controller {
                     canRegister = false;
                 }
             } else {
-                if (now > event.startedAt) {
+                if (now > event.endedAt) {
                     canRegister = false;
                 }
             }
@@ -180,8 +180,10 @@ export class EventController implements Controller {
 
             event.registeredUsers = _.filter(
                 event.registeredUsers,
-                (registeredUser) => registeredUser.userId.equals(userId)
+                (registeredUser) => !registeredUser.userId.equals(userId)
             );
+            event.markModified("registeredUsers");
+            await event.save();
 
             response.composer.success(
                 this.eventService.censorEventInformationForUser(event)
