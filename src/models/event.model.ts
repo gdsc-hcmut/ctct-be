@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
-import { Gender, Faculty } from "./user.model";
+import { Gender } from "./user.model";
 
 export interface EventCheckInQRCodeData {
     userId: string;
@@ -36,7 +36,7 @@ export type EventDocument = Document & {
         familyAndMiddleName: string;
         dateOfBirth: number;
         studentId: string;
-        major: Faculty;
+        major: string;
         gender: Gender;
         phoneNumber: string;
 
@@ -81,7 +81,7 @@ const eventSchema = new Schema<EventDocument>({
             familyAndMiddleName: { type: String, required: true },
             dateOfBirth: { type: Number, required: true },
             studentId: { type: String, required: true },
-            major: { type: String, required: true, enum: Faculty },
+            major: { type: String, required: true },
             gender: { type: String, required: true, enum: Gender },
             phoneNumber: { type: String, required: true },
 
